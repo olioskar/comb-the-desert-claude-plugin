@@ -1,0 +1,14 @@
+{
+  "name": "comb-marketplace",
+  "owner": {
+    "name": "Olafur Oskarsson",
+    "url": "https://github.com/olioskar"
+  },
+  "plugins": [
+    {
+      "name": "comb",
+      "source": ".",
+      "description": "Comb the Desert: review → plan → fix pipeline."
+    }
+  ]
+}
