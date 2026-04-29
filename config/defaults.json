@@ -1,0 +1,43 @@
+{
+  "paths": {
+    "reviews":     "docs/combs/reviews",
+    "plans":       "docs/combs/plans",
+    "base_branch": "main"
+  },
+  "directives": {
+    "include_plugin_defaults": true,
+    "user_path": "docs/directives"
+  },
+  "agents": {
+    "code-reviewer": {
+      "subagent_type": "comb:code-reviewer",
+      "when_to_use": "Always. General correctness, data flow, logic errors, broken contracts, security."
+    },
+    "simplifier": {
+      "subagent_type": "comb:simplifier",
+      "when_to_use": "Diff introduces abstractions, new utilities, refactors, or non-trivial structural change."
+    },
+    "silent-failure-hunter": {
+      "subagent_type": "comb:silent-failure-hunter",
+      "when_to_use": "Diff contains try/catch, error handling, fallbacks, or async flows."
+    },
+    "test-auditor": {
+      "subagent_type": "comb:test-auditor",
+      "when_to_use": "Diff changes behavior, contracts, or business logic. Always for plan/fix verification."
+    },
+    "consistency-auditor": {
+      "subagent_type": "comb:consistency-auditor",
+      "when_to_use": "Diff touches an area with established patterns, a spec/plan we just wrote, or a reference implementation worth comparing against."
+    }
+  },
+  "models": {
+    "review":     "opus",
+    "plan":       "opus",
+    "fix": {
+      "implementer_standard": "opus",
+      "implementer_trivial":  "sonnet",
+      "reviewer":             "opus"
+    },
+    "the_desert": "opus"
+  }
+}
