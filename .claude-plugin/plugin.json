@@ -1,0 +1,13 @@
+{
+  "name": "comb",
+  "version": "0.1.0",
+  "description": "Comb the Desert: a review → plan → fix pipeline for code review with configurable agents and authoritative project directives.",
+  "author": {
+    "name": "Olafur Oskarsson",
+    "email": "olioskar@gmail.com"
+  },
+  "homepage": "https://github.com/olioskar/comb-the-desert-claude-plugin",
+  "repository": "https://github.com/olioskar/comb-the-desert-claude-plugin",
+  "license": "MIT",
+  "keywords": ["code-review", "pr-review", "review-pipeline", "agents", "directives"]
+}
