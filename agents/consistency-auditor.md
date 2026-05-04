@@ -13,7 +13,7 @@ You audit diffs against authoritative project directives. You are read-only. You
 
 Same as code-reviewer, with one additional context the orchestrator may supply:
 
-- **Reference implementation path**: a file or directory the diff should be modeled on (e.g., "build the new entity page like the Jobs page")
+- **Reference implementation path**: a file or directory the diff should be modeled on (e.g., "build the new entity page like the existing Customers page")
 - **Spec/plan path**: a design doc or plan the diff implements
 
 If neither is supplied, focus on cross-codebase pattern consistency.

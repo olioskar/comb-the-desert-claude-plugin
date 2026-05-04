@@ -22,7 +22,7 @@ Treat these rules as policy. Exceptions require explicit documentation, owner, a
 ### 2. Reference implementations
 
 1. **When a feature has a canonical example, follow it.**
-   - "Build the new entity page like the Jobs page" — the reference is the spec.
+   - "Build the new entity page like the existing Customers page" — when a reference is named, the reference is the spec.
 
 2. **Identify and call out the reference in PR descriptions.**
    - The reviewer should know what the new code is modeled on; that's how they assess fidelity.
@@ -48,13 +48,13 @@ Treat these rules as policy. Exceptions require explicit documentation, owner, a
 ### 4. Naming and vocabulary
 
 1. **Use the codebase's domain vocabulary.**
-   - If the codebase calls them "worksites," do not introduce "sites" or "locations" for the same concept.
+   - If the codebase calls them "customers," do not introduce "clients" or "accounts" for the same concept.
 
 2. **Consistent naming across layers.**
    - The API field, the model property, the form input, the UI label — should resolve to the same name where possible.
 
 3. **Singular and plural conventions.**
-   - Pick one (`workSite` and `workSites`, or `site` and `sites`) and use it across.
+   - Pick one (`customer` and `customers`, or `account` and `accounts`) and use it across.
 
 ---
 

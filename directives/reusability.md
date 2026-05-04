@@ -48,7 +48,7 @@ Treat these rules as policy. Exceptions require explicit documentation, owner, a
 ### 4. Naming conveys reusability
 
 1. **Generic names imply generic usage.**
-   - `formatDate(date)` implies broad reuse; `formatRowDateForGrid(date)` implies a specific caller.
+   - `formatDate(date)` implies broad reuse; `formatDateForCustomerList(date)` implies a specific caller.
    - Match the name's specificity to the actual scope.
 
 2. **Don't lie with names.**
