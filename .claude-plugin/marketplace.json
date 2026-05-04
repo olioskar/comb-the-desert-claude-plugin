@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "comb",
-      "source": ".",
+      "source": "./",
       "description": "Comb the Desert: review → plan → fix pipeline."
     }
   ]
