@@ -11,6 +11,7 @@ The plugin ships configurable reviewer agents, eight domain-neutral directives, 
 - **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe
 - **`/comb:the-desert`** — runs all three steps as one continuous sweep, opus everywhere, no pauses
 - **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
+- **`/comb:help`** — overview and per-command details. `/comb:help <command>` for a deep dive
 
 Each command accepts a free-form focus brief that biases agent picking and finding priorities:
 
