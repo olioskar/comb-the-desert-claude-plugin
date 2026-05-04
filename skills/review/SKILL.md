@@ -156,24 +156,25 @@ Launch all dispatches in parallel by issuing multiple Task tool calls in a singl
 
 ## Step 5: Run mechanical verification checks
 
-While agents work, in parallel, run project-appropriate verification (typecheck, tests, lint). Choose commands based on `CLAUDE.md` instructions and the project's manifest files (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, etc.). Examples:
+While agents work, in parallel, run project-appropriate verification (typecheck, tests, lint). Choose commands based on `CLAUDE.md` instructions and the project's manifest files. Recognized manifests and example commands:
 
-```bash
-# TypeScript / JavaScript
-npx tsc --noEmit 2>&1
-npx vitest run <test_files> 2>&1
+| Manifest | Ecosystem | Example commands |
+|---|---|---|
+| `package.json` | Node / TypeScript / JavaScript | `npx tsc --noEmit`, `npx eslint .`, `npx vitest run <files>`, `npm test` |
+| `pyproject.toml`, `setup.py`, `requirements.txt` | Python | `ruff check .`, `mypy .`, `pytest` |
+| `Cargo.toml` | Rust | `cargo check`, `cargo clippy --no-deps`, `cargo test` |
+| `go.mod` | Go | `go vet ./...`, `go build ./...`, `go test ./...` |
+| `composer.json` | PHP | `composer test` (if defined), `vendor/bin/phpstan analyse`, `vendor/bin/phpunit` |
+| `Gemfile` | Ruby | `bundle exec rubocop`, `bundle exec rspec` |
+| `pom.xml` | Java (Maven) | `mvn -q test`, `mvn -q verify` |
+| `build.gradle`, `build.gradle.kts` | Java / Kotlin (Gradle) | `./gradlew check`, `./gradlew test` |
+| `*.csproj`, `*.sln` | .NET | `dotnet build`, `dotnet test` |
+| `mix.exs` | Elixir | `mix compile --warnings-as-errors`, `mix test` |
+| `Package.swift` | Swift | `swift build`, `swift test` |
+| `pubspec.yaml` | Dart / Flutter | `dart analyze`, `dart test` (or `flutter test`) |
+| `Makefile`, `CMakeLists.txt` | C / C++ | `make`, `cmake --build build`, `ctest --test-dir build` |
 
-# Python
-ruff check . 2>&1
-mypy . 2>&1
-pytest 2>&1
-
-# Rust
-cargo check 2>&1
-cargo test 2>&1
-
-# Project-specific prohibited-import checks per CLAUDE.md, if applicable
-```
+Project-specific prohibited-import or convention checks per `CLAUDE.md` come on top of the above. Always pipe with `2>&1` so stderr lands in the verification table.
 
 If `CLAUDE.md` does not name a verification command and no manifest is recognised, skip the verification table row with a note rather than running unrelated tooling. Capture all results for the verification table.
 
