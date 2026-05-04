@@ -10,6 +10,7 @@ The plugin ships configurable reviewer agents, eight domain-neutral directives, 
 - **`/comb:plan`** — turns each finding into a self-contained fix instruction
 - **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe
 - **`/comb:the-desert`** — runs all three steps as one continuous sweep, opus everywhere, no pauses
+- **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
 
 Each command accepts a free-form focus brief that biases agent picking and finding priorities:
 
@@ -57,6 +58,8 @@ The plugin reads three layers of config, deep-merged in this order (later wins):
 1. `${CLAUDE_PLUGIN_ROOT}/config/defaults.json` — shipped defaults
 2. `~/.claude/comb.config.json` — global override
 3. `<project-root>/.claude/comb.config.json` — project override
+
+If you'd rather not hand-edit JSON, run `/comb:configure` and describe the change ("disable test-auditor", "use sonnet for plan", "look for my directives in `docs/our-rules`"). The skill picks the right scope file, shows a diff, and writes the merged result.
 
 ### Common overrides
 
