@@ -40,14 +40,18 @@ If the focus brief is empty, no directives are flagged primary; all directives s
 ## Step 3: Parse all findings
 
 Extract every finding from the report:
-- **Reference code**: C1, H2, M5, etc. Preserve exactly as the report uses them.
+- **Reference code**: C1, H2, M5, T1, D1, etc. Preserve exactly as the report uses them.
 - **Title**: short description
 - **Category** / **severity**: as the report uses
 - **File(s)**: paths and line numbers
 - **Description**: what's wrong, why
 - **Suggested fix**: if the report includes one
 
-Count them. Confirm the total with the user before sending agents.
+**Include Deferred items.** Don't drop them. "Deferred" is *noted, explicitly out of scope for the current round* — but the user often picks them up while in the area. Each deferred item gets the same per-finding plan file as everything else. The user is the gate, not the planner.
+
+If the Deferred section uses bullet points without codes (older review reports), assign `D1`, `D2`, … inline before dispatching agents, in the order they appear.
+
+Count every code (C/H/M/L/T/D). Confirm the total with the user before sending agents.
 
 ## Step 4: Suggest groupings
 
@@ -151,25 +155,44 @@ You are writing fix instructions for **one** review finding. Treat the finding a
 
 ## 5. Output format
 
-Your output is a single markdown file at `{output_folder}/{reference_code}-{title-slug}.md` with these sections in order:
+Your output is a single markdown file at `{output_folder}/{reference_code}-{title-slug}.md`.
 
-### What
+**File shape — H1 title, header block, six body sections in order, citations footer:**
+
+```markdown
+# {reference_code} — {one-line title}
+
+**Severity:** {Critical | High | Medium | Low | Test gap | Deferred}
+**File(s):** {primary repo-relative path(s), with line ranges}
+{For grouped items, also: }**Consolidates:** {comma-separated finding codes the group covers}
+
+---
+
+## What
 Exactly what needs to change. Name the exact code, lines, patterns.
 
-### Why
+## Why
 Why this matters. What breaks or degrades if left unfixed.
 
-### Where
+## Where
 Exact file path(s) and line number(s). Only include related files if they're part of the fix.
 
-### How
+## How
 The exact changes, with before/after code blocks. Precise enough to apply mechanically.
 
-### Expected Outcome
+## Expected Outcome
 What's different after the fix. How to verify it worked.
 
-### Scope
-What IS in scope. What is explicitly OUT of scope — no drive-by refactors, no bonus cleanup.
+## Scope
+**In scope:** what this fix covers.
+**Out of scope:** what NOT to touch — no drive-by refactors, no bonus cleanup.
+
+## Directive citations
+Every directive (plugin or user) and any project-level authoritative doc (CLAUDE.md, MEMORY.md, etc.) the instruction relies on. One bullet per source, with a one-line reason it applies. If the fix doesn't lean on any, write `None — no policy citation needed.`
+
+- `<file>.md §<section>` — one-line reason
+- `CLAUDE.md` "<section heading>" — one-line reason
+```
 
 Be concise and precise. No fluff. These instructions are the single source of truth for this fix.
 

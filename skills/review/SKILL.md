@@ -199,7 +199,7 @@ Monitor agent completion. Don't consolidate until all agents report back. If one
 | Test gaps | Missing or weak coverage |
 | Deferred | Noted, explicitly out of scope |
 
-**Finding codes:** sequential by severity. C1, C2 / H1, H2 / M1, M2 / L1, L2 / T1, T2.
+**Finding codes:** sequential by severity. C1, C2 / H1, H2 / M1, M2 / L1, L2 / T1, T2 / D1, D2. Every Deferred item gets a code too — `/comb:plan` plans them by code, so unnumbered bullets get dropped.
 
 ## Step 8: Write the report
 
@@ -259,7 +259,13 @@ File(s): `{path}:{line}`
 {findings or "None."}
 
 ### Deferred
-{findings or "None."}
+**{code} — {title}**
+*Source: {agent(s)}*
+File(s): `{path}:{line}`
+
+{Why it's deferred, why it still matters, fix sketch.}
+
+(or "None.")
 ```
 
 ## Step 9: Present
