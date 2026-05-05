@@ -5,6 +5,12 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] — 2026-05-05
+
+### Changed
+
+- **Trim 0.4.1's over-correction.** Replaced the per-language operator/syntax enumerations in `silent-failure-hunter.md` and the 13-row manifest+commands table in `/comb:review` Step 5 with abstract patterns and a flat manifest list. The model already knows that `?.` is JS/TS, `unwrap_or` is Rust, and `composer test` belongs to PHP — listing them inline added tokens without adding judgment. Same paradigm-spanning behavior, less prompt weight.
+
 ## [0.4.1] — 2026-05-04
 
 ### Changed
