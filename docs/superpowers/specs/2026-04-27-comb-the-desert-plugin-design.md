@@ -1,6 +1,7 @@
 # comb-the-desert plugin — design spec
 
 **Status:** Approved 2026-04-27 (revised after Round 1 review on same date)
+**Update 2026-05-05:** Historical — plugin has evolved beyond this spec. The skill bodies under `skills/*/SKILL.md` are the authoritative runtime contract. See `README.md` and `CHANGELOG.md` for current behavior. This document is retained for design rationale (the *why*), not as a current spec.
 **Repo:** comb-the-desert-claude-plugin
 **Plugin name:** `comb` (skills/commands invoked as `/comb:*`)
 

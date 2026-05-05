@@ -270,10 +270,10 @@ Only flag genuine issues, not style preferences. One or two max. If nothing stan
 
 - **PASS** — log it, announce complete, move on.
 - **FAIL** — read feedback. Adjust instructions if needed. Send a new implementer. Review again. **If 3 failures on one item, stop and ask the user.**
-- **DISCOVERED** — write a new instruction document in the same folder using the next available code (`D1`, `D2`...). Same format as all other items. Add to the end of the queue. Announce:
+- **DISCOVERED** — write a new instruction document in the same folder using the next available code (`X1`, `X2`...). The `X` prefix means "extra, found during execution" and is distinct from `D{n}` Deferred items emitted by review. Same format as all other items. Add to the end of the queue. Announce:
   ```
   M3 — PASS (5/15 complete)
-  Discovered issue added: D1 — {title} (queue is now 16 items)
+  Discovered issue added: X1 — {title} (queue is now 16 items)
   Next: M4 — {title}
   ```
 
@@ -300,14 +300,14 @@ All {N} items complete:
   - H1: PASS
   - H2: PASS (1 retry)
   - L1-L3: PASS (parallel batch, trivial implementer)
-  - D1: PASS (discovered during H2 review)
+  - X1: PASS (discovered during H2 review)
   - ...
 
 {M} items deferred:
-  - X1-X6: {reason}
+  - (deferred items listed by their review code, e.g., D1-D4)
 
 {K} discovered during execution:
-  - D1: {title} (found reviewing H2) — PASS
+  - X1: {title} (found reviewing H2) — PASS
 ```
 
 ## Ground rules

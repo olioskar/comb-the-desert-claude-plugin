@@ -190,7 +190,7 @@ Monitor agent completion. Don't consolidate until all agents report back. If one
 
 **Output path:** `<paths.reviews>/<derived-name>.md`. Naming:
 - PR → `pr-{number}-round{N}-report.md`
-- Branch → `branch-{name}-round{N}-report.md`
+- Branch → `branch-{slug}-round{N}-report.md` where `{slug}` is the branch name with `/`, whitespace, and any other path-unsafe character (`:`, `\`, `?`, `*`, `<`, `>`, `|`, `"`) replaced with `-`. Collapse consecutive `-` and trim trailing `-`. Example: `feature/foo bar` → `feature-foo-bar`.
 
 **N is computed as `(count of existing files matching the prefix in paths.reviews) + 1`.**
 

@@ -5,6 +5,18 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] — 2026-05-05
+
+### Fixed
+
+- **`D`-code collision between Deferred (review) and Discovered (fix).** Both severities used `D1, D2, …` — a fix run that discovered new issues would have overwritten the review's deferred-item plan files. Discovered items now use `X{n}` ("extras found during execution"). Deferred items keep `D{n}`.
+- **Branch slug for review filename.** Branches with `/`, whitespace, or other path-unsafe characters (e.g., `feature/foo bar`) would have written to a malformed report path (`branch-feature/foo bar-round1-report.md`). The Step 8 naming rule now slugifies the branch name (`/` and unsafe chars → `-`, collapse runs, trim trailing).
+
+### Changed
+
+- **Group naming convention codified.** `/comb:plan` Step 4 now specifies `G{n}` for grouped findings, sequential in user-acceptance order. Step 6 file-naming rule references this. Earlier versions left the group code as the planner's invention (your tero run picked `G1, G2, G4`); future runs will be deterministic.
+- **`docs/superpowers/specs/2026-04-27-comb-the-desert-plugin-design.md` marked historical.** The spec was authoritative for v0.1.0; the plugin has evolved past it. Added an "Update 2026-05-05" note pointing readers to README/CHANGELOG/skill bodies as the current source of truth. The spec is retained for design rationale.
+
 ## [0.4.2] — 2026-05-05
 
 ### Changed

@@ -69,6 +69,8 @@ M2 and M4 both touch the same hook's dependency array — combine?
 
 The user decides. Grouped items share one .md file but list each sub-item explicitly so nothing gets lost.
 
+**Group reference codes.** Each accepted group gets a `G{n}` code, sequential in the order the user accepts them: `G1`, `G2`, `G3`, …. The group's instruction file is named `G{n}-{title-slug}.md`, and the file's header block lists the source codes (e.g., `**Consolidates:** M4 + M5`). `G` is a separate sequence from C/H/M/L/T/D/X — collisions are not possible.
+
 ## Step 5: Determine output folder
 
 Default: `<paths.plans>/plan-for-{report-stem}/`
@@ -196,7 +198,7 @@ Every directive (plugin or user) and any project-level authoritative doc (CLAUDE
 
 Be concise and precise. No fluff. These instructions are the single source of truth for this fix.
 
-File naming: `{reference-code}-{title-slug}.md`. Title kebab-case, 5–8 words max.
+File naming: `{reference-code}-{title-slug}.md`. Title kebab-case, 5–8 words max. For grouped findings, `{reference-code}` is `G{n}` per Step 4.
 ```
 
 ## Step 7: Collect results
