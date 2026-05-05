@@ -145,15 +145,33 @@ Inputs
   focus brief   Optional free text.
 
 What it does
+  - Pre-flight: checks the working tree. If dirty, asks once whether
+    to commit existing changes, stash and restore, proceed without
+    per-item commits, or abort.
   - Executes each fix instruction with implementer + reviewer per item.
+  - Implementer is agents.implementer (default general-purpose).
+  - Reviewer specialty is matched to the plan's **Specialty:** header
+    (was always test-auditor in v0.4.x).
+  - Reviewer evaluates plan-compliance: did the implementer execute the
+    plan, and are reported divergences justified?
   - Parallel batching where safe; sequential where instructions overlap
     in scope.
-  - Per-item commit, with the finding code + title in the message.
+  - Per-item commit on PASS, with the finding code + title in the
+    message. Opt out via fix.commit_per_item: false.
+
+Trivial-only escape hatch
+  - After 3 implementer failures on a trivial item, the orchestrator
+    may apply the fix inline. The reviewer still runs. Standard items
+    that hit 3 failures escalate to the user.
 
 Models
   Trivial fixes:    models.fix.implementer_trivial   (default: sonnet)
   Standard fixes:   models.fix.implementer_standard  (default: opus)
   Reviewer:         models.fix.reviewer              (default: opus)
+
+Config knobs
+  fix.commit_per_item    (default: true)  per-item commit on PASS
+  agents.implementer     (default: general-purpose)  the writer agent
 ```
 
 ### the-desert
