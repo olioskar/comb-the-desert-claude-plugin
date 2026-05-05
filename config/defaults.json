@@ -28,7 +28,14 @@
     "consistency-auditor": {
       "subagent_type": "comb:consistency-auditor",
       "when_to_use": "Diff touches an area with established patterns, a spec/plan we just wrote, or a reference implementation worth comparing against."
+    },
+    "implementer": {
+      "subagent_type": "general-purpose",
+      "when_to_use": "Default writer-capable agent for /comb:fix and /comb:plan. Full tool access. Override per-project to plug in a specialist writer."
     }
+  },
+  "fix": {
+    "commit_per_item": true
   },
   "models": {
     "review":     "opus",
