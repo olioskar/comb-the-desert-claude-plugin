@@ -85,8 +85,8 @@ Launch all in parallel by issuing multiple Task tool calls in a single assistant
 
 **Agent config (resolved per finding):**
 
-- **Pick the role.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`.
-- **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. **Do not hardcode `general-purpose`** — that bypasses both the user's `agents` config and the foreign-vs-shipped allowlist match.
+- **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
+- **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
 - **Resolve model** with this priority (per spec §4.3 / §7.6): `agents.<role>.model` if set; otherwise `models.plan` (default `opus`).
 - **Allowlist match (not prefix check) — spec §5.4:** the shipped allowlist is exactly these five strings:
   - `comb:code-reviewer`
@@ -143,6 +143,8 @@ Findings matching this focus are highest priority. Surface other issues too, but
 
 You are writing fix instructions for **one** review finding. Treat the finding as the spec for your work.
 
+**Before recommending a fix, trace through its failure modes.** If correctness depends on a runtime invariant — closure state, async timing, render scheduling, lifecycle ordering, transaction isolation — simulate the failure path mentally and confirm the proposed fix breaks it. If you cannot, surface the structural concern in your output rather than recommend a flawed fix. The reviewer downstream is going to check plan-compliance, not re-design the fix; you owe future-you a sound recommendation.
+
 ### Finding
 
 ### {reference_code}. {title} ({severity})
@@ -166,6 +168,7 @@ Your output is a single markdown file at `{output_folder}/{reference_code}-{titl
 
 **Severity:** {Critical | High | Medium | Low | Test gap | Deferred}
 **File(s):** {primary repo-relative path(s), with line ranges}
+**Specialty:** {source agent(s) from the review report's `*Source: <agent>*` line — comma-separated if multiple. For grouped findings, list the union across the group's source agents. /comb:fix uses this to route the fix-reviewer to the matching specialty.}
 {For grouped items, also: }**Consolidates:** {comma-separated finding codes the group covers}
 
 ---
@@ -194,6 +197,12 @@ Every directive (plugin or user) and any project-level authoritative doc (CLAUDE
 
 - `<file>.md §<section>` — one-line reason
 - `CLAUDE.md` "<section heading>" — one-line reason
+
+## Considered alternatives  *(optional — include only when meaningful alternatives were rejected)*
+ADR-style: list alternatives you considered but rejected, one bullet each, with a one-line "rejected because…" rationale. The main body is the single executable path; this section is documentation, not a decision gate. /comb:fix never reads from this section.
+
+- **<Alternative title>** — Rejected because <one-line rationale>
+- **<Alternative title>** — Rejected because <one-line rationale>
 ```
 
 Be concise and precise. No fluff. These instructions are the single source of truth for this fix.
