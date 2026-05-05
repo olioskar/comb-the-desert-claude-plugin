@@ -85,6 +85,7 @@ Run the `/comb:fix` workflow with these overrides:
 
 - All implementers use `models.the_desert` — including trivial items (no sonnet downgrade)
 - All reviewers use `models.the_desert`
+- **Per-item commits per `fix.commit_per_item` (default `true`) apply during the desert sweep.** The `models.the_desert` coercion governs subagent models; commit behavior is unaffected.
 - **Execute every item** — nothing is deferred or excluded
 - **Every item gets a reviewer** — no "trivial — skipped review". The reviewer is `agents.test-auditor.subagent_type` (default `comb:test-auditor`), per spec §5.3, with model coerced to `models.the_desert` unless an explicit `agents.test-auditor.model` user override is set.
 - **Make grouping decisions yourself** — combine same-file trivial items without asking
@@ -121,7 +122,7 @@ Wait for the user's response. If yes, start again from review with the same scop
 - **No confirmation prompts.** Don't ask "should I continue?" between steps. Don't ask about groupings or ordering. Decide and move.
 - **Nothing is deferred.** Every finding from review gets planned and fixed. "Deferred" is not a valid category in this mode.
 - **`models.the_desert` for lane defaults.** Explicit per-agent overrides survive (spec §7.6).
-- **Only questions:** scope at the start (if ambiguous), and "run again?" at the end.
+- **Only questions:** scope at the start (if ambiguous), the dirty-tree pre-flight question (only when the tree is non-empty per `git status --porcelain`), and "run again?" at the end. Clean tree at start → no pre-flight question, preserving the no-pause contract.
 - **All `/comb:review`, `/comb:plan`, `/comb:fix` rules still apply** — read source, fresh agents per item, scope boundaries, 3-failure escalation, parallel when safe. This skill overrides only transitions, model coercion, deferral policy, and confirmation policy.
 
 ## Edge case: focus brief contradicts shipped behavior
