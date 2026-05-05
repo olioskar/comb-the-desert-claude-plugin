@@ -5,6 +5,28 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-05-05
+
+### Added
+
+- **`agents.implementer` config field.** New writer-capable agent slot used by `/comb:fix` and `/comb:plan` for any task that writes files. Defaults to `general-purpose` (Claude's built-in writer-capable subagent). User-overridable per-project. Replaces the broken v0.4.x picker that resolved to read-only `comb:*` review agents and caused real-world fix runs to fail (G4 implementer refused to write, G6 escalated, G8 applied inline by orchestrator without authorization, 2/9 plan agents returned content inline).
+- **`fix.commit_per_item` config flag** (default `true`). Orchestrator commits each item's changes on reviewer PASS, with `<finding-code>: <title>` message. Solves the cumulative-diff false-positive problem (reviewer scope-creep flags from prior items leaking into the current diff). Opt out with `false` to keep the v0.4.x no-commits behavior.
+- **Pre-flight check on dirty tree.** New Step 1.5 in `/comb:fix`. If the working tree is dirty when the run starts, a one-shot question asks: commit / stash / proceed-without-commits / abort. In `/comb:the-desert`, the question is the third allowed question (alongside scope-at-start and run-again-at-end), and only fires when dirty.
+- **Specialty-matched fix-reviewer.** Plan files gain a `**Specialty:**` header line carrying the source-agent info from the review report. `/comb:fix` Step 4e routes the reviewer to the matching specialty (e.g., `consistency-auditor` for scope/pattern findings, `silent-failure-hunter` for error-handling findings) rather than always dispatching `test-auditor`. Fallback chain: `agents.test-auditor` → `agents.code-reviewer`.
+- **`## Considered alternatives` section in plan files** (optional). ADR-style appendix listing rejected approaches with one-line "rejected because…" rationale. Main body remains the single executable path; alternatives are documentation only.
+- **Trivial-only escape hatch.** After 3 implementer failures on an item classified trivial, the orchestrator may apply the fix inline. The reviewer step still runs. Standard items that hit 3 failures escalate to the user as before. Documents the prior undocumented G8 inline-edit behavior with safer bounds.
+
+### Changed
+
+- **`/comb:fix` reviewer's role is now strict plan-compliance.** The reviewer reads the plan, the implementer's report (including any new `## Divergences` section), and the actual diff; decides PASS/FAIL on whether the plan was executed (or whether reported divergences are justified). Was previously a more general "did the fix work and stay in scope" lens biased toward `test-auditor`'s specialty.
+- **Implementer report format adds `## Divergences` section** (optional). Implementers list deviations from the plan's `## How` with one-line rationale per deviation. The reviewer evaluates each rationale rather than re-litigating the fix's design.
+- **Planner-quality nudge.** `/comb:plan` dispatch prompt now asks the planner to mentally trace through the proposed fix's failure modes before recommending — particularly when correctness depends on a runtime invariant (closure state, async timing, render scheduling). Directly addresses the G6 case where Option A passed plan but failed structurally.
+- **Picker default in `/comb:fix` Step 4d** changed from `code-reviewer` to `agents.implementer`. The role-from-config picker still picks a specialty *lens* for prompt framing, but the writer that actually runs is `agents.implementer`.
+
+### Migration
+
+All changes are additive at the config layer. Existing user configs deep-merge against the new defaults — no migration required. Users who explicitly worked around the v0.4.x bug by mapping `agents.<role>.subagent_type: "general-purpose"` should remove the override after upgrade; the new default kicks in cleanly. Users who prefer the v0.4.x no-commits behavior set `fix.commit_per_item: false`.
+
 ## [0.4.3] — 2026-05-05
 
 ### Fixed
