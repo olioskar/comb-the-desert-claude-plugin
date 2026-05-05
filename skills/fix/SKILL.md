@@ -31,6 +31,27 @@ Same layered-merge as `/comb:review`. Project root is resolved with `git rev-par
 - `models.fix.reviewer`
 - `directives` and `agents` (for verifier dispatch)
 
+## Step 1.5: Pre-flight — check for an unrelated dirty tree
+
+Skip this entire step if `fix.commit_per_item` is `false` in merged config.
+
+Run `git status --porcelain`. If the output is empty, the tree is clean — proceed.
+
+If non-empty, surface a one-shot question with these options:
+
+```
+Working tree has uncommitted changes before /comb:fix starts:
+  <git status --porcelain output>
+
+Pick one:
+  (a) Commit existing changes now (suggest a message)
+  (b) Stash and restore at the end of the run
+  (c) Proceed without per-item commits for this run only
+  (d) Abort
+```
+
+Honor the user's choice and proceed. In `/comb:the-desert`, this question is the third allowed question (alongside scope-at-start and run-again-at-end), and only fires when the tree is dirty.
+
 ## Step 2: Surface relevant directives
 
 Lowercase the focus brief and scan it for substring matches against the loaded directive filenames (both plugin defaults at `${CLAUDE_PLUGIN_ROOT}/directives/*.md` and the user's directives at `<project-root>/<directives.user_path>/*.md` if present). Strip the `.md` extension before matching, but match against the *full base name* — so `"scope"` matches `scope-discipline.md`, `"simplicity"` matches `simplicity.md`, and `"copy-paste"` would match a user directive named `copy-paste.md` if present (it doesn't match the shipped `reusability.md` — the matcher is a literal substring check, not a synonym mapper, per spec §8).
@@ -97,9 +118,8 @@ For trivial items: announce "(trivial — sonnet implementer per `models.fix.imp
 
 **Agent config (resolved per item):**
 
-- **Pick the role.** Implementer roles aren't restricted — pick whichever shipped role best matches the instruction's domain. When no domain match is clear, default to `code-reviewer`.
-- **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. **Do not hardcode `general-purpose`** — honor the user's `agents` config.
-- **Resolve model** with this priority (spec §4.3 / §7.6): `agents.<role>.model` if set; otherwise `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items.
+- **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The shipped `comb:*` review agents are read-only (`disallowedTools: Write, Edit, NotebookEdit`) and cannot serve as implementers. Users who want a project-specific writer override `agents.implementer` in their config.
+- **Resolve model** with this priority: `agents.implementer.model` if set; otherwise `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items. The model knob is unchanged from v0.4.x.
 - **Allowlist match (not prefix check) — spec §5.4:** the shipped allowlist is exactly:
   - `comb:code-reviewer`
   - `comb:simplifier`
@@ -165,11 +185,21 @@ Execute the fix instruction below. The instruction is the spec — do exactly wh
 
 ## 5. Output format
 
-Report back in plain text:
+Report back in plain text with these sections in order:
 
-- Files you changed (paths)
-- What changed in each (1-line summary)
-- Confirmation that the "Expected Outcome" is met (yes/no with rationale)
+### Files changed
+- Files you changed (paths only, one per line)
+- For each file: a 1-line summary of what changed
+
+### Expected outcome
+- Confirmation that the instruction's `## Expected Outcome` is met (yes/no with one-sentence rationale)
+
+### Divergences  *(optional — include only if you deviated from the plan)*
+If you deviated from any step in the instruction's `## How` section, list each deviation with a one-line rationale. Format:
+
+- **<Step or section name>** — Departed because <rationale>. Did <what you did instead>.
+
+If you executed the instruction as written, **omit this entire section**. The reviewer reads divergences first and evaluates each rationale; being explicit is how the run stays honest.
 
 Do not include code in your reply — your edits are the artifact.
 ```
@@ -178,9 +208,10 @@ Do not include code in your reply — your edits are the artifact.
 
 **Agent config (resolved per item):**
 
-- **Pick the role.** The fix-reviewer is **always `test-auditor`** — that is the canonical fix-verifier role per spec §5.3 ("`test-auditor` … Always for plan/fix verification."). Do not pick another role here unless the user has remapped `agents.test-auditor` in their config.
-- **Resolve `subagent_type`** from `agents.test-auditor.subagent_type`. **Do not hardcode `general-purpose`** — honor the user's `agents.test-auditor` config (which defaults to `comb:test-auditor`).
-- **Resolve model** with this priority (spec §4.3 / §7.6): `agents.test-auditor.model` if set; otherwise `models.fix.reviewer` (default `opus`).
+- **Pick the role from the plan file's `**Specialty:**` header.** The header lists one or more source agents (e.g., `code-reviewer`, `code-reviewer + consistency-auditor`). The orchestrator picks one based on the finding's primary lens: spec/scope drift → `consistency-auditor`; correctness/contracts/security → `code-reviewer`; over-engineering / dead code → `simplifier`; error handling / silent failures → `silent-failure-hunter`; test coverage / regression → `test-auditor`. If multiple are equally appropriate, pick the first in the header.
+- **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error.
+- **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. Honor the user's config.
+- **Resolve model** with this priority: `agents.<role>.model` if set; otherwise `models.fix.reviewer` (default `opus`).
 - **Allowlist match (not prefix check) — spec §5.4:** the shipped allowlist is exactly:
   - `comb:code-reviewer`
   - `comb:simplifier`
@@ -232,22 +263,30 @@ Findings matching this focus are highest priority. Surface other issues too, but
 
 ## 4. Your job
 
-Verify the fix below was done correctly.
+Verify the implementation executed the plan. **The plan file is the contract** — your job is plan-compliance, not general code quality.
 
 ### Original Instruction
 
 {instruction document content}
 
-### What the implementer changed
+### Implementer's report
 
-{implementer's summary}
+{implementer's summary, including any `## Divergences` section}
 
-### Check these things
+### How to verify
 
-1. The change from "How" was applied correctly
-2. The "Expected Outcome" is satisfied
-3. No unrelated changes were introduced
-4. The fix stays within documented "Scope"
+1. Read the plan's `## How` section. This is what the implementer was supposed to do.
+2. Read the implementer's `## Divergences` section (if present). Each deviation must have a stated rationale.
+3. Read the actual diff:
+   - When `fix.commit_per_item` is on: `git diff HEAD~1 -- <files reported by implementer>`. The previous commit is the implementer's per-item commit; HEAD~1 is the state before this item.
+   - When `fix.commit_per_item` is off: `git diff -- <files reported by implementer>`. Note: this shows accumulated changes since the last HEAD; cumulative-diff false-positives for scope are possible. Lean on the implementer's reported file list and the plan's `## Where` section to scope your reading.
+
+### Decision rule
+
+- **PASS** — every step of the plan's `## How` is reflected in the diff, OR each divergence reported by the implementer has a sound rationale, AND the plan's `## Expected Outcome` is achieved, AND the diff stays within the plan's `## Scope`.
+- **FAIL** — the diff doesn't match the plan and no rationale was given; OR the rationale doesn't justify the deviation; OR the Expected Outcome isn't achieved; OR the diff includes changes outside the plan's Scope (without a divergence rationale).
+
+You are **not** auditing for general code quality. You are **not** re-litigating the fix's design. The plan is the spec. Stay narrow.
 
 ## 5. Output format
 
@@ -268,14 +307,46 @@ Only flag genuine issues, not style preferences. One or two max. If nothing stan
 
 ### 4f. Handle the result
 
-- **PASS** — log it, announce complete, move on.
-- **FAIL** — read feedback. Adjust instructions if needed. Send a new implementer. Review again. **If 3 failures on one item, stop and ask the user.**
+- **PASS** — proceed to **Step 4f.1** (commit), then announce complete and move on.
+- **FAIL** — read feedback. Adjust instructions if needed. Send a new implementer. Review again. **If 3 failures on one item:** if the item is classified trivial (per Step 4c), proceed to **Step 4g** (orchestrator escape hatch). Otherwise stop and ask the user.
 - **DISCOVERED** — write a new instruction document in the same folder using the next available code (`X1`, `X2`...). The `X` prefix means "extra, found during execution" and is distinct from `D{n}` Deferred items emitted by review. Same format as all other items. Add to the end of the queue. Announce:
   ```
   M3 — PASS (5/15 complete)
   Discovered issue added: X1 — {title} (queue is now 16 items)
   Next: M4 — {title}
   ```
+
+### 4f.1. Commit on PASS
+
+If `fix.commit_per_item` is `true` (default) and the item produced code changes:
+
+```bash
+git add <files reported by implementer>
+git commit -m "<finding-code>: <title>"
+```
+
+The orchestrator runs the commit, not the implementer subagent. Two safety rules:
+
+- **Pre-flight already happened** at Step 1.5 — the only changes in the working tree at this point are the implementer's. (Or: the user chose `(c) proceed without per-item commits` and `commit_per_item` is effectively off for this run.)
+- **On commit failure** (pre-commit hook reject, signing failure, conflict, anything non-zero): abort the run, surface the error, name the affected item. Do not retry blindly. The user investigates.
+
+If `fix.commit_per_item` is `false`, skip the commit. Implementer changes accumulate in the working tree (legacy v0.4.x behavior).
+
+### 4g. Trivial escape hatch (orchestrator-applied fix after 3 failures)
+
+If an item has failed 3 times AND was classified trivial at Step 4c (single-line edits, import reorders, comment fixes, lexical renames), the orchestrator may apply the fix inline rather than re-dispatch a fourth implementer. The escape hatch is **trivial only** — standard items that hit 3 failures escalate to the user as before.
+
+When taking the escape hatch:
+
+1. **Announce:**
+   ```
+   {code} — escape: orchestrator applying inline (3 implementer failures, trivial item)
+   ```
+2. **Apply the change directly** using `Edit` / `Write` tools, exactly per the plan's `## How` section.
+3. **Run the reviewer step (4e) anyway.** The reviewer is the safety net; bypassing it because the orchestrator made the edit erodes the contract. The reviewer reads the same plan, the same diff, and applies the same plan-compliance decision rule. The implementer's report is replaced with a one-paragraph "Orchestrator applied inline. No divergences from plan."
+4. **Commit on PASS per Step 4f.1.** Failure handling is the same — abort and surface to user if the commit fails.
+
+If the reviewer FAILs on the orchestrator's inline application, escalate to the user. Do not retry inline a second time. (At that point you've burned 4 attempts on the same item; escalate.)
 
 ## Step 5: Progress tracking
 
