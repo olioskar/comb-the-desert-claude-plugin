@@ -112,8 +112,17 @@ All items:
   - H1: PASS
   - ...
 
-Want to run the sequence again? A fresh review will check if the fixes introduced new issues.
+Want to run the sequence again?
+
+Recommendation based on this round's findings:
+- Critical / High findings present → yes, run again. The fixes likely warrant a follow-up sweep to verify no regressions.
+- Only Medium / Low / Test gaps → judgment call. Run again if a specific Medium might cascade; otherwise the remaining items are usually better handled by a focused human pass than by another full sweep.
+- Round was clean (zero findings or only marginal Low items) → stop. Further rounds yield diminishing returns and risk over-correction.
+
+A fresh review will check whether the fixes introduced new issues; it will also surface any Low findings that were below the round-1 threshold.
 ```
+
+Make the recommendation explicit in the prompt — quote the actual severity counts from this round, then state the recommendation. The user still decides; the orchestrator just gives an honest read so they can stop confidently when the round was clean.
 
 Wait for the user's response. If yes, start again from review with the same scope. The new review naturally detects whether prior fixes introduced regressions or new issues.
 
