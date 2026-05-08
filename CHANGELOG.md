@@ -5,6 +5,15 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] — 2026-05-08
+
+### Changed
+
+- **`consistency-auditor` sharpened on feature completeness.** Step 2 (spec/plan alignment) now requires a per-requirement checklist (DONE / PARTIAL / MISSING / N/A) with PARTIAL and MISSING items surfaced as findings. Flags TODO/FIXME placeholders that the spec required real implementation for.
+- **No-spec intent reconstruction.** New Step 2.5 in `consistency-auditor` instructs the agent to reconstruct intent from evidence (PR description, commit messages, test names/assertions, TODO/FIXME comments, surrounding code patterns, UI behavior) when no formal spec is supplied. The reconstructed intent is treated as the de-facto spec, and the same completeness checklist runs against it. Replaces the prior "fall back to pattern consistency" behavior, which abandoned completeness review entirely.
+- **`directives/consistency.md` §3** extended with sub-rule 4 (no-spec intent reconstruction) — the citation handle for the new agent behavior.
+- **`/comb:review` shared-context block** now includes `PR description:` so all agents (not just consistency-auditor) can lean on the PR body as an intent signal.
+
 ## [0.5.0] — 2026-05-05
 
 ### Added
