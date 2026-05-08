@@ -3,7 +3,7 @@
   "version": "0.5.2",
   "description": "Comb the Desert: a review → plan → fix pipeline for code review with configurable agents and authoritative project directives.",
   "author": {
-    "name": "Olafur Oskarsson",
+    "name": "Olafur O. Egilsson",
     "email": "olioskar@gmail.com"
   },
   "homepage": "https://github.com/olioskar/comb-the-desert-claude-plugin",
