@@ -1,2 +1,8 @@
-# Local working copy of the spec — committed version lives at docs/superpowers/specs/
+# Local working copy of the spec
 DESIGN.md
+
+# Plugin-development artifacts (specs, plans, reviews, fix instructions for our own
+# development process). Local-only; not shipped with the plugin. Each contributor
+# keeps their own working copies of these on disk; git history retains older
+# versions for anyone who wants them via `git show <commit>:docs/...`.
+docs/
