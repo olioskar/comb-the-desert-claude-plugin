@@ -5,6 +5,24 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] — 2026-05-08
+
+### Changed
+
+- **Distribution moved to a dedicated marketplace.** The plugin is now distributed via [`olioskar/claude-plugins`](https://github.com/olioskar/claude-plugins) (marketplace name: `olioskar-marketplace`), not from this repo's `.claude-plugin/marketplace.json`. The in-repo `marketplace.json` has been removed; this repo is now solely the plugin source. The dedicated marketplace can host additional plugins as they're authored — adding a plugin is a single entry in the marketplace's `plugins[]` array.
+
+### Migration
+
+The plugin had no public users at the time of this change (no announcements, no installs in the wild beyond the author's own test sessions). If you're testing against this plugin and previously added the same-repo marketplace:
+
+```
+/plugin marketplace remove comb-marketplace
+/plugin marketplace add olioskar/claude-plugins
+/plugin install comb@olioskar-marketplace
+```
+
+The plugin's behavior, config schema, and skill bodies are unchanged in this release.
+
 ## [0.5.2] — 2026-05-08
 
 ### Changed
