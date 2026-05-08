@@ -43,6 +43,11 @@ Treat these rules as policy. Exceptions require explicit documentation, owner, a
 3. **Missing the spec is a critical finding.**
    - "Spec said X, code does Y" is a Critical-severity issue regardless of whether Y "seems fine."
 
+4. **No spec? Reconstruct intent from evidence.**
+   - PR description, commit messages, test names and assertions, TODO/FIXME comments, surrounding code patterns, and UI behavior are all valid intent signals when no formal spec exists.
+   - State which signals informed the reconstruction. The reconstructed intent is the de-facto spec for the review.
+   - If evidence is too thin to reconstruct intent meaningfully, that is itself the finding — don't fabricate completeness review on absent inputs.
+
 ---
 
 ### 4. Naming and vocabulary
