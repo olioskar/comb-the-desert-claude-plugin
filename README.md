@@ -137,7 +137,7 @@ Set the role's key to `null` in an override layer:
 
 ### Full schema
 
-See `config/defaults.json` for every supported field. The full reference is in the design spec at `docs/superpowers/specs/2026-04-27-comb-the-desert-plugin-design.md`.
+See `config/defaults.json` for every supported field. The skill bodies in `skills/*/SKILL.md` are the runtime contract; `CHANGELOG.md` documents behavior changes per release.
 
 ## Directives
 
@@ -172,17 +172,19 @@ The plugin registers five `comb:*` subagents — read-only reviewers (`disallowe
 - `comb:simplifier` — overengineering, dead code, naming, copy-paste
 - `comb:silent-failure-hunter` — error handling, swallowed errors
 - `comb:test-auditor` — coverage, real tests, behavior parity
-- `comb:consistency-auditor` — patterns, reference impl, spec/plan alignment
+- `comb:consistency-auditor` — patterns, reference impl, feature completeness (against a spec/plan, or against intent reconstructed from evidence when no spec exists)
 
 You can invoke them directly via the Task tool or let the comb skills pick them automatically.
 
+All five reviewers self-calibrate before publishing: each finding must reference a real cost — real failure mode, real complexity cost, real silence, real coverage gap, or real divergence with consequences. Ungrounded items get dropped. `LOOKS GOOD` on a clean diff is the expected outcome; padding the report with marginal items dilutes the signal of real findings. This keeps multi-round `/comb:the-desert` sweeps from drifting into diminishing-returns noise.
+
 ### A note on skill `model` frontmatter
 
-The four `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set). Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
+The six `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set). Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
 
 ## Status
 
-v0.1.0 — first published release.
+v0.5.2. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 
