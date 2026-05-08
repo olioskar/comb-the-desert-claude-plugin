@@ -5,6 +5,13 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] — 2026-05-08
+
+### Changed
+
+- **Reviewer calibration step.** Each of the five `comb:*` reviewer agents (`code-reviewer`, `simplifier`, `silent-failure-hunter`, `test-auditor`, `consistency-auditor`) now ends "How to work" with a final Step that requires self-calibration before publishing findings. The check is specialized per agent (real failure mode / real complexity cost / real silence / real coverage gap / real divergence with consequences) and reframes LOOKS GOOD as a positive deliverable rather than a missed opportunity. Addresses the diminishing-returns problem in multi-round `/comb:the-desert` sweeps where reviewers default to producing output even when the diff is clean.
+- **`/comb:the-desert` recommends whether to run again.** The end-of-sweep "run again?" prompt now quotes the round's severity counts and gives an honest read: Critical/High → yes; only Medium/Low/Test gaps → judgment call; clean round → stop. The user still decides; the orchestrator just provides a recommendation so the loop can terminate confidently when noise is all that's left.
+
 ## [0.5.1] — 2026-05-08
 
 ### Changed
