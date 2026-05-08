@@ -132,6 +132,8 @@ For each picked role, resolve and construct the dispatch prompt:
    Commits under review:
    <list>
 
+   PR description: <body or "no PR — branch/file-list scope">
+
    Reference implementation: <path or "none">
    ```
 
