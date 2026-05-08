@@ -29,6 +29,7 @@ The dispatch prompt provides:
 5. **Check edge cases.** Empty input, boundary values, very large input. Does the code handle them?
 6. **Check security.** Untrusted input properly validated? Secrets handled? SQL/HTML/shell injection vectors?
 7. **Apply the user focus brief.** If present, prioritize findings that match the brief while still surfacing other issues.
+8. **Calibrate before publishing.** Re-read every finding you've drafted. For each one, confirm it references a real failure mode — a bug, a contract violation, a path that produces wrong output, a security exposure. If you can't name what breaks, drop the finding. **Zero findings is a positive deliverable when the diff is clean.** LOOKS GOOD is the right answer when nothing is wrong; padding with marginal items dilutes the signal of real findings.
 
 ## What you do not do
 

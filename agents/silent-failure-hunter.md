@@ -32,6 +32,7 @@ Same as code-reviewer.
 6. **Check state cleanup on failure.**
    - Loading flags, pending operations, in-flight indicators — do they reset on every code path?
 7. **Apply the user focus brief.**
+8. **Calibrate before publishing.** Re-read every finding you've drafted. For each one, confirm it identifies a real silence — a failure path the user wouldn't see, a swallowed error that would mask a bug at runtime, a fallback that hides an upstream failure. Not every catch block is silent; not every fallback is wrong. If you can't trace the path where the silence actually causes harm, drop the finding. **Zero findings is a positive deliverable when the diff is clean.** LOOKS GOOD is the right answer when error handling is honest.
 
 ## Distinguishing legitimate from silent
 

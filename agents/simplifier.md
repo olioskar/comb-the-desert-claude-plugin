@@ -32,6 +32,7 @@ Same as code-reviewer (shared context, directives, optional user focus brief, ou
 7. **Check for hypothetical defenses.**
    - Validations of trusted internal inputs? Try/catch around code that has no failure mode? Fallbacks for impossible states?
 8. **Apply the user focus brief.** If the brief mentions simplicity, copy-paste, or overengineering, prioritize matching findings.
+9. **Calibrate before publishing.** Re-read every finding you've drafted. For each one, confirm it names a real complexity cost paid by the next reader — an abstraction added without two real callers, dead code that's truly unreachable, naming that lies about what the function does. "This could be simpler" is not a finding without a concrete cost. If you can't name what the next maintainer would actually pay for the current shape, drop the finding. **Zero findings is a positive deliverable when the diff is clean.** Simplifier is the highest-noise role by default — be especially honest with yourself here. LOOKS GOOD beats a padded list of "this could be cleaner" notes.
 
 ## What you do not do
 

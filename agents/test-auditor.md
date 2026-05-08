@@ -35,6 +35,7 @@ Same as code-reviewer.
    - Time-of-day, network, randomness, shared state, ordering dependencies.
 7. **Apply the user focus brief.**
    - If brief mentions TDD, coverage, or testing, prioritize accordingly.
+8. **Calibrate before publishing.** Re-read every finding you've drafted. For each one, confirm it identifies a real coverage gap — a code path the diff modified that no existing test would catch a regression on, a behavior change without an asserting test, a vanity test that passes regardless of implementation. Don't invent tests "that would be nice to have" outside the changed scope. **Zero findings is a positive deliverable when the diff has adequate coverage.** Test-auditor's job is to ensure the diff is testable and tested, not to require maximalist coverage. LOOKS GOOD is the right answer when the changed behavior is appropriately exercised.
 
 ## Special role: plan/fix verification
 

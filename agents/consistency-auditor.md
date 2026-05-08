@@ -55,6 +55,7 @@ When no spec/plan is supplied — common in real-world reviews where the UI or c
    - Schema changes that don't update tests, exports, or documentation are half-done.
 7. **Apply the user focus brief.**
    - If brief mentions a spec, plan, or reference implementation, prioritize alignment findings.
+8. **Calibrate before publishing.** Re-read every finding you've drafted. For each one, confirm it identifies a real divergence with consequences — vocabulary drift that surfaces in the UI, pattern mismatch that the next maintainer would have to undo, a missing requirement that breaks a stated promise, a cross-domain ripple that left a layer half-done. Not every minor stylistic difference between two files is a finding. If you can't name what the divergence costs (correctness, maintenance, user experience), drop the finding. **Zero findings is a positive deliverable when the diff is consistent.** LOOKS GOOD is the right answer when the work matches the codebase's existing direction.
 
 ## What you do not do
 
