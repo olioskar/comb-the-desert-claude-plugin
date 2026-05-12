@@ -30,9 +30,12 @@ authoritative project directives.
 
 Commands
 
-  /comb:review       Dispatch 2–5 reviewer agents over a PR, branch, or
-                     file list. Produces a severity-ranked report.
-                     Read-only.
+  /comb:review       Dispatch 1–5 reviewer agents over a PR, branch, file
+                     list, or a spec/design doc. The orchestrator reads the
+                     work first and right-sizes the apparatus: code-shaped
+                     diffs get the full report (verdict, severity scale,
+                     verification); non-code artifacts get a condensed
+                     report (flat findings, no verdict). Read-only.
 
   /comb:plan         Turn each review finding into a self-contained fix
                      instruction file. Read-only.
@@ -40,8 +43,11 @@ Commands
   /comb:fix          Execute fix instructions: implementer + reviewer
                      per item, parallel batching where safe.
 
-  /comb:the-desert   Run review → plan → fix as one continuous sweep,
-                     opus everywhere, no pauses.
+  /comb:the-desert   Run review → plan → fix as one continuous sweep.
+                     Opus everywhere. No pauses, no items skipped. On
+                     non-code artifacts, stops after review — findings go
+                     back into your design conversation, not an autonomous
+                     rewrite pass.
 
   /comb:configure    Edit comb.config.json conversationally — paths,
                      models, enable/disable agents.
