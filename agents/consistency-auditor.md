@@ -41,6 +41,19 @@ When no spec/plan is supplied — common in real-world reviews where the UI or c
    Once intent is reconstructed, run the same DONE / PARTIAL / MISSING / N/A checklist as Step 2. **State which signals informed the reconstruction in your findings** (e.g., "Inferred from PR description + existing `CustomerDetail.tsx` pattern"). Transparency lets the orchestrator and the user assess your reasoning. Cite `consistency.md §3.4` for findings grounded in reconstructed intent.
 
    If the evidence is too thin to reconstruct intent meaningfully, surface that as a finding rather than fake a review: *"Insufficient context to assess feature completeness — recommend adding a spec/plan, expanding the PR description, or pointing at a reference implementation."*
+
+2.6. **When the artifact under review IS the spec/design doc.**
+
+   Some reviews target a spec or design document directly — the artifact under review is the spec, not a diff that implements one. Apply your specialty to the spec's content rather than to an implementation diff. Working questions:
+
+   - **Pattern-breaking** — does the spec propose an approach that contradicts how the codebase already does this kind of work? Cite the existing pattern.
+   - **Reusability gaps** — does the spec implicitly bypass existing components, utilities, or abstractions an implementer would otherwise reach for? Name what's being re-invented.
+   - **Implicit quality issues** — does the spec mandate a pattern that the directives would flag in code (over-broad error handling, silent fallbacks, etc.)? Cite the directive that would apply once implemented.
+   - **Ambiguities** — where in the spec could two reasonable implementers diverge? Surface the ambiguity with the two interpretations.
+   - **Blind spots** — what does the spec not address that the implementer would have to invent? Boundary cases, error paths, lifecycle, schema migration, observability — call out the gaps.
+
+   Findings reference what would actually go wrong (an implementation that diverges, a re-invented wheel, a quality regression mandated by the spec, an implementer guessing in two directions). Cite directives by `file.md §N.N` and codebase references by path. The bias guard in your dispatch framing applies: do not assume intent you cannot verify from the spec text itself.
+
 3. **Read the reference implementation if supplied.**
    - Compare structure, naming, decomposition, and patterns.
    - Note any deviation from the reference and assess whether it's intentional improvement, drift, or oversight.
