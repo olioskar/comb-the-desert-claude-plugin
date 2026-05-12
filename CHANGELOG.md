@@ -5,6 +5,27 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-05-12
+
+### Added
+
+- **Right-sized review apparatus.** `/comb:review` now reads the work before picking agents and emits a one-paragraph characterization, a stated lens, and a `code-shaped | non-code` classification. The classification conditionally turns off the verification table, severity scale, verdict block, and the full report template — non-code artifacts (spec docs, design docs, prose) get a condensed report with a flat labelled findings list. Code-shaped diffs behave as before.
+- **Spec-as-artifact lens in `consistency-auditor`.** New step 2.6 explicitly frames the agent's work when the artifact under review *is* the spec, with working questions for pattern-breaking, reusability gaps, implicit quality issues, ambiguities, and blind spots.
+- **Lens framing in dispatch prompts.** The 5-part dispatch order grows to 6: a new part 2 carries the orchestrator's characterization, the lens to apply, and an explicit bias guard ("you are reviewing work produced in another session"). Helps reviewer agents stay anchored to the artifact rather than the orchestrator's narration.
+- **`/comb:plan` single revise-doc on non-code reports.** When the input report is non-code, plan emits a single `revise-{spec-stem}.md` instead of per-finding instruction files — the implementer applies all revisions to one spec file in one pass.
+- **`/comb:fix` single-revise-doc execution branch.** Detects the revise-doc folder shape and dispatches one implementer + one consistency-auditor reviewer + one commit for the consolidated revisions.
+
+### Changed
+
+- **`/comb:the-desert` short-circuits on non-code artifacts.** Stops after review; does not auto-run plan or fix on prose. Surfaces findings for the user to integrate into the next round of their design conversation.
+- **`code-reviewer.when_to_use`** narrowed from `"Always"` to `"When the diff contains executable code"`. Anchor agent for code-shaped diffs only.
+- **`consistency-auditor.when_to_use`** broadened to include "OR is itself a spec/design/prose artifact whose conformity to codebase patterns and directives needs to be assessed". Anchor agent for prose-only diffs.
+- **`code-reviewer` opening step.** New step 0 instructs the agent to confirm the artifact is in its lane before drafting findings; on a non-code artifact the agent returns LOOKS GOOD with a one-sentence "outside my specialty" note instead of padding findings.
+
+### Removed
+
+- **Markdown-only auto-detection in `/comb:review` Step 4.** Subsumed by the new "Read the work" step (Step 3.5), which makes a single classification judgment rather than a file-extension check. The header note about "Markdown-only diff — palette restricted" is no longer emitted.
+
 ## [0.5.3] — 2026-05-08
 
 ### Changed
