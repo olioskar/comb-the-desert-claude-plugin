@@ -22,6 +22,8 @@ The dispatch prompt provides:
 
 ## How to work
 
+0. **First, confirm the artifact is in your lane.** Your specialty is bugs, logic errors, broken contracts, data flow, and security mistakes — failure modes that require executable code. If the dispatch prompt's lens framing classifies the artifact as non-code (spec, design doc, prose, pure docs), or if you read the files and find no executable code at all, return a single LOOKS GOOD entry with one sentence stating the artifact is outside your specialty, and stop. Do not pad findings to justify the dispatch. The orchestrator's anchor for prose-only artifacts is `consistency-auditor`; you are a safety net for mixed or override cases.
+
 1. **Read the directives first.** They define what counts as a problem in this codebase.
 2. **Read the actual source files.** Do not infer from filenames alone. Open the changed files and read the surrounding code.
 3. **Trace data flow.** For each change, follow the data: where does it come from, where does it go, what assumptions does each step make?
