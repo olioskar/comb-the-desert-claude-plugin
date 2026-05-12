@@ -11,7 +11,7 @@
   "agents": {
     "code-reviewer": {
       "subagent_type": "comb:code-reviewer",
-      "when_to_use": "Always. General correctness, data flow, logic errors, broken contracts, security."
+      "when_to_use": "When the diff contains executable code. General correctness: bugs, logic, contracts, data flow, security. Anchor agent for code-shaped diffs."
     },
     "simplifier": {
       "subagent_type": "comb:simplifier",
@@ -27,7 +27,7 @@
     },
     "consistency-auditor": {
       "subagent_type": "comb:consistency-auditor",
-      "when_to_use": "Diff touches an area with established patterns, a spec/plan we just wrote, or a reference implementation worth comparing against."
+      "when_to_use": "When the diff touches an area with established patterns, follows a spec/plan, OR is itself a spec/design/prose artifact whose conformity to codebase patterns and directives needs to be assessed. Anchor agent for prose-only diffs."
     },
     "implementer": {
       "subagent_type": "general-purpose",
