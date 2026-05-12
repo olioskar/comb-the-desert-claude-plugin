@@ -37,6 +37,22 @@ Record the matched directive paths. They will be flagged as **primary** in agent
 
 If the focus brief is empty, no directives are flagged primary; all directives still load normally.
 
+## Step 2.5: Detect report shape
+
+Read the report header. Determine the report shape:
+
+- **Code-shaped report** — the report includes a `## Verdict:` block AND a `## Findings by Severity` section with C/H/M/L/T/D headings. This is the historical default. Use today's per-finding planning flow (Steps 3, 4, 5, 6 below).
+- **Non-code report** — the report includes a `## Read` and `## Lens` section AND a `## Findings` section with flat labelled entries (no severity tiers). Use the non-code flow described in Step 6 below: a single consolidated `revise-{spec-stem}.md` file, no per-finding agents, no groupings.
+
+Surface the detection to the user before proceeding:
+
+```
+Report shape: {code-shaped | non-code}
+{Continue with per-finding plan files | Emit single revise-{spec-stem}.md}
+```
+
+The classification flows through the rest of this skill. Steps below note which shape they apply to.
+
 ## Step 3: Parse all findings
 
 Extract every finding from the report:
@@ -53,9 +69,13 @@ If the Deferred section uses bullet points without codes (older review reports),
 
 Count every code (C/H/M/L/T/D). Confirm the total with the user before sending agents.
 
+**On a non-code report:** findings have plain labels (Ambiguity, Blind spot, Pattern-break, Reusability gap, Quality concern), not severity codes. Preserve the labels verbatim. The ordering for the consolidated revise-doc follows the report's order — no severity-based reshuffle. Skip the "confirm total with user" step; the count is just the number of findings.
+
 ## Step 4: Suggest groupings
 
-Scan findings for items that could be combined. Look for:
+**Skip this entire step on non-code reports.** A non-code report's findings all target the same spec file; there's no grouping concept — they're consolidated into one revise-doc in Step 6.
+
+For code-shaped reports: scan findings for items that could be combined. Look for:
 - Multiple findings touching the same file with small scope
 - Findings on adjacent lines that share intent (e.g., 3 import fixes)
 - Findings that depend on each other (don't split them across two instructions)
@@ -80,6 +100,89 @@ For example, report at `docs/combs/reviews/pr-123-round1-report.md` → instruct
 User may override.
 
 ## Step 6: Send one agent per finding (or group)
+
+**Branch on report shape:**
+
+- **Code-shaped report:** today's per-finding dispatch (see the rest of this step).
+- **Non-code report:** a single planner agent emits one consolidated revise-doc. Skip per-finding dispatch entirely.
+
+### Non-code report — single consolidated revise-doc
+
+Dispatch one planner agent (resolved via `agents.implementer.subagent_type`, model per `models.plan`) with this prompt structure (same 5-part order, adapted):
+
+````
+You're a senior reviewer translating a spec/design-doc review into a single consolidated revision-instructions file.
+
+## 1. Shared context
+
+Repository: {project-root}
+Branch: {branch}
+Spec under revision: {spec_path}
+Report: {report-path}
+Output file: {output_folder}/revise-{spec-stem}.md
+
+## 2. Directives
+
+{Same directives block as the code-shaped flow.}
+
+## 3. User focus for this run
+
+{focus_brief if present, verbatim.}
+
+## 4. Your job
+
+You are writing ONE consolidated revision-instructions file for the spec under review. The findings in the report are the spec for your work.
+
+### Findings (full report body)
+
+{Embed the full findings section of the report verbatim.}
+
+### What to do
+
+1. Read the spec file: {spec_path}
+2. For each finding in the report, identify the exact section/line to revise.
+3. Write a single file at `{output_folder}/revise-{spec-stem}.md` consolidating all revisions in the order findings appear in the report. Each revision is a section with the finding's original label and title.
+
+## 5. Output format
+
+A single markdown file at `{output_folder}/revise-{spec-stem}.md` with this shape:
+
+```markdown
+# Revise {spec-stem}
+
+**Target spec:** `{spec_path}`
+**Source report:** `{report_path}`
+**Revisions:** {N} ({breakdown by label})
+
+---
+
+## {Label} — {finding title}
+
+**Spec location:** `{spec_path}` § {section heading or line range}
+
+**Current text:**
+> {quote the relevant span of the spec, or describe its absence if the finding is a blind spot}
+
+**Revision:**
+{The exact text, paragraph, or section to add/replace/remove. For new prose, write the prose. For removals, name what to delete. For ambiguities, write the disambiguating clarification.}
+
+**Reason:** {one sentence — quote the finding's "why it matters".}
+
+(repeat per finding, in report order)
+
+---
+
+## Notes for the implementer
+
+- All revisions target one file: `{spec_path}`.
+- Apply revisions in order; later revisions assume earlier ones are in place.
+- Cite directives where the original finding cited them (`file.md §N.N`).
+```
+
+Be concise and precise. The implementer applies these revisions cold; everything they need must be in this file.
+````
+
+### Code-shaped report — per-finding dispatch (existing behavior)
 
 Launch all in parallel by issuing multiple Task tool calls in a single assistant message — one call per finding (or group). Do not use `run_in_background: true`; that is a Bash-tool parameter and has no effect on the Task tool.
 
@@ -212,7 +315,7 @@ File naming: `{reference-code}-{title-slug}.md`. Title kebab-case, 5–8 words m
 
 ## Step 7: Collect results
 
-Once all agents finish, present the full list grouped by severity:
+**Code-shaped report — present the full list grouped by severity:**
 
 ```
 All {N} instruction files ready:
@@ -226,6 +329,14 @@ High ({count}):
 
 Medium ({count}):
   - ...
+```
+
+**Non-code report — present the single revise-doc:**
+
+```
+Revision instructions ready: {output_folder}/revise-{spec-stem}.md
+
+{N} revisions targeting `{spec_path}`: {breakdown by label}
 ```
 
 ## Ground rules
