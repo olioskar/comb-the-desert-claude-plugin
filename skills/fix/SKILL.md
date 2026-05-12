@@ -60,9 +60,25 @@ Record the matched directive paths. They will be flagged as **primary** in agent
 
 If the focus brief is empty, no directives are flagged primary; all directives still load normally.
 
+## Step 2.5: Detect folder shape
+
+List the instruction folder. Determine the shape:
+
+- **Per-finding folder** — multiple files matching the per-finding naming pattern (`{C|H|M|L|T|D|X}{n}-*.md`, optionally also `G{n}-*.md` for groups). This is the historical default. Use Steps 3–4 below as today.
+- **Single revise-doc folder** — the folder contains exactly one file matching `revise-*.md` (and no per-finding files). This means the upstream `/comb:plan` ran against a non-code review report. Use the single-revise flow described in Step 4 below.
+
+Surface the detection to the user before proceeding:
+
+```
+Instruction folder shape: {per-finding | single revise-doc}
+{N items to process | 1 consolidated revise-doc: revise-{spec-stem}.md}
+```
+
 ## Step 3: Suggest groupings
 
-Scan instruction files for items that touch the same file with trivial scope. Suggest combining:
+**Skip this entire step on a single-revise-doc folder.** There's nothing to group — there's already exactly one work item.
+
+For per-finding folders: scan instruction files for items that touch the same file with trivial scope. Suggest combining:
 
 ```
 L1, L2, L3 all touch imports in ContactsGrid.tsx — combine?
@@ -72,6 +88,13 @@ M2 and M4 both fix the same hook — combine?
 The user decides. Grouped items share one implementation pass but each sub-item gets verified.
 
 ## Step 4: Execution loop
+
+**Branch on folder shape (Step 2.5):**
+
+- **Per-finding folder:** today's execution loop (Steps 4a–4g below) runs once per instruction file.
+- **Single revise-doc folder:** the loop runs **exactly once** against the single `revise-*.md`. The item is **always classified standard** (it is a multi-finding spec edit, not a single-line code fix), and the reviewer is **always** `agents.consistency-auditor` (the same anchor that produced the upstream review). The escape hatch (4g) does not apply — there is only one item, and if the reviewer FAILs three times, escalate to the user. The commit message on PASS is `revise {spec-stem}: apply review revisions`.
+
+For both branches, Steps 4a–4f apply as written; the differences above are the only deviations.
 
 For each item (or group):
 
@@ -209,6 +232,9 @@ Do not include code in your reply — your edits are the artifact.
 **Agent config (resolved per item):**
 
 - **Pick the role from the plan file's `**Specialty:**` header.** The header lists one or more source agents (e.g., `code-reviewer`, `code-reviewer + consistency-auditor`). The orchestrator picks one based on the finding's primary lens: spec/scope drift → `consistency-auditor`; correctness/contracts/security → `code-reviewer`; over-engineering / dead code → `simplifier`; error handling / silent failures → `silent-failure-hunter`; test coverage / regression → `test-auditor`. If multiple are equally appropriate, pick the first in the header.
+
+  **Single-revise-doc override:** if the instruction file is a `revise-*.md` (per Step 2.5 detection), bypass plan-file specialty parsing entirely. The reviewer role is always `consistency-auditor` (it is reviewing whether spec revisions match the spec/lens framing of the upstream review). The fallback chain still applies if `agents.consistency-auditor` isn't configured.
+
 - **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error.
 - **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. Honor the user's config.
 - **Resolve model** with this priority: `agents.<role>.model` if set; otherwise `models.fix.reviewer` (default `opus`).
