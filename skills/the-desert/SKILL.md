@@ -56,12 +56,28 @@ Run the `/comb:review` workflow with these overrides:
 - Save the report to `paths.reviews` per the standard naming
 - **Do NOT present the report and wait** — log the verdict and finding count, then immediately continue
 
-When review finishes, announce:
+When review finishes, announce one of:
+
+**If review classified the artifact as code-shaped:**
 
 ```
 [review] Done — {verdict}, {N} findings ({breakdown by severity})
 Moving to plan →
 ```
+
+**If review classified the artifact as non-code:**
+
+```
+[review] Done — {N} findings on non-code artifact ({breakdown by label}).
+Stopping here — non-code findings belong back in your design conversation, not an autonomous fix pass.
+Report: {path}
+```
+
+## Step 3.5: Decide whether to continue
+
+Inspect the review's classification (Step 3.5 in `/comb:review`). If **non-code**, stop the-desert here — do not run plan or fix. The review report is the final deliverable for this sweep; the user integrates the findings into their next round of the design conversation. Skip directly to the "After completion" block, omitting the plan/fix summary lines (replace them with `Plan: skipped — non-code artifact` and `Fix: skipped — non-code artifact`).
+
+If **code-shaped**, proceed to Step 4 below as today.
 
 ## Step 4: Run plan
 
@@ -100,6 +116,8 @@ The focus brief from `$ARGUMENTS` flows through review → plan → fix without 
 
 ## After completion
 
+**For code-shaped runs:**
+
 ```
 [the-desert] Complete
 
@@ -111,8 +129,11 @@ All items:
   - C1: PASS
   - H1: PASS
   - ...
+```
 
-Want to run the sequence again?
+**For code-shaped runs only — Want to run the sequence again?**
+
+Make the recommendation explicit in the prompt — quote the actual severity counts from this round, then state the recommendation. The user still decides; the orchestrator just gives an honest read so they can stop confidently when the round was clean.
 
 Recommendation based on this round's findings:
 - Critical / High findings present → yes, run again. The fixes likely warrant a follow-up sweep to verify no regressions.
@@ -120,11 +141,22 @@ Recommendation based on this round's findings:
 - Round was clean (zero findings or only marginal Low items) → stop. Further rounds yield diminishing returns and risk over-correction.
 
 A fresh review will check whether the fixes introduced new issues; it will also surface any Low findings that were below the round-1 threshold.
-```
-
-Make the recommendation explicit in the prompt — quote the actual severity counts from this round, then state the recommendation. The user still decides; the orchestrator just gives an honest read so they can stop confidently when the round was clean.
 
 Wait for the user's response. If yes, start again from review with the same scope. The new review naturally detects whether prior fixes introduced regressions or new issues.
+
+**For non-code short-circuit:**
+
+```
+[the-desert] Complete (review-only — non-code artifact)
+
+Review: {N} findings ({breakdown by label})
+Plan: skipped — non-code artifact
+Fix: skipped — non-code artifact
+
+Report: {path}
+
+The findings are intended to feed your next round of design conversation, not an autonomous rewrite. Skipping the "run again?" prompt — running another sweep on the same spec without changes will produce the same findings.
+```
 
 ## Ground rules
 
