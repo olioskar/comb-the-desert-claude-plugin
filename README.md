@@ -6,10 +6,10 @@ The plugin ships configurable reviewer agents, eight domain-neutral directives, 
 
 ## What it does
 
-- **`/comb:review`** — dispatches 2–5 reviewer agents over a PR / branch / file list, consolidates findings into a severity-ranked report
+- **`/comb:review`** — dispatches 1–5 reviewer agents over a PR / branch / file list / spec doc; right-sizes the apparatus based on what the diff is (code-shaped → full severity-ranked report with verdict and verification; non-code → condensed report with flat labelled findings)
 - **`/comb:plan`** — turns each finding into a self-contained fix instruction
 - **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe; commits each item on reviewer PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`)
-- **`/comb:the-desert`** — runs all three steps as one continuous sweep, opus everywhere, no pauses
+- **`/comb:the-desert`** — runs all three steps as one continuous sweep, opus everywhere, no pauses; short-circuits to review-only on non-code artifacts (findings go back to your design conversation, not an autonomous rewrite)
 - **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
 - **`/comb:help`** — overview and per-command details. `/comb:help <command>` for a deep dive
 
