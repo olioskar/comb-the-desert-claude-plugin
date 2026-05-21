@@ -192,7 +192,7 @@ The six `/comb:*` skills intentionally omit the `model:` frontmatter field. The 
 
 ## Status
 
-v0.5.2. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.6.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 
