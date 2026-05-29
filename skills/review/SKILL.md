@@ -73,6 +73,8 @@ Read these:
 - Any plan/design doc the user points to in the focus brief
 - A reference implementation, if the user names one or `CLAUDE.md` points to one
 
+**Load the PATTERNS manifest (decision §8).** If `paths.patterns` resolves to a file, read it and run the commit-based staleness heuristic exactly as defined in spec §10 — do not invent a variant: let `cited` = the file paths the manifest references and `touched` = the files in the diff under review; if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` returns non-empty, record a non-blocking staleness note for the presentation (decision §10). Record the manifest path/contents for the dispatch prompt. If `paths.patterns` is absent or `null`, skip — manifest consumption is a graceful no-op.
+
 ## Step 3: Surface relevant directives
 
 Lowercase the focus brief and scan it for substring matches against the loaded directive filenames (both plugin defaults at `${CLAUDE_PLUGIN_ROOT}/directives/*.md` and the user's directives at `<project-root>/<directives.user_path>/*.md` if present). Strip the `.md` extension before matching, but match against the *full base name* — so `"scope"` matches `scope-discipline.md`, `"simplicity"` matches `simplicity.md`, and `"copy-paste"` would match a user directive named `copy-paste.md` if present (it doesn't match the shipped `reusability.md` — the matcher is a literal substring check, not a synonym mapper, per spec §8).
@@ -128,6 +130,7 @@ Pick 2–5 agents from `config.agents` based on:
 - The focus brief (required-include any agent matching it)
 
 **Hard cap:** 5 agents — never dispatch more than 5 in one run, even if both diff content and focus brief argue for more. If forced to choose, drop lower-priority required-includes by judgment.
+**`pattern-scanner` is never eligible.** It is generation-only (dispatched by `/comb:patterns`). Exclude it from the review palette regardless of diff content or focus brief.
 **Soft floor:** 1 — the orchestrator always dispatches at least one agent for objectivity (self-review by the session that produced the artifact is biased). The anchor agent shifts with the Step 3.5 classification:
 
 - **code-shaped** → `code-reviewer` is the anchor.
@@ -156,7 +159,7 @@ For each picked role, resolve and construct the dispatch prompt:
 
   Compare the resolved `subagent_type` with literal string equality. Native → directives by path. Foreign → full directive contents embedded.
 
-**Dispatch prompt (6-part order — Step 3.5 read framing is part 2):**
+**Dispatch prompt (7-part order — Step 3.5 read framing is part 2):**
 
 1. **Shared context block:**
    ```
@@ -194,11 +197,21 @@ For each picked role, resolve and construct the dispatch prompt:
      - Append a `Directives most relevant to this run:` list with the primary matches from the "Surface relevant directives" step.
    - **Foreign** (subagent_type not in the allowlist): supply directive **full contents** verbatim with `## File: <path>` headers, plus the explicit instruction: "These directives are authoritative. Cite by `file.md §N.N` when raising findings." Then append the same `Directives most relevant to this run:` list.
 
-4. **User focus brief**, under `## User focus for this run` heading, verbatim, with framing: "Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip."
+4. **Project conventions (observed baseline)** — included only when `paths.patterns` resolved in Step 2. Native `comb:*` agents get the manifest **path**; foreign agents get its **embedded contents**. The part contains:
+   ```
+   ## Project conventions (observed baseline)
 
-5. **Agent-specific instructions:** for native `comb:*` agents this is already in the agent file body. For foreign agents, supply a one-paragraph specialty statement derived from the role's `when_to_use` so the foreign agent knows what lens to apply.
+   {manifest path for native agents, or embedded manifest contents for foreign agents}
 
-6. **Output format spec:**
+   This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
+   ```
+   Omit this part entirely when no manifest resolved.
+
+5. **User focus brief**, under `## User focus for this run` heading, verbatim, with framing: "Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip."
+
+6. **Agent-specific instructions:** for native `comb:*` agents this is already in the agent file body. For foreign agents, supply a one-paragraph specialty statement derived from the role's `when_to_use` so the foreign agent knows what lens to apply.
+
+7. **Output format spec:**
    - Severity scale: Critical / High / Medium / Low / Test gaps / Deferred
    - Finding codes: placeholder (orchestrator renumbers)
    - File:line references
@@ -242,6 +255,8 @@ Monitor agent completion. Don't consolidate until all agents report back. If one
 | Deferred | Noted, explicitly out of scope |
 
 **Finding codes:** sequential by severity. C1, C2 / H1, H2 / M1, M2 / L1, L2 / T1, T2 / D1, D2. Every Deferred item gets a code too — `/comb:plan` plans them by code, so unnumbered bullets get dropped.
+
+**Semantic refresh signal (decision §9).** If any agent flagged a divergence as a *deliberate improvement / migration* or a *new canonical* pattern, record that the semantic refresh note should fire in the presentation. This is distinct from the commit-based staleness note (decision §10).
 
 ## Step 8: Write the report
 
@@ -372,6 +387,10 @@ Review done — report saved to {path}
 
 Agents used: {list}
 ```
+
+**Manifest notes (non-blocking).** Append, when recorded:
+- Commit-based staleness (decision §10): `PATTERNS manifest may be stale — consider re-running /comb:patterns.`
+- Semantic refresh (decision §9): `This diff evolves a convention not in the manifest — consider re-running /comb:patterns to capture it.`
 
 ## Ground rules
 
