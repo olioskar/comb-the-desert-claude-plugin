@@ -30,6 +30,9 @@ Same layered-merge as `/comb:review`. Project root is resolved with `git rev-par
 - `models.fix.implementer_trivial`
 - `models.fix.reviewer`
 - `directives` and `agents` (for verifier dispatch)
+- `paths.patterns` — the PATTERNS manifest, if it resolves
+
+**Load the PATTERNS manifest (decision §8).** If `paths.patterns` resolves, read it and run the commit-based staleness heuristic **exactly as defined in spec §10** (do not invent a variant): `cited` = the paths the manifest references, `touched` = the files referenced by the instruction set; flag if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` is non-empty. Record any staleness note for presentation. If absent or `null`, skip — graceful no-op.
 
 ## Step 1.5: Pre-flight — check for an unrelated dirty tree
 
@@ -185,6 +188,14 @@ These directives are authoritative. Cite by `file.md §N.N` if you depart from a
 Directives most relevant to this run:
 - {primary directive paths from the "Surface relevant directives" step}
 
+## Project conventions (observed baseline)
+
+{Included only when `paths.patterns` resolved. Manifest path for native `comb:*` agents, embedded contents for foreign agents.}
+
+This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
+
+(Implementer note) Conform to the baseline UNLESS this instruction is implementing a sanctioned improvement or a new canonical pattern. Omit the whole block when no manifest resolved.
+
 ## 3. User focus for this run
 
 {focus_brief if present, verbatim, with framing:}
@@ -235,7 +246,7 @@ Do not include code in your reply — your edits are the artifact.
 
   **Single-revise-doc override:** if the instruction file is a `revise-*.md` (per Step 2.5 detection), bypass plan-file specialty parsing entirely. The reviewer role is always `consistency-auditor` (it is reviewing whether spec revisions match the spec/lens framing of the upstream review). The fallback chain still applies if `agents.consistency-auditor` isn't configured.
 
-- **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error.
+- **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error. `pattern-scanner` is generation-only and is never selected as the reviewer role.
 - **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. Honor the user's config.
 - **Resolve model** with this priority: `agents.<role>.model` if set; otherwise `models.fix.reviewer` (default `opus`).
 - **Allowlist match (not prefix check) — spec §5.4:** the shipped allowlist is exactly:
@@ -280,6 +291,14 @@ These directives are authoritative. Cite by `file.md §N.N` when raising finding
 
 Directives most relevant to this run:
 - {primary directive paths from the "Surface relevant directives" step}
+
+## Project conventions (observed baseline)
+
+{Included only when `paths.patterns` resolved. Manifest path for native `comb:*` agents, embedded contents for foreign agents.}
+
+This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
+
+(Reviewer note) Conformance to the baseline is expected, but a deliberate improvement/migration or a new canonical introduced by this fix is NOT a compliance failure. Omit the whole block when no manifest resolved.
 
 ## 3. User focus for this run
 
@@ -406,6 +425,8 @@ All {N} items complete:
 {K} discovered during execution:
   - X1: {title} (found reviewing H2) — PASS
 ```
+
+**Manifest notes (non-blocking).** Append any commit-based staleness note (decision §10) or semantic-refresh note (decision §9) recorded during this run.
 
 ## Ground rules
 
