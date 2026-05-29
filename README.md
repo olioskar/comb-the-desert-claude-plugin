@@ -10,6 +10,7 @@ The plugin ships configurable reviewer agents, eight domain-neutral directives, 
 - **`/comb:plan`** — turns each finding into a self-contained fix instruction
 - **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe; commits each item on reviewer PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`)
 - **`/comb:the-desert`** — runs all three steps as one continuous sweep, opus everywhere, no pauses; short-circuits to review-only on non-code artifacts (findings go back to your design conversation, not an autonomous rewrite)
+- **`/comb:patterns`** — scans the codebase and writes a PATTERNS manifest of concrete conventions (structure, naming, closed token sets, abstraction level, reuse points) with real `file:line` references; `/comb:review`, `/comb:plan`, and `/comb:fix` consume it as an observed baseline (a prior, not law)
 - **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
 - **`/comb:help`** — overview and per-command details. `/comb:help <command>` for a deep dive
 
@@ -182,17 +183,19 @@ The plugin registers five `comb:*` subagents — read-only reviewers (`disallowe
 - `comb:test-auditor` — coverage, real tests, behavior parity
 - `comb:consistency-auditor` — patterns, reference impl, feature completeness (against a spec/plan, or against intent reconstructed from evidence when no spec exists)
 
+A sixth read-only subagent, `comb:pattern-scanner`, is **generation-only** — dispatched by `/comb:patterns` to map one codebase area, never part of the review/plan/fix palette.
+
 You can invoke them directly via the Task tool or let the comb skills pick them automatically.
 
 All five reviewers self-calibrate before publishing: each finding must reference a real cost — real failure mode, real complexity cost, real silence, real coverage gap, or real divergence with consequences. Ungrounded items get dropped. `LOOKS GOOD` on a clean diff is the expected outcome; padding the report with marginal items dilutes the signal of real findings. This keeps multi-round `/comb:the-desert` sweeps from drifting into diminishing-returns noise.
 
 ### A note on skill `model` frontmatter
 
-The six `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set). Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
+The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set). Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
 
 ## Status
 
-v0.6.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.7.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 
