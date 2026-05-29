@@ -13,8 +13,8 @@ You print help for the comb plugin.
 ## Behavior
 
 - If `$ARGUMENTS` is empty: print the **Overview** below verbatim.
-- If `$ARGUMENTS` names a command (`review`, `plan`, `fix`, `the-desert`, `configure`, `help`): print the matching **Per-command** entry verbatim.
-- If `$ARGUMENTS` is anything else: print the Overview and add a one-line note: `Note: "{argument}" isn't a comb command. Try one of: review, plan, fix, the-desert, configure.`
+- If `$ARGUMENTS` names a command (`review`, `plan`, `fix`, `the-desert`, `patterns`, `configure`, `help`): print the matching **Per-command** entry verbatim.
+- If `$ARGUMENTS` is anything else: print the Overview and add a one-line note: `Note: "{argument}" isn't a comb command. Try one of: review, plan, fix, the-desert, patterns, configure.`
 
 Don't paraphrase. The user is asking for the help text — give them the help text.
 
@@ -48,6 +48,12 @@ Commands
                      non-code artifacts, stops after review — findings go
                      back into your design conversation, not an autonomous
                      rewrite pass.
+
+  /comb:patterns     Scan the codebase and write a PATTERNS manifest of
+                     concrete conventions (structure, naming, closed token
+                     sets, abstraction level, reuse points) with real code
+                     references. Interactive: confirms scan areas first.
+                     review/plan/fix consume it as an observed baseline.
 
   /comb:configure    Edit comb.config.json conversationally — paths,
                      models, enable/disable agents.
@@ -199,6 +205,38 @@ When to use
 When not to use
   - When you want a checkpoint between review and plan.
   - When you want to hand-pick which findings get instructions.
+```
+
+### patterns
+
+```
+/comb:patterns [focus brief]
+
+Generate or refresh the PATTERNS manifest — comb's record of this
+codebase's concrete conventions, with real file:line references.
+
+What it does
+  - Recon: detects the codebase's regions (frontend, API, data, etc.).
+  - Proposes scan areas and waits for you to add/remove/confirm.
+  - Dispatches one read-only scanner per area, in parallel.
+  - Synthesizes an area-major manifest with thematic sections
+    (structural, naming & vocabulary, closed sets, abstraction
+    calibration, reuse points, error/async, testing).
+  - If a manifest already exists, asks first, then shows a diff to
+    approve/reject/cherry-pick.
+
+Output
+  <paths.patterns>   (default: docs/combs/PATTERNS.md)
+
+Consumed by
+  /comb:review, /comb:plan, /comb:fix — injected as an "observed
+  baseline" (a prior, not law). Silence falls back to reading code;
+  deliberate improvements and new canonical patterns are not flagged
+  as drift.
+
+Config knobs
+  paths.patterns    (default: docs/combs/PATTERNS.md)  null disables consumption
+  models.patterns   (default: opus)                    scanner model
 ```
 
 ### configure
