@@ -28,6 +28,9 @@ Same layered-merge as `/comb:review`. Project root is resolved with `git rev-par
 - `paths.plans` — output folder root
 - `models.plan` — model for planner agents
 - `directives` — for the planners' agent prompts
+- `paths.patterns` — the PATTERNS manifest, if it resolves
+
+**Load the PATTERNS manifest (decision §8).** If `paths.patterns` resolves, read it and run the commit-based staleness heuristic **exactly as defined in spec §10** (do not invent a variant): `cited` = the paths the manifest references, `touched` = the files referenced by the report's findings; flag if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` is non-empty. Record any staleness note for presentation. If absent or `null`, skip — graceful no-op.
 
 ## Step 2: Surface relevant directives
 
@@ -125,6 +128,14 @@ Output file: {output_folder}/revise-{spec-stem}.md
 
 {Same directives block as the code-shaped flow.}
 
+## Project conventions (observed baseline)
+
+{Included only when `paths.patterns` resolved. Manifest path for native `comb:*` agents, embedded contents for foreign agents.}
+
+This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
+
+(Planner note) When you author the instruction for a finding the review classified as a deliberate improvement or a new canonical, reference the manifest but do not bend the instruction back to the baseline — that divergence is sanctioned. Omit the whole block when no manifest resolved.
+
 ## 3. User focus for this run
 
 {focus_brief if present, verbatim.}
@@ -188,7 +199,7 @@ Launch all in parallel by issuing multiple Task tool calls in a single assistant
 
 **Agent config (resolved per finding):**
 
-- **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
+- **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. `pattern-scanner` is generation-only and is never picked as a finding's lens. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
 - **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
 - **Resolve model** with this priority (per spec §4.3 / §7.6): `agents.<role>.model` if set; otherwise `models.plan` (default `opus`).
 - **Allowlist match (not prefix check) — spec §5.4:** the shipped allowlist is exactly these five strings:
@@ -235,6 +246,14 @@ These directives are authoritative. Cite by `file.md §N.N` when raising any pol
 
 Directives most relevant to this run (matched against the focus brief):
 - {primary directive paths from the "Surface relevant directives" step}
+
+## Project conventions (observed baseline)
+
+{Included only when `paths.patterns` resolved. Manifest path for native `comb:*` agents, embedded contents for foreign agents.}
+
+This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
+
+(Planner note) When you author the instruction for a finding the review classified as a deliberate improvement or a new canonical, reference the manifest but do not bend the instruction back to the baseline — that divergence is sanctioned. Omit the whole block when no manifest resolved.
 
 ## 3. User focus for this run
 
@@ -338,6 +357,8 @@ Revision instructions ready: {output_folder}/revise-{spec-stem}.md
 
 {N} revisions targeting `{spec_path}`: {breakdown by label}
 ```
+
+**Manifest notes (non-blocking).** Append any commit-based staleness note (decision §10) or semantic-refresh note (decision §9) recorded during this run.
 
 ## Ground rules
 

@@ -5,6 +5,19 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] — 2026-05-29
+
+### Added
+
+- `/comb:patterns` — a new interactive command that scans the codebase and writes a **PATTERNS manifest** (`paths.patterns`, default `docs/combs/PATTERNS.md`): a project-specific record of concrete conventions — structural patterns, naming & vocabulary, closed token/enum sets, abstraction calibration, reuse points, error/async patterns, and testing conventions — each with real `file:line` references. Generation does codebase recon, proposes scan areas, waits for the user to confirm, then dispatches one read-only `comb:pattern-scanner` agent per area in parallel and synthesizes an area-major manifest. Regeneration over an existing manifest is diff-then-confirm so hand-edits survive.
+- `comb:pattern-scanner` — a new read-only agent (generation-only) that maps one codebase area and returns concrete conventions with code references.
+- `paths.patterns` and `models.patterns` config keys, both editable via `/comb:configure`.
+
+### Changed
+
+- `/comb:review`, `/comb:plan`, and `/comb:fix` now load the PATTERNS manifest (when present) and inject it into agent dispatch as a **"Project conventions (observed baseline)"** block — a prior the reviewers reconcile against live code, never the sole authority. Where manifest and code conflict, live code wins; a manifest silent on an area sends agents back to reading the code (not "anything goes"); and deliberate improvements or new canonical patterns are recognized rather than flagged as drift. An absent manifest is a graceful no-op.
+- Two non-blocking refresh signals: a commit-based staleness note (the manifest cites files that changed since its base commit) and a semantic refresh note (a reviewer judged the diff evolves a convention). `/comb:the-desert` prints both as log lines without pausing; it inherits the manifest but never regenerates it, and `models.the_desert` does not coerce `models.patterns`.
+
 ## [0.6.0] — 2026-05-12
 
 ### Added

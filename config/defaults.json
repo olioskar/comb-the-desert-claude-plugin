@@ -2,6 +2,7 @@
   "paths": {
     "reviews":     "docs/combs/reviews",
     "plans":       "docs/combs/plans",
+    "patterns":    "docs/combs/PATTERNS.md",
     "base_branch": "main"
   },
   "directives": {
@@ -32,6 +33,10 @@
     "implementer": {
       "subagent_type": "general-purpose",
       "when_to_use": "Default writer-capable agent for /comb:fix and /comb:plan. Full tool access. Override per-project to plug in a specialist writer."
+    },
+    "pattern-scanner": {
+      "subagent_type": "comb:pattern-scanner",
+      "when_to_use": "Generation-only. Dispatched by /comb:patterns to scan one confirmed codebase area and extract concrete conventions with file:line references. Not part of the review/plan/fix palette."
     }
   },
   "fix": {
@@ -40,6 +45,7 @@
   "models": {
     "review":     "opus",
     "plan":       "opus",
+    "patterns":   "opus",
     "fix": {
       "implementer_standard": "opus",
       "implementer_trivial":  "sonnet",
