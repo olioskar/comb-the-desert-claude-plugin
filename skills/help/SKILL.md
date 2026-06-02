@@ -216,23 +216,31 @@ Generate or refresh the PATTERNS manifest — comb's record of this
 codebase's concrete conventions, with real file:line references.
 
 What it does
-  - Recon: detects the codebase's regions (frontend, API, data, etc.).
-  - Proposes scan areas and waits for you to add/remove/confirm.
-  - Dispatches one read-only scanner per area, in parallel.
+  - Recon: detects the codebase's regions (frontend, API, data, etc.)
+    and flags non-authoritative ones (generated, vendored, reference-
+    only per CLAUDE.md) to exclude so dead code isn't recorded.
+  - One scan-plan gate: proposes areas, the directives mapped to each,
+    and the exclusions — you adjust or reply "go". Flag a stale
+    directive here to down-weight it.
+  - Dispatches one read-only scanner per area in parallel, each with
+    only its relevant directives.
   - Synthesizes an area-major manifest with thematic sections
     (structural, naming & vocabulary, closed sets, abstraction
     calibration, reuse points, error/async, testing).
-  - If a manifest already exists, asks first, then shows a diff to
-    approve/reject/cherry-pick.
+  - If a scanner finds a widespread practice that conflicts with a
+    directive, walks you through it — record as the new norm, treat
+    as drift, or skip — and writes your choice into the manifest.
+  - Pre-write review flags thin/empty areas and lets you re-scan one;
+    on regenerate, shows a diff to cherry-pick per section.
 
 Output
   <paths.patterns>   (default: docs/combs/PATTERNS.md)
 
 Consumed by
   /comb:review, /comb:plan, /comb:fix — injected as an "observed
-  baseline" (a prior, not law). Silence falls back to reading code;
-  deliberate improvements and new canonical patterns are not flagged
-  as drift.
+  baseline" (a prior, not law). Project directives outrank it.
+  Silence falls back to reading code; deliberate improvements and
+  new canonical patterns are not flagged as drift.
 
 Config knobs
   paths.patterns    (default: docs/combs/PATTERNS.md)  null disables consumption
