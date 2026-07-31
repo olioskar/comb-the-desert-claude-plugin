@@ -23,7 +23,7 @@ Each command accepts a free-form focus brief that biases agent picking and findi
 
 ## Install
 
-The plugin is distributed via [olioskar/claude-plugins](https://github.com/olioskar/claude-plugins), a marketplace of Claude Code plugins I've authored.
+The plugin is distributed via [olioskar/claude-plugins](https://github.com/olioskar/claude-plugins)
 
 1. Add the marketplace:
 
@@ -34,14 +34,6 @@ The plugin is distributed via [olioskar/claude-plugins](https://github.com/olios
 2. Install the plugin:
 
 ```
-/plugin install comb@olioskar-marketplace
-```
-
-To pull a new release later:
-
-```
-/plugin marketplace update olioskar-marketplace
-/plugin uninstall comb@olioskar-marketplace
 /plugin install comb@olioskar-marketplace
 ```
 
