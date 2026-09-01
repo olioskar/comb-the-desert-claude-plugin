@@ -138,7 +138,7 @@ Set the role's key to `null` in an override layer:
 
 ### Full schema
 
-See `config/defaults.json` for every supported field. The skill bodies in `skills/*/SKILL.md` are the runtime contract; `CHANGELOG.md` documents behavior changes per release.
+See `config/defaults.json` for every supported field. The skill bodies in `skills/*/SKILL.md` plus the shared contract blocks in `shared/*.md` are the runtime contract; `CHANGELOG.md` documents behavior changes per release.
 
 ## Directives
 
@@ -154,6 +154,8 @@ The plugin ships eight domain-neutral directives at `directives/`:
 - `testing.md` — TDD, real tests, cover changed behavior
 
 A project's own directives at the configured `directives.user_path` (default `docs/directives/`) layer on top — both sets are authoritative at runtime, cited in findings as `<file>.md §N.N`.
+
+Directives reach agents as file paths, never as embedded contents. Native `comb:*` agents already treat them as authoritative; any other agent type gets the same paths plus an explicit authority instruction (see `shared/dispatch-delivery.md`).
 
 To opt out of the plugin's directives:
 
@@ -185,7 +187,7 @@ Each finding also carries a **Confidence** field, and `/comb:review` verifies be
 
 ### A note on skill `model` frontmatter
 
-The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set). Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
+The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Task call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
 
 ## Status
 

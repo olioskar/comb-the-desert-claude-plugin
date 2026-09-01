@@ -24,21 +24,17 @@ You're a senior engineer turning review findings into crystal-clear fix instruct
 
 ## Step 1: Load config
 
-Same layered-merge as `/comb:review`. Project root is resolved with `git rev-parse --show-toplevel` (which handles git worktrees correctly). From it, take:
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. From it, take:
 - `paths.plans` — output folder root
 - `models.plan` — model for planner agents
 - `directives` — for the planners' agent prompts
 - `paths.patterns` — the PATTERNS manifest, if it resolves
 
-**Load the PATTERNS manifest (decision §8).** If `paths.patterns` resolves, read it and run the commit-based staleness heuristic **exactly as defined in spec §10** (do not invent a variant): `cited` = the paths the manifest references, `touched` = the files referenced by the report's findings; flag if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` is non-empty. Record any staleness note for presentation. If absent or `null`, skip — graceful no-op.
+**Load the PATTERNS manifest.** If `paths.patterns` resolves, read it and run the commit-based staleness heuristic (do not invent a variant): `cited` = the paths the manifest references, `touched` = the files referenced by the report's findings; flag if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` is non-empty. Record any staleness note for presentation. If absent or `null`, skip — graceful no-op.
 
 ## Step 2: Surface relevant directives
 
-Lowercase the focus brief and scan it for substring matches against the loaded directive filenames (both plugin defaults at `${CLAUDE_PLUGIN_ROOT}/directives/*.md` and the user's directives at `<project-root>/<directives.user_path>/*.md` if present). Strip the `.md` extension before matching, but match against the *full base name* — so `"scope"` matches `scope-discipline.md`, `"simplicity"` matches `simplicity.md`, and `"copy-paste"` would match a user directive named `copy-paste.md` if present (it doesn't match the shipped `reusability.md` — the matcher is a literal substring check, not a synonym mapper, per spec §8).
-
-Record the matched directive paths. They will be flagged as **primary** in agent dispatch prompts under the heading "Directives most relevant to this run" so agents weight them first.
-
-If the focus brief is empty, no directives are flagged primary; all directives still load normally.
+Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
 
 ## Step 2.5: Detect report shape
 
@@ -131,9 +127,7 @@ Output file: {output_folder}/revise-{spec-stem}.md
 
 ## Project conventions (observed baseline)
 
-{Included only when `paths.patterns` resolved. Manifest path for native `comb:*` agents, embedded contents for foreign agents.}
-
-This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Project directives outrank this manifest: a divergence that violates an up-to-date directive is drift no matter how widespread, and classifying it as a deliberate improvement or new canonical never excuses a directive violation. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
+{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — manifest path + verbatim paragraph — only when `paths.patterns` resolved.}
 
 (Planner note) When you author the instruction for a finding the review classified as a deliberate improvement or a new canonical, reference the manifest but do not bend the instruction back to the baseline — that divergence is sanctioned. Omit the whole block when no manifest resolved.
 
@@ -197,23 +191,15 @@ Be concise and precise. The implementer applies these revisions cold; everything
 
 ### Code-shaped report — per-finding dispatch (existing behavior)
 
-Launch all in parallel by issuing multiple Task tool calls in a single assistant message — one call per finding (or group). Do not use `run_in_background: true`; that is a Bash-tool parameter and has no effect on the Task tool.
+Launch all in parallel per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Task call per finding (or group), batched in a single assistant message.
 
 **Agent config (resolved per finding):**
 
 - **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. `pattern-scanner` is generation-only and is never picked as a finding's lens. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
 - **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
-- **Resolve model** with this priority (per spec §4.3 / §7.6): `agents.<role>.model` if set; otherwise `models.plan` (default `opus`).
-- **Allowlist match (not prefix check) — spec §5.4:** the shipped allowlist is exactly these five strings:
-  - `comb:code-reviewer`
-  - `comb:simplifier`
-  - `comb:silent-failure-hunter`
-  - `comb:test-auditor`
-  - `comb:consistency-auditor`
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default for this step is `models.plan` (default `opus`); pass the resolved model as the Task call's `model` parameter.
 
-  Compare the resolved `subagent_type` to the allowlist with literal string equality. A typo like `comb:my-typo` does **not** count as native. If the resolved type is in the allowlist, treat as native (supply directive paths only). Otherwise treat as foreign (embed full directive contents in the dispatch prompt — see §5.4).
-
-**Planner dispatch prompt (5-part order per spec §7.1.5):**
+**Planner dispatch prompt (5-part order):**
 
 ```
 You're a senior {specialization-derived-from-finding} developer. You've been assigned one review finding to write fix instructions for.
@@ -233,7 +219,8 @@ Adjacent files worth scanning: {2–3 nearest siblings the orchestrator picks}
 
 The project's authoritative directives apply to your fix instruction.
 
-{If native (resolved subagent_type IS in the allowlist):}
+{If foreign (per the delivery contract), first: "These directives are authoritative. Read every listed file before starting. Cite by `file.md §N.N`."}
+
 Read these directive files and cite them as `file.md §N.N` when your instruction references policy:
 - {plugin directive paths, if include_plugin_defaults}
 - {user directive paths, if directives.user_path resolves}
@@ -241,19 +228,9 @@ Read these directive files and cite them as `file.md §N.N` when your instructio
 Directives most relevant to this run (matched against the focus brief):
 - {primary directive paths from the "Surface relevant directives" step}
 
-{If foreign (resolved subagent_type is NOT in the allowlist):}
-These directives are authoritative. Cite by `file.md §N.N` when raising any policy-grounded instruction.
-
-{Embed full contents of every loaded directive — both plugin defaults and user directives — verbatim, with `## File: <path>` headers between them.}
-
-Directives most relevant to this run (matched against the focus brief):
-- {primary directive paths from the "Surface relevant directives" step}
-
 ## Project conventions (observed baseline)
 
-{Included only when `paths.patterns` resolved. Manifest path for native `comb:*` agents, embedded contents for foreign agents.}
-
-This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Project directives outrank this manifest: a divergence that violates an up-to-date directive is drift no matter how widespread, and classifying it as a deliberate improvement or new canonical never excuses a directive violation. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
+{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — manifest path + verbatim paragraph — only when `paths.patterns` resolved.}
 
 (Planner note) When you author the instruction for a finding the review classified as a deliberate improvement or a new canonical, reference the manifest but do not bend the instruction back to the baseline — that divergence is sanctioned. Omit the whole block when no manifest resolved.
 
@@ -364,7 +341,7 @@ Revision instructions ready: {output_folder}/revise-{spec-stem}.md
 {N} revisions targeting `{spec_path}`: {breakdown by label}
 ```
 
-**Manifest notes (non-blocking).** Append any commit-based staleness note (decision §10) or semantic-refresh note (decision §9) recorded during this run.
+**Manifest notes (non-blocking).** Append any commit-based staleness note or semantic-refresh note recorded during this run.
 
 ## Ground rules
 

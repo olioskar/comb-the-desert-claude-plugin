@@ -22,13 +22,7 @@ This is an **interactive** command. You do recon, propose scan areas, and wait f
 
 ## Step 1: Load config
 
-Read the layered config, deep-merging each layer onto the previous:
-
-1. `${CLAUDE_PLUGIN_ROOT}/config/defaults.json` — shipped defaults
-2. `~/.claude/comb.config.json` — global override (skip if absent)
-3. `<project-root>/.claude/comb.config.json` — project override (skip if absent)
-
-**Project root** is `git rev-parse --show-toplevel` (cwd fallback when not in git). Merge rules are the same as `/comb:review` (objects deep-merge; arrays replace; `null` deletes; invalid JSON is a hard error).
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` (three layers, deep-merge; arrays replace; `null` deletes; invalid JSON is a hard error).
 
 After merging, take:
 - `paths.patterns` — where the manifest is written/read (default `docs/combs/PATTERNS.md`). If it is `null`, there is no write target (the key was deleted via merge semantics, so there is no default to fall back to): report that manifest consumption is disabled and stop. Do not generate to an undefined path.
@@ -101,13 +95,13 @@ Default is (a). Partial updates are handled by two explicit, user-driven mechani
 
 ## Step 5: Dispatch scanners
 
-For each confirmed area, dispatch one scanner. **Launch them in parallel** by issuing multiple Task tool calls in a single assistant message — one per area. (Do not use `run_in_background: true`; that is a Bash-tool parameter and has no effect on the Task tool.)
+For each confirmed area, dispatch one scanner. **Launch them in parallel** per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Task call per area, batched in a single assistant message.
 
 **Resolution per scanner:**
 - **`subagent_type`** from `agents.pattern-scanner.subagent_type` (default `comb:pattern-scanner`).
-- **Model**: `agents.pattern-scanner.model` if set; otherwise `models.patterns` (default `opus`).
+- **Model**: `agents.pattern-scanner.model` if set; otherwise `models.patterns` (default `opus`). Pass the resolved model as the Task call's `model` parameter, per the delivery contract.
 - **Directives for this scanner = the subset mapped to its area at the gate (Step 3)** — not the full set. Send a scanner only the directives the gate mapped to its area; this keeps each scanner's lenses tight (a CSS scanner shouldn't carry an API-error directive). Any directive the user **down-weighted** at the gate that maps to this area is still sent, but marked `SUPERSEDED — treat as NON-authoritative`.
-- **Allowlist match (literal string equality):** `comb:pattern-scanner` is native — supply directive **paths**. Any other resolved `subagent_type` is foreign — embed full directive **contents** with `## File: <path>` headers.
+- **Delivery**: supply the mapped directives as absolute **paths** per the delivery contract; a foreign resolved `subagent_type` additionally gets the contract's authority sentence, never embedded contents.
 
 **Scanner dispatch prompt:**
 
@@ -125,8 +119,7 @@ comb version: {version}
 
 These define the KINDS of conventions that matter AND set the authoritative baseline those conventions must respect. Find this codebase's CONCRETE answers *within* this framework — never record a deviation *from* an authoritative directive as if it were the convention. Directives outrank anything you observe.
 
-{If native: list ONLY the directive paths mapped to this area at the gate.}
-{If foreign: embed ONLY those directives' full contents verbatim with `## File: <path>` headers.}
+{List ONLY the directive paths mapped to this area at the gate. If the scanner is foreign per the delivery contract, precede the list with the contract's authority sentence.}
 
 {If any directive mapped to this area was down-weighted at the gate, list it under a "SUPERSEDED — treat as NON-authoritative" subheading: a widespread practice that conflicts with a superseded directive is the codebase's current norm — record it as the convention, do not treat it as drift or a conflict.}
 

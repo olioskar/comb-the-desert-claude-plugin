@@ -32,20 +32,7 @@ If scope is ambiguous, ask once. Otherwise derive it from the current branch and
 
 ## Step 1: Load config
 
-Read the layered config in this order, deep-merging each layer onto the previous:
-
-1. `${CLAUDE_PLUGIN_ROOT}/config/defaults.json` — shipped defaults
-2. `~/.claude/comb.config.json` — global override (skip if not present)
-3. `<project-root>/.claude/comb.config.json` — project override (skip if not present)
-
-**Project root** is `git rev-parse --show-toplevel` (which correctly returns the worktree path for git worktrees; cwd fallback when not in git).
-
-**Merge rules:**
-- Objects: deep-merged
-- Arrays: replaced wholesale
-- `null` at any depth: removes that key from the merged result
-- Invalid JSON in any layer: hard error (abort with clear message)
-- Schema violations (e.g., new role missing `subagent_type`): warn and skip the bad key, continue
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` (three layers, deep-merge; arrays replace; `null` deletes; invalid JSON is a hard error).
 
 After merging, you have:
 - `paths.reviews` — where to write the report
@@ -73,15 +60,11 @@ Read these:
 - Any plan/design doc the user points to in the focus brief
 - A reference implementation, if the user names one or `CLAUDE.md` points to one
 
-**Load the PATTERNS manifest (decision §8).** If `paths.patterns` resolves to a file, read it and run the commit-based staleness heuristic exactly as defined in spec §10 — do not invent a variant: let `cited` = the file paths the manifest references and `touched` = the files in the diff under review; if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` returns non-empty, record a non-blocking staleness note for the presentation (decision §10). Record the manifest path/contents for the dispatch prompt. If `paths.patterns` is absent or `null`, skip — manifest consumption is a graceful no-op.
+**Load the PATTERNS manifest.** If `paths.patterns` resolves to a file, read it and run the commit-based staleness heuristic — do not invent a variant: let `cited` = the file paths the manifest references and `touched` = the files in the diff under review; if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` returns non-empty, record a non-blocking staleness note for the presentation. Record the manifest path for the dispatch prompt. If `paths.patterns` is absent or `null`, skip — manifest consumption is a graceful no-op.
 
 ## Step 3: Surface relevant directives
 
-Lowercase the focus brief and scan it for substring matches against the loaded directive filenames (both plugin defaults at `${CLAUDE_PLUGIN_ROOT}/directives/*.md` and the user's directives at `<project-root>/<directives.user_path>/*.md` if present). Strip the `.md` extension before matching, but match against the *full base name* — so `"scope"` matches `scope-discipline.md`, `"simplicity"` matches `simplicity.md`, and `"copy-paste"` would match a user directive named `copy-paste.md` if present (it doesn't match the shipped `reusability.md` — the matcher is a literal substring check, not a synonym mapper, per spec §8).
-
-Record the matched directive paths. They will be flagged as **primary** in agent dispatch prompts under the heading "Directives most relevant to this run" so agents weight them first.
-
-If the focus brief is empty, no directives are flagged primary; all directives still load normally.
+Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
 
 ## Step 3.5: Read the work
 
@@ -122,7 +105,7 @@ This classification bit drives Steps 4, 5, 7, 8, and 9 below.
 
 Read the diff in detail. Understand what changed: hooks, CSS, types, tests, error handling, new components, refactors, abstractions, prose content, spec sections, configuration.
 
-**Picking rule (spec §7.1.4 — judgment-based):** the orchestrator model itself picks the palette by reading the diff, weighing each agent's `when_to_use`, and applying the focus brief. There is no scoring algorithm — the picking is a judgment call you make explicitly and surface to the user.
+**Picking rule (judgment-based):** the orchestrator model itself picks the palette by reading the diff, weighing each agent's `when_to_use`, and applying the focus brief. There is no scoring algorithm — the picking is a judgment call you make explicitly and surface to the user.
 
 Pick 2–5 agents from `config.agents` based on:
 - Diff content (what's actually in the files)
@@ -149,15 +132,7 @@ For each picked role, resolve and construct the dispatch prompt:
 **Resolution (do this before assembling the prompt):**
 
 - **Resolve `subagent_type`** from `agents.<role>.subagent_type` — never hardcode any value here.
-- **Resolve model** with this priority (spec §4.3 / §7.6): `agents.<role>.model` if set; otherwise `models.review` (default `opus`). The per-agent override always wins.
-- **Allowlist match (not prefix check) — spec §5.4:** the shipped allowlist is exactly:
-  - `comb:code-reviewer`
-  - `comb:simplifier`
-  - `comb:silent-failure-hunter`
-  - `comb:test-auditor`
-  - `comb:consistency-auditor`
-
-  Compare the resolved `subagent_type` with literal string equality. Native → directives by path. Foreign → full directive contents embedded.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. It defines the native allowlist (literal string equality), the path-based directive delivery for native and foreign agents, and the model delivery. The lane default for this step is `models.review` (default `opus`); pass the resolved model as the Task call's `model` parameter.
 
 **Dispatch prompt (7-part order — Step 3.5 read framing is part 2):**
 
@@ -191,21 +166,9 @@ For each picked role, resolve and construct the dispatch prompt:
    Bias guard: You are reviewing work produced in another session. Treat the artifact as the source of truth; do not assume intent you cannot verify from the text itself.
    ```
 
-3. **Directives:**
-   - **Native** (`comb:*` in the allowlist above): supply directive **paths**. The agents know how to read them.
-     - List both plugin defaults (`${CLAUDE_PLUGIN_ROOT}/directives/*.md` if `include_plugin_defaults`) and user directives (`<project-root>/<directives.user_path>/*.md` if it resolves).
-     - Append a `Directives most relevant to this run:` list with the primary matches from the "Surface relevant directives" step.
-   - **Foreign** (subagent_type not in the allowlist): supply directive **full contents** verbatim with `## File: <path>` headers, plus the explicit instruction: "These directives are authoritative. Cite by `file.md §N.N` when raising findings." Then append the same `Directives most relevant to this run:` list.
+3. **Directives:** supply resolved absolute **paths** per the delivery contract — plugin defaults (`${CLAUDE_PLUGIN_ROOT}/directives/*.md` if `include_plugin_defaults`) and user directives (`<project-root>/<directives.user_path>/*.md` if it resolves), the contract's authority sentence and specialty statement when the agent is foreign, and the `Directives most relevant to this run:` list with the primary matches from Step 3.
 
-4. **Project conventions (observed baseline)** — included only when `paths.patterns` resolved in Step 2. Native `comb:*` agents get the manifest **path**; foreign agents get its **embedded contents**. The part contains:
-   ```
-   ## Project conventions (observed baseline)
-
-   {manifest path for native agents, or embedded manifest contents for foreign agents}
-
-   This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Project directives outrank this manifest: a divergence that violates an up-to-date directive is drift no matter how widespread, and classifying it as a deliberate improvement or new canonical never excuses a directive violation. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
-   ```
-   Omit this part entirely when no manifest resolved.
+4. **Project conventions (observed baseline)** — insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` (manifest path + verbatim paragraph; no role note for review dispatches). Omit this part entirely when no manifest resolved.
 
 5. **User focus brief**, under `## User focus for this run` heading, verbatim, with framing: "Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip."
 
@@ -219,7 +182,7 @@ For each picked role, resolve and construct the dispatch prompt:
    - **Confidence** on every finding: `Verified` when you opened every cited file and confirmed every particular the finding asserts — the anchor, any count, and, for a suggested fix, that you traced the fix against the code. Otherwise `Unverified — <what you could not confirm>`, naming the specific gap (an inferred line range, an estimated count, an untraced fix shape, a file you could not open). This field is not optional.
    - Read-only — no code changes
 
-Launch all dispatches in parallel by issuing multiple Task tool calls in a single assistant message — one call per picked role. (`run_in_background: true` is a Bash-tool parameter, not a Task-tool parameter; parallel agent dispatch happens via batched tool calls.)
+Launch all dispatches in parallel per the delivery contract — one Task call per picked role, batched in a single assistant message.
 
 ## Step 5: Run mechanical verification checks
 
@@ -269,7 +232,7 @@ Carry each agent's `Confidence` line forward. Where an agent reported `Unverifie
 
 **Finding codes:** sequential by severity. C1, C2 / H1, H2 / M1, M2 / L1, L2 / T1, T2 / D1, D2. Every Deferred item gets a code too — `/comb:plan` plans them by code, so unnumbered bullets get dropped.
 
-**Semantic refresh signal (decision §9).** If any agent flagged a divergence as a *deliberate improvement / migration* or a *new canonical* pattern, record that the semantic refresh note should fire in the presentation. This is distinct from the commit-based staleness note (decision §10).
+**Semantic refresh signal.** If any agent flagged a divergence as a *deliberate improvement / migration* or a *new canonical* pattern, record that the semantic refresh note should fire in the presentation. This is distinct from the commit-based staleness note.
 
 ## Step 8: Write the report
 
@@ -407,8 +370,8 @@ Agents used: {list}
 ```
 
 **Manifest notes (non-blocking).** Append, when recorded:
-- Commit-based staleness (decision §10): `PATTERNS manifest may be stale — consider re-running /comb:patterns.`
-- Semantic refresh (decision §9): `This diff evolves a convention not in the manifest — consider re-running /comb:patterns to capture it.`
+- Commit-based staleness: `PATTERNS manifest may be stale — consider re-running /comb:patterns.`
+- Semantic refresh: `This diff evolves a convention not in the manifest — consider re-running /comb:patterns to capture it.`
 
 ## Ground rules
 
@@ -417,7 +380,7 @@ Agents used: {list}
 - **The report's voice is authoritative.** Step 7's verification gate is what earns it. A particular that survived no check is marked, not stated.
 - **Project-aware.** Every agent gets the project's directives.
 - **Severity is honest.** Critical means production bugs.
-- **Round-aware.** The report filename includes round N, computed by counting existing reports + 1. v1 does not parse prior reports for fixed-findings status — agents may flag items that already shipped in a prior round; deduplication against prior rounds is future work (spec §12).
+- **Round-aware.** The report filename includes round N, computed by counting existing reports + 1. v1 does not parse prior reports for fixed-findings status — agents may flag items that already shipped in a prior round; deduplication against prior rounds is future work.
 
 ## Edge case: focus brief contradicts shipped behavior
 
