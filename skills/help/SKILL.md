@@ -1,6 +1,6 @@
 ---
 name: help
-description: Show the comb plugin overview and command list. Use when the user types `/comb:help`, asks "what is comb", "what does comb do", "comb commands", "how do I use comb", or wants a refresher on the plugin. Pass a command name (e.g., `/comb:help fix`) for a deeper look at one command.
+description: Use when the user types `/comb:help`, asks "what is comb", "what does comb do", "comb commands", "how do I use comb", or wants a refresher on the plugin. Pass a command name (e.g., `/comb:help fix`) for a deeper look at one command.
 argument-hint: "[command-name]"
 allowed-tools:
   - Read
@@ -164,8 +164,7 @@ What it does
     per-item commits, or abort.
   - Executes each fix instruction with implementer + reviewer per item.
   - Implementer is agents.implementer (default general-purpose).
-  - Reviewer specialty is matched to the plan's **Specialty:** header
-    (was always test-auditor in v0.4.x).
+  - Reviewer specialty is matched to the plan's **Specialty:** header.
   - Reviewer evaluates plan-compliance: did the implementer execute the
     plan, and are reported divergences justified?
   - Parallel batching where safe; sequential where instructions overlap

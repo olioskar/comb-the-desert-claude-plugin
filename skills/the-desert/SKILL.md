@@ -1,6 +1,6 @@
 ---
 name: the-desert
-description: Run the full comb pipeline — review → plan → fix — as one continuous sweep. No pauses, no items skipped, no confirmations. Opus everywhere. The user must invoke this explicitly — it executes code changes.
+description: Use when the user wants the full comb pipeline — review → plan → fix — run as one continuous sweep. The user must invoke this explicitly — it executes code changes.
 argument-hint: "[scope] [focus brief]"
 allowed-tools:
   - Bash
@@ -35,22 +35,20 @@ If scope is ambiguous, ask once. This is the only question you ask.
 
 ## Step 1: Load config
 
-Same layered-merge as `/comb:review`. Project root is resolved with `git rev-parse --show-toplevel` (which handles git worktrees correctly). The relevant override:
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. The relevant override:
 
 - `models.the_desert` (default `opus`) overrides every lane default in this run
-- **Exception:** explicit `agents.<role>.model` user overrides survive `the-desert` coercion (per spec §7.6). Only lane defaults are coerced.
+- **Exception:** explicit `agents.<role>.model` user overrides survive `the-desert` coercion. Only lane defaults are coerced.
 
 ## Step 2: Surface relevant directives
 
-Lowercase the focus brief and scan it for substring matches against the loaded directive filenames (both plugin defaults at `${CLAUDE_PLUGIN_ROOT}/directives/*.md` and the user's directives at `<project-root>/<directives.user_path>/*.md` if present). Strip the `.md` extension before matching, but match against the *full base name* — so `"scope"` matches `scope-discipline.md`, `"simplicity"` matches `simplicity.md`, and `"copy-paste"` would match a user directive named `copy-paste.md` if present (it doesn't match the shipped `reusability.md` — the matcher is a literal substring check, not a synonym mapper, per spec §8).
-
-Record the matched directive paths. They will be flagged as **primary** in agent dispatch prompts under the heading "Directives most relevant to this run" so agents weight them first. The matched-directive flagging carries through review → plan → fix without re-computing.
-
-If the focus brief is empty, no directives are flagged primary; all directives still load normally.
+Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally. The matched-directive flagging carries through review → plan → fix without re-computing.
 
 ## Step 3: Run review
 
-Run the `/comb:review` workflow with these overrides:
+Read `${CLAUDE_PLUGIN_ROOT}/skills/review/SKILL.md` and execute that workflow with these overrides. Where the texts conflict, these overrides win. Do not invoke the Skill tool for the sub-command — loading it as a skill would inject its wait-and-present instructions.
+
+Overrides:
 
 - All agents use `models.the_desert`
 - Save the report to `paths.reviews` per the standard naming
@@ -81,7 +79,7 @@ If **code-shaped**, proceed to Step 4 below as today.
 
 ## Step 4: Run plan
 
-Run the `/comb:plan` workflow with these overrides:
+Read `${CLAUDE_PLUGIN_ROOT}/skills/plan/SKILL.md` and execute that workflow with these overrides (same mechanism as Step 3 — read the file, do not invoke the Skill tool):
 
 - All agents use `models.the_desert`
 - **Include every finding** — Critical, High, Medium, Low, Test gaps, AND Deferred. Nothing is skipped.
@@ -97,16 +95,16 @@ Moving to fix →
 
 ## Step 5: Run fix
 
-Run the `/comb:fix` workflow with these overrides:
+Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/SKILL.md` and execute that workflow with these overrides (same mechanism as Step 3 — read the file, do not invoke the Skill tool):
 
 - All implementers use `models.the_desert` — including trivial items (no sonnet downgrade)
 - All reviewers use `models.the_desert`
 - **Per-item commits per `fix.commit_per_item` (default `true`) apply during the desert sweep.** The `models.the_desert` coercion governs subagent models; commit behavior is unaffected.
 - **Execute every item** — nothing is deferred or excluded
-- **Every item gets a reviewer** — no "trivial — skipped review". The reviewer is `agents.test-auditor.subagent_type` (default `comb:test-auditor`), per spec §5.3, with model coerced to `models.the_desert` unless an explicit `agents.test-auditor.model` user override is set.
+- **Every item gets a reviewer** — no "trivial — skipped review". The reviewer role follows `/comb:fix` Step 4e: it is picked from the plan file's `**Specialty:**` header, with model coerced to `models.the_desert` unless an explicit `agents.<role>.model` user override is set.
 - **Make grouping decisions yourself** — combine same-file trivial items without asking
 - Execution order: Critical → High → Medium → Low → Test gaps → Deferred (now treated as regular items) → Discovered
-- Run parallel batches where safe (different writes), sequential otherwise — launch parallel batches by issuing multiple Task tool calls in a single assistant message (do not use `run_in_background: true`; that is a Bash-tool parameter and has no effect on the Task tool).
+- Run parallel batches where safe (different writes), sequential otherwise — launch parallel batches per the delivery contract, one Task call per item in a single assistant message.
 
 Track progress as normal. When all items complete, present the full summary.
 
@@ -162,8 +160,8 @@ The findings are intended to feed your next round of design conversation, not an
 
 - **No confirmation prompts.** Don't ask "should I continue?" between steps. Don't ask about groupings or ordering. Decide and move.
 - **Nothing is deferred.** Every finding from review gets planned and fixed. "Deferred" is not a valid category in this mode.
-- **`models.the_desert` for lane defaults.** Explicit per-agent overrides survive (spec §7.6).
-- **PATTERNS manifest is inherited, not regenerated.** the-desert inherits manifest loading, the "Project conventions (observed baseline)" dispatch block, and the manifest stance (decision §9) through review/plan/fix — it never runs `/comb:patterns`. Both the commit-based staleness note (decision §10) and the semantic refresh note (decision §9) are **printed log lines, never prompts**, so the no-pause contract holds. `models.the_desert` does **not** coerce `models.patterns` — the guarantee holds because the scanner is never dispatched during the sweep, not via any coercion-skip logic (a future maintainer wiring patterns into the-desert must add the exclusion explicitly).
+- **`models.the_desert` for lane defaults.** Explicit per-agent overrides survive.
+- **PATTERNS manifest is inherited, not regenerated.** the-desert inherits manifest loading, the "Project conventions (observed baseline)" dispatch block, and the manifest stance through review/plan/fix — it never runs `/comb:patterns`. Both the commit-based staleness note and the semantic refresh note are **printed log lines, never prompts**, so the no-pause contract holds. `models.the_desert` does **not** coerce `models.patterns` — the guarantee holds because the scanner is never dispatched during the sweep, not via any coercion-skip logic (a future maintainer wiring patterns into the-desert must add the exclusion explicitly).
 - **The consolidation gate runs during the sweep.** `/comb:review` Step 7's verification gate asks the user nothing, so the no-pause contract holds. Do not strip it for speed.
 - **Only questions:** scope at the start (if ambiguous), the dirty-tree pre-flight question (only when the tree is non-empty per `git status --porcelain`), and "run again?" at the end. Clean tree at start → no pre-flight question, preserving the no-pause contract.
 - **All `/comb:review`, `/comb:plan`, `/comb:fix` rules still apply** — read source, fresh agents per item, scope boundaries, 3-failure escalation, parallel when safe. This skill overrides only transitions, model coercion, deferral policy, and confirmation policy.

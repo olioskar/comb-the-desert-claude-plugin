@@ -79,7 +79,7 @@ If you'd rather not hand-edit JSON, run `/comb:configure` and describe the chang
 
 The default is `general-purpose` (Claude's built-in writer-capable subagent), which is suitable for most projects. Override only if you have a specialist implementer for your stack.
 
-**Disable per-item commits** (back to v0.4.x behavior):
+**Disable per-item commits**:
 
 ```json
 {
@@ -138,7 +138,7 @@ Set the role's key to `null` in an override layer:
 
 ### Full schema
 
-See `config/defaults.json` for every supported field. The skill bodies in `skills/*/SKILL.md` are the runtime contract; `CHANGELOG.md` documents behavior changes per release.
+See `config/defaults.json` for every supported field. The skill bodies in `skills/*/SKILL.md` plus the shared contract blocks in `shared/*.md` are the runtime contract; `CHANGELOG.md` documents behavior changes per release.
 
 ## Directives
 
@@ -154,6 +154,8 @@ The plugin ships eight domain-neutral directives at `directives/`:
 - `testing.md` — TDD, real tests, cover changed behavior
 
 A project's own directives at the configured `directives.user_path` (default `docs/directives/`) layer on top — both sets are authoritative at runtime, cited in findings as `<file>.md §N.N`.
+
+Directives reach agents as file paths, never as embedded contents. Native `comb:*` agents already treat them as authoritative; any other agent type gets the same paths plus an explicit authority instruction (see `shared/dispatch-delivery.md`).
 
 To opt out of the plugin's directives:
 
@@ -175,6 +177,8 @@ The plugin registers five `comb:*` subagents — read-only reviewers (`disallowe
 - `comb:test-auditor` — coverage, real tests, behavior parity
 - `comb:consistency-auditor` — patterns, reference impl, feature completeness (against a spec/plan, or against intent reconstructed from evidence when no spec exists)
 
+The `disallowedTools` list blocks the file-editing tools; Bash stays available for git and read commands, so read-only is enforced by instruction, not by sandbox.
+
 A sixth read-only subagent, `comb:pattern-scanner`, is **generation-only** — dispatched by `/comb:patterns` to map one codebase area, never part of the review/plan/fix palette.
 
 You can invoke them directly via the Task tool or let the comb skills pick them automatically.
@@ -185,11 +189,21 @@ Each finding also carries a **Confidence** field, and `/comb:review` verifies be
 
 ### A note on skill `model` frontmatter
 
-The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set). Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
+The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Task call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
+
+## Development
+
+The release gate, in order:
+
+1. `claude plugin validate .` — structural lint of the manifest, skills, and agents.
+2. `scripts/check-contract.sh` — deterministic greps: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked.
+3. `claude plugin eval . --scaffold` — the behavioral suite in `evals/` (five cases covering the known regression classes). The eval feature is early access; until it is enabled for your account, run `scripts/smoke.sh` as the interim behavioral gate.
+
+CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workflow dispatch (it needs `ANTHROPIC_API_KEY`). `/skill-doctor` is a usage/cost report, useful for periodic monitoring — it is not a lint step and not part of the gate.
 
 ## Status
 
-v0.9.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.10.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 

@@ -6,3 +6,6 @@ DESIGN.md
 # keeps their own working copies of these on disk; git history retains older
 # versions for anyone who wants them via `git show <commit>:docs/...`.
 docs/
+
+# macOS noise
+.DS_Store

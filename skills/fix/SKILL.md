@@ -1,6 +1,6 @@
 ---
 name: fix
-description: Execute comb fix instructions sequentially or in parallel batches. Use after /comb:plan has produced instruction files. Each instruction goes to an implementer; standard items also go to a verifier. The user must invoke this explicitly — Claude does not auto-trigger it because it edits code.
+description: Use after /comb:plan has produced instruction files and the user wants them executed. The user must invoke this explicitly — Claude does not auto-trigger it because it edits code.
 argument-hint: "[instruction-folder] [focus brief]"
 allowed-tools:
   - Bash
@@ -25,14 +25,14 @@ You're a team lead working through a stack of fix instructions. For each: hand i
 
 ## Step 1: Load config
 
-Same layered-merge as `/comb:review`. Project root is resolved with `git rev-parse --show-toplevel` (which handles git worktrees correctly). From it:
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. From it:
 - `models.fix.implementer_standard`
 - `models.fix.implementer_trivial`
 - `models.fix.reviewer`
 - `directives` and `agents` (for verifier dispatch)
 - `paths.patterns` — the PATTERNS manifest, if it resolves
 
-**Load the PATTERNS manifest (decision §8).** If `paths.patterns` resolves, read it and run the commit-based staleness heuristic **exactly as defined in spec §10** (do not invent a variant): `cited` = the paths the manifest references, `touched` = the files referenced by the instruction set; flag if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` is non-empty. Record any staleness note for presentation. If absent or `null`, skip — graceful no-op.
+**Load the PATTERNS manifest.** If `paths.patterns` resolves, read it and run the commit-based staleness heuristic (do not invent a variant): `cited` = the paths the manifest references, `touched` = the files referenced by the instruction set; flag if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` is non-empty. Record any staleness note for presentation. If absent or `null`, skip — graceful no-op.
 
 ## Step 1.5: Pre-flight — check for an unrelated dirty tree
 
@@ -57,11 +57,7 @@ Honor the user's choice and proceed. In `/comb:the-desert`, this question is the
 
 ## Step 2: Surface relevant directives
 
-Lowercase the focus brief and scan it for substring matches against the loaded directive filenames (both plugin defaults at `${CLAUDE_PLUGIN_ROOT}/directives/*.md` and the user's directives at `<project-root>/<directives.user_path>/*.md` if present). Strip the `.md` extension before matching, but match against the *full base name* — so `"scope"` matches `scope-discipline.md`, `"simplicity"` matches `simplicity.md`, and `"copy-paste"` would match a user directive named `copy-paste.md` if present (it doesn't match the shipped `reusability.md` — the matcher is a literal substring check, not a synonym mapper, per spec §8).
-
-Record the matched directive paths. They will be flagged as **primary** in agent dispatch prompts under the heading "Directives most relevant to this run" so agents weight them first.
-
-If the focus brief is empty, no directives are flagged primary; all directives still load normally.
+Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
 
 ## Step 2.5: Detect folder shape
 
@@ -109,7 +105,7 @@ Two instructions overlap if their **write-sets** intersect — reads are free. A
 - Different-file writes → parallel batch.
 - **Concurrency limit:** max 3 implementer/reviewer pairs running concurrently — i.e., up to 3 items being implemented and verified at any given moment (so up to 6 in-flight subagents at peak: 3 implementers running while 3 reviewers verify previous batches, or 3 implementer+reviewer pairs interleaved).
 
-To launch a parallel batch, issue multiple Task tool calls in a single assistant message — one call per item in the batch. Do not use `run_in_background: true` (that is a Bash-tool parameter and has no effect on the Task tool).
+Launch a parallel batch per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Task call per item, batched in a single assistant message.
 
 Announce batches before launching:
 
@@ -123,7 +119,7 @@ Read the full fix instruction file. Understand What, Why, Where, How, Expected O
 
 ### 4c. Classify: trivial or standard?
 
-Triviality is **judgment-based by the orchestrator** using this rubric (spec §7.5):
+Triviality is **judgment-based by the orchestrator** using this rubric:
 
 **Trivial:**
 - Single-line edits
@@ -145,18 +141,10 @@ For trivial items: announce "(trivial — sonnet implementer per `models.fix.imp
 **Agent config (resolved per item):**
 
 - **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The shipped `comb:*` review agents are read-only (`disallowedTools: Write, Edit, NotebookEdit`) and cannot serve as implementers. Users who want a project-specific writer override `agents.implementer` in their config.
-- **Resolve model** with this priority: `agents.implementer.model` if set; otherwise `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items. The model knob is unchanged from v0.4.x.
-- **Allowlist match (not prefix check) — spec §5.4:** the shipped allowlist is exactly:
-  - `comb:code-reviewer`
-  - `comb:simplifier`
-  - `comb:silent-failure-hunter`
-  - `comb:test-auditor`
-  - `comb:consistency-auditor`
-
-  Compare the resolved `subagent_type` to this list with literal string equality. Native → supply directive paths only. Foreign → embed full directive contents.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items; pass the resolved model as the Task call's `model` parameter.
 - **Fresh agent per item** — no accumulated state.
 
-**Implementer dispatch prompt (5-part order per spec §7.1.5):**
+**Implementer dispatch prompt (5-part order):**
 
 ```
 You're an implementer. Execute this fix instruction precisely and completely.
@@ -172,7 +160,8 @@ Instruction file: {instruction-path}
 
 The project's authoritative directives apply to this fix.
 
-{If native:}
+{If foreign (per the delivery contract), first: "These directives are authoritative. Read every listed file before starting. Cite by `file.md §N.N`."}
+
 Read these directive files and cite as `file.md §N.N` if you depart from any rule (you should not need to depart):
 - {plugin directive paths, if include_plugin_defaults}
 - {user directive paths, if directives.user_path resolves}
@@ -180,19 +169,9 @@ Read these directive files and cite as `file.md §N.N` if you depart from any ru
 Directives most relevant to this run:
 - {primary directive paths from the "Surface relevant directives" step}
 
-{If foreign:}
-These directives are authoritative. Cite by `file.md §N.N` if you depart from any rule.
-
-{Embed full contents of every loaded directive verbatim with `## File: <path>` headers between them.}
-
-Directives most relevant to this run:
-- {primary directive paths from the "Surface relevant directives" step}
-
 ## Project conventions (observed baseline)
 
-{Included only when `paths.patterns` resolved. Manifest path for native `comb:*` agents, embedded contents for foreign agents.}
-
-This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Project directives outrank this manifest: a divergence that violates an up-to-date directive is drift no matter how widespread, and classifying it as a deliberate improvement or new canonical never excuses a directive violation. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
+{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — manifest path + verbatim paragraph — only when `paths.patterns` resolved.}
 
 (Implementer note) Conform to the baseline UNLESS this instruction is implementing a sanctioned improvement or a new canonical pattern. Omit the whole block when no manifest resolved.
 
@@ -248,18 +227,10 @@ Do not include code in your reply — your edits are the artifact.
 
 - **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error. `pattern-scanner` is generation-only and is never selected as the reviewer role.
 - **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. Honor the user's config.
-- **Resolve model** with this priority: `agents.<role>.model` if set; otherwise `models.fix.reviewer` (default `opus`).
-- **Allowlist match (not prefix check) — spec §5.4:** the shipped allowlist is exactly:
-  - `comb:code-reviewer`
-  - `comb:simplifier`
-  - `comb:silent-failure-hunter`
-  - `comb:test-auditor`
-  - `comb:consistency-auditor`
-
-  Compare with literal string equality. Native (the default) → supply directive paths. Foreign (user remapped `agents.test-auditor.subagent_type` to something else) → embed full directive contents.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.reviewer` (default `opus`); pass the resolved model as the Task call's `model` parameter.
 - **Fresh agent.**
 
-**Reviewer dispatch prompt (5-part order per spec §7.1.5):**
+**Reviewer dispatch prompt (5-part order):**
 
 ```
 You're a code reviewer verifying a fix against its original instruction.
@@ -276,7 +247,8 @@ Implementer summary: {implementer's reply}
 
 The project's authoritative directives apply to your verification.
 
-{If native:}
+{If foreign (per the delivery contract), first: "These directives are authoritative. Read every listed file before starting. Cite by `file.md §N.N`."}
+
 Read these directive files and cite as `file.md §N.N` when raising findings:
 - {plugin directive paths, if include_plugin_defaults}
 - {user directive paths, if directives.user_path resolves}
@@ -284,19 +256,9 @@ Read these directive files and cite as `file.md §N.N` when raising findings:
 Directives most relevant to this run:
 - {primary directive paths from the "Surface relevant directives" step}
 
-{If foreign:}
-These directives are authoritative. Cite by `file.md §N.N` when raising findings.
-
-{Embed full contents of every loaded directive verbatim with `## File: <path>` headers between them.}
-
-Directives most relevant to this run:
-- {primary directive paths from the "Surface relevant directives" step}
-
 ## Project conventions (observed baseline)
 
-{Included only when `paths.patterns` resolved. Manifest path for native `comb:*` agents, embedded contents for foreign agents.}
-
-This is the codebase's observed convention baseline as of its last generation — a prior, not the authority. Read the actual code around the diff; where it conflicts with the manifest, the live code wins. If the manifest has no entry for this area or theme, reconstruct the convention from the code — silence is neither a finding nor permission. Project directives outrank this manifest: a divergence that violates an up-to-date directive is drift no matter how widespread, and classifying it as a deliberate improvement or new canonical never excuses a directive violation. Before flagging a divergence, classify it: unjustified, inconsistent divergence is drift (a finding); a deliberate, consistently-applied improvement or migration, or the first canonical pattern for something genuinely new, is not a drift finding. When you judge a divergence to be an improvement/migration or a new canonical, say so explicitly so the orchestrator can emit the semantic refresh note. Cite manifest entries by area/section heading when raising conformance findings.
+{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — manifest path + verbatim paragraph — only when `paths.patterns` resolved.}
 
 (Reviewer note) Conformance to the baseline is expected, but a deliberate improvement/migration or a new canonical introduced by this fix is NOT a compliance failure. Omit the whole block when no manifest resolved.
 
@@ -380,7 +342,7 @@ The orchestrator runs the commit, not the implementer subagent. Two safety rules
 - **Pre-flight already happened** at Step 1.5 — the only changes in the working tree at this point are the implementer's. (Or: the user chose `(c) proceed without per-item commits` and `commit_per_item` is effectively off for this run.)
 - **On commit failure** (pre-commit hook reject, signing failure, conflict, anything non-zero): abort the run, surface the error, name the affected item. Do not retry blindly. The user investigates.
 
-If `fix.commit_per_item` is `false`, skip the commit. Implementer changes accumulate in the working tree (legacy v0.4.x behavior).
+If `fix.commit_per_item` is `false`, skip the commit. Implementer changes accumulate in the working tree.
 
 ### 4g. Trivial escape hatch (orchestrator-applied fix after 3 failures)
 
@@ -433,7 +395,7 @@ All {N} items complete:
   - X1: {title} (found reviewing H2) — PASS
 ```
 
-**Manifest notes (non-blocking).** Append any commit-based staleness note (decision §10) or semantic-refresh note (decision §9) recorded during this run.
+**Manifest notes (non-blocking).** Append any commit-based staleness note or semantic-refresh note recorded during this run.
 
 ## Ground rules
 

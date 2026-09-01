@@ -1,6 +1,6 @@
 ---
 name: configure
-description: Configure the comb plugin — change paths, swap models, enable/disable agents, edit directive settings. Use when the user wants to configure comb, change comb settings, disable an agent, change which model comb uses, set the base branch, change where reviews are saved, or otherwise tweak `.claude/comb.config.json`.
+description: Use when the user wants to configure comb, change comb settings, disable an agent, change which model comb uses, set the base branch, change where reviews are saved, point comb at their directives, or otherwise tweak `.claude/comb.config.json`.
 argument-hint: "[scope] [change]"
 allowed-tools:
   - Bash
@@ -38,11 +38,7 @@ Read all three layers and show the **merged effective config** plus which keys a
 2. `~/.claude/comb.config.json` — global override (skip if not present)
 3. `<project-root>/.claude/comb.config.json` — project override (skip if not present)
 
-**Merge rules** (same as the rest of the plugin):
-- Objects: deep-merged
-- Arrays: replaced wholesale
-- `null` at any depth: removes that key from the merged result
-- Invalid JSON in any layer: hard error — abort with a clear message naming the bad file
+**Merge rules** are defined once in `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` (objects deep-merge; arrays replace; `null` deletes; invalid JSON is a hard error naming the bad file).
 
 Print a short summary of the effective config (not the full JSON dump unless the user asks). Highlight which layer each non-default value is coming from.
 
@@ -72,7 +68,7 @@ The configurable schema is:
 
 - **"Disable agent X"** → set `agents.X = null` in the override file. (This relies on null-as-delete merge semantics.)
 - **"Re-enable agent X"** → remove the `null` entry, OR re-supply the full agent object (`subagent_type` + `when_to_use`) if the user wants a custom version.
-- **"Add a custom agent"** → write `agents.<new-role> = {subagent_type: "...", when_to_use: "..."}` and tell the user that a non-`comb:*` `subagent_type` triggers foreign-agent dispatch (full directive contents embedded in the prompt).
+- **"Add a custom agent"** → write `agents.<new-role> = {subagent_type: "...", when_to_use: "..."}` and tell the user that a non-`comb:*` `subagent_type` triggers foreign-agent dispatch (directive paths plus an explicit authority instruction in the prompt).
 - **"Use model M for step S"** → set `models.<step> = "M"` (or the nested `models.fix.*` for fix sub-roles).
 - **"Use model M for agent X"** → set `agents.X.model = "M"` (per-agent override beats step-level).
 - **"Change reviews/plans dir"** → set `paths.<reviews|plans>`.
