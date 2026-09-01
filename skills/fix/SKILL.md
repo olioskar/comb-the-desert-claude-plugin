@@ -322,14 +322,17 @@ Verify the implementation executed the plan. **The plan file is the contract** �
 
 1. Read the plan's `## How` section. This is what the implementer was supposed to do.
 2. Read the implementer's `## Divergences` section (if present). Each deviation must have a stated rationale.
-3. Read the actual diff:
-   - When `fix.commit_per_item` is on: `git diff HEAD~1 -- <files reported by implementer>`. The previous commit is the implementer's per-item commit; HEAD~1 is the state before this item.
-   - When `fix.commit_per_item` is off: `git diff -- <files reported by implementer>`. Note: this shows accumulated changes since the last HEAD; cumulative-diff false-positives for scope are possible. Lean on the implementer's reported file list and the plan's `## Where` section to scope your reading.
+3. Read the actual diff. The item's changes are **uncommitted** at this point — the orchestrator commits only after a PASS (Step 4f.1) — so `HEAD` is the state before this item.
+   - `git diff HEAD -- <files reported by implementer>` shows the item's changes, staged and unstaged, against `HEAD`. Step 4a forms a parallel batch only from items with disjoint write-sets, so the path scope isolates this item from its batch-mates.
+   - `git diff` never lists an untracked file, so a file the implementer created does not appear in it. Run `git status --porcelain -- <files reported by implementer>` and read any path marked `??` in full instead of diffing it.
+   - When `fix.commit_per_item` is off, `HEAD` has not moved since the run started, so this diff accumulates the earlier items too. Lean on the implementer's reported file list and the plan's `## Where` section to scope your reading.
 
 ### Decision rule
 
 - **PASS** — every step of the plan's `## How` is reflected in the diff, OR each divergence reported by the implementer has a sound rationale, AND the plan's `## Expected Outcome` is achieved, AND the diff stays within the plan's `## Scope`.
 - **FAIL** — the diff doesn't match the plan and no rationale was given; OR the rationale doesn't justify the deviation; OR the Expected Outcome isn't achieved; OR the diff includes changes outside the plan's Scope (without a divergence rationale).
+
+**A step you could not verify is not a FAIL on its own.** FAIL means you found a mismatch. When you could not confirm a step — the outcome needs a browser, the invariant needs a runtime, the artifact needs a rebuild — report the verdict your actual evidence supports and name the gap on the `Unverified:` line below. Do not convert a limit of your own into a FAIL.
 
 You are **not** auditing for general code quality. You are **not** re-litigating the fix's design. The plan is the spec. Stay narrow.
 
@@ -339,6 +342,8 @@ Report `PASS` or `FAIL` on the first line with specifics:
 
 - **PASS** — single line plus a 1–2-sentence confirmation of what you verified.
 - **FAIL** — explain exactly what's wrong, with file:line citations.
+
+Every verdict then carries a second line naming what you could **not** check, in the form `Unverified: {the step, outcome, or scope claim you could not confirm, and why}`. Write `Unverified: nothing — every step of the How was confirmed against the diff` when you confirmed all of it. The line is required; there is no blank and no omission. Name the specific gap: an Expected Outcome that needs a browser or a manual check, a runtime invariant you could not exercise, a generated artifact you could not rebuild, a file you could not open. This is not a third verdict — you still report PASS or FAIL.
 
 ### Discovered issues (optional)
 
@@ -352,7 +357,7 @@ Only flag genuine issues, not style preferences. One or two max. If nothing stan
 
 ### 4f. Handle the result
 
-- **PASS** — proceed to **Step 4f.1** (commit), then announce complete and move on.
+- **PASS** — proceed to **Step 4f.1** (commit), then announce complete and move on. When the reviewer's `Unverified:` line names anything other than `nothing`, announce the item as `{code} — PASS (partial verification: {what the reviewer could not check})` and carry that item into the end-of-run summary with the same note. This is a log line, not a gate: it does not block the commit, does not trigger a retry, and asks the user nothing.
 - **FAIL** — read feedback. Adjust instructions if needed. Send a new implementer. Review again. **If 3 failures on one item:** if the item is classified trivial (per Step 4c), proceed to **Step 4g** (orchestrator escape hatch). Otherwise stop and ask the user.
 - **DISCOVERED** — write a new instruction document in the same folder using the next available code (`X1`, `X2`...). The `X` prefix means "extra, found during execution" and is distinct from `D{n}` Deferred items emitted by review. Same format as all other items. Add to the end of the queue. Announce:
   ```
@@ -406,6 +411,7 @@ With extras:
 ```
 {code} — PASS after 1 retry ({N}/{total} complete)
 {code} — PASS, trivial implementer ({N}/{total} complete)
+{code} — PASS (partial verification: {what the reviewer could not check}) ({N}/{total} complete)
 ```
 
 At the end:
@@ -415,6 +421,7 @@ All {N} items complete:
   - C1: PASS
   - H1: PASS
   - H2: PASS (1 retry)
+  - M4: PASS (partial verification: Expected Outcome needs a browser check)
   - L1-L3: PASS (parallel batch, trivial implementer)
   - X1: PASS (discovered during H2 review)
   - ...

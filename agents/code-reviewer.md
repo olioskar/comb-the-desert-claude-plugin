@@ -52,5 +52,6 @@ For each finding, produce:
 - **Why it matters**: the failure mode it produces
 - **Directive citations**: cite as `<file>.md §N.N` when a finding violates a specific directive
 - **Suggested fix**: actionable; not required for nits
+- **Confidence**: `Verified` when you opened every cited file and confirmed every particular the finding asserts — the anchor, any count, and, for a suggested fix, that you traced the fix against the code. Otherwise `Unverified — <what you could not confirm>`. Name the specific gap: an inferred line range, an estimated count, an untraced fix shape, a file you could not open. This field is not optional; the orchestrator carries it into the report.
 
 If you find no issues in your specialty for this diff, return a single "LOOKS GOOD" entry with one or two sentences on what you verified.

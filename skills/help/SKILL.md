@@ -109,7 +109,9 @@ What it does
   - Picks 2–5 reviewer agents based on the diff and the focus brief.
   - Dispatches them in parallel against the project's directives.
   - Runs typecheck/tests in parallel.
-  - Consolidates findings into a severity-ranked report.
+  - Verifies each finding's anchors and counts, then consolidates
+    them into a severity-ranked report. Every finding carries a
+    Verified: line naming what was checked and what was not.
 
 Output
   <paths.reviews>/{pr-N|branch-NAME}-roundN-report.md

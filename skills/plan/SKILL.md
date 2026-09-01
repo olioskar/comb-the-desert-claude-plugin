@@ -65,6 +65,7 @@ Extract every finding from the report:
 - **File(s)**: paths and line numbers
 - **Description**: what's wrong, why
 - **Suggested fix**: if the report includes one
+- **Verification status**: the finding's `Verified:` line. Preserve it verbatim. A report written before this field existed carries none — treat every particular in such a finding as unconfirmed.
 
 **Include Deferred items.** Don't drop them. "Deferred" is *noted, explicitly out of scope for the current round* — but the user often picks them up while in the area. Each deferred item gets the same per-finding plan file as everything else. The user is the gate, not the planner.
 
@@ -151,8 +152,9 @@ You are writing ONE consolidated revision-instructions file for the spec under r
 ### What to do
 
 1. Read the spec file: {spec_path}
-2. For each finding in the report, identify the exact section/line to revise.
-3. Write a single file at `{output_folder}/revise-{spec-stem}.md` consolidating all revisions in the order findings appear in the report. Each revision is a section with the finding's original label and title.
+2. For each finding, open the spec at the cited section or line. Confirm the finding's quoted text and its anchor are accurate before you write the revision. Correct any anchor that does not resolve, and state the correction in that revision's **Reason** line. The finding's `Verified:` line states what the review confirmed; re-derive anything it names as unchecked. When a finding carries no `Verified:` line, treat its anchor and its quoted text as unconfirmed.
+3. Identify the exact section or line to revise.
+4. Write a single file at `{output_folder}/revise-{spec-stem}.md` consolidating all revisions in the order findings appear in the report. Each revision is a section with the finding's original label and title.
 
 ## 5. Output format
 
@@ -267,9 +269,13 @@ You are writing fix instructions for **one** review finding. Treat the finding a
 
 **Before recommending a fix, trace through its failure modes.** If correctness depends on a runtime invariant — closure state, async timing, render scheduling, lifecycle ordering, transaction isolation — simulate the failure path mentally and confirm the proposed fix breaks it. If you cannot, surface the structural concern in your output rather than recommend a flawed fix. The reviewer downstream is going to check plan-compliance, not re-design the fix; you owe future-you a sound recommendation.
 
+**The finding's `Verified:` line states what the review actually confirmed.** Re-derive anything it names as unchecked — an anchor, a count, a fix shape — from the code before you build on it. A fix shape the review marked unverified is a proposal: evaluate it, do not transcribe it. When your instruction contradicts an unverified particular, say so in the instruction and give the corrected particular. When the finding carries no `Verified:` line at all, treat every particular as unconfirmed.
+
 ### Finding
 
 ### {reference_code}. {title} ({severity})
+
+**Verified (from the review report):** {the finding's `Verified:` line, verbatim, or "none — the report predates this field"}
 
 {full_finding_description}
 

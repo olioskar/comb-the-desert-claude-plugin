@@ -181,13 +181,15 @@ You can invoke them directly via the Task tool or let the comb skills pick them 
 
 All five reviewers self-calibrate before publishing: each finding must reference a real cost — real failure mode, real complexity cost, real silence, real coverage gap, or real divergence with consequences. Ungrounded items get dropped. `LOOKS GOOD` on a clean diff is the expected outcome; padding the report with marginal items dilutes the signal of real findings. This keeps multi-round `/comb:the-desert` sweeps from drifting into diminishing-returns noise.
 
+Each finding also carries a **Confidence** field, and `/comb:review` verifies before it promotes: it opens every cited line, recomputes every count, and refuses to state an untraced fix shape in the report's voice. Every finding in the report ends up with a `Verified:` line naming what was checked and what was not. `/comb:plan` reads that line and re-derives anything it names as unchecked.
+
 ### A note on skill `model` frontmatter
 
 The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set). Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
 
 ## Status
 
-v0.8.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.9.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 

@@ -216,6 +216,7 @@ For each picked role, resolve and construct the dispatch prompt:
    - Finding codes: placeholder (orchestrator renumbers)
    - File:line references
    - Directive citations on every finding where applicable
+   - **Confidence** on every finding: `Verified` when you opened every cited file and confirmed every particular the finding asserts — the anchor, any count, and, for a suggested fix, that you traced the fix against the code. Otherwise `Unverified — <what you could not confirm>`, naming the specific gap (an inferred line range, an estimated count, an untraced fix shape, a file you could not open). This field is not optional.
    - Read-only — no code changes
 
 Launch all dispatches in parallel by issuing multiple Task tool calls in a single assistant message — one call per picked role. (`run_in_background: true` is a Bash-tool parameter, not a Task-tool parameter; parallel agent dispatch happens via batched tool calls.)
@@ -236,10 +237,22 @@ Monitor agent completion. Don't consolidate until all agents report back. If one
 
 ## Step 7: Consolidate
 
+**Verify before promoting.** A finding becomes authoritative the moment it enters the report. Agent output is a proposal; the report is not. Before you write a finding, confirm the particulars it carries:
+
+1. **Anchors.** Open each cited file at each cited line. Confirm the construct the finding describes is there. Take the line number from a numbered read, never by counting rows in a rendered block — an anchor derived by eye is unverified no matter how carefully you counted. Re-anchor a finding whose anchor does not resolve, or drop it. Never transcribe an anchor you did not open.
+2. **Quantities.** Recompute every count, every ratio, and every all/none/only claim against the code — yours and the agents' alike.
+3. **Suggested fixes.** A fix shape you have not traced is a proposal, not a recommendation. Trace it, or mark it unverified. Never promote an agent's untraced fix shape into the report's voice.
+4. **Your own syntheses.** A merged description, a cross-agent count, or a combined severity rationale is new content that no agent wrote. It gets the same treatment.
+
+Carry each agent's `Confidence` line forward. Where an agent reported `Unverified` and you did not close the gap yourself, the report says so. An agent that omitted the field confirmed nothing you can rely on — treat its particulars as unconfirmed until you check them.
+
+**Bound.** This gate reads the cited locations and recomputes the stated quantities. It is not a second review. Do not re-derive findings, do not re-litigate severity, and do not hunt for issues the agents missed.
+
 **Deduplication (both classifications).** When multiple agents flag the same issue:
 - Keep the most detailed description
 - Credit all agents that found it
 - Use the highest severity (code-shaped) or preserve the first label (non-code)
+- The merged finding's `Verified:` line covers the description you kept, not the ones you dropped. Re-check the particulars of the surviving text.
 
 **For non-code classification:** skip the C/H/M/L/T/D scale and the finding-code numbering. Preserve agent-supplied labels verbatim — typically one of *Ambiguity*, *Blind spot*, *Pattern-break*, *Reusability gap*, *Quality concern*. List findings as a flat collection; no tier grouping.
 
@@ -268,7 +281,9 @@ Monitor agent completion. Don't consolidate until all agents report back. If one
 
 **Template selection.** Use the template that matches the Step 3.5 classification.
 
-### Template — code-shaped (unchanged from prior behavior):
+**Writing the `Verified:` line (both templates).** Name the check, not the act. `Read foo.ts:118-126; recomputed the count (4 of 5)` is a verification. `Verified against source` is not. State both halves — what you confirmed and what you did not. When nothing was confirmed, write `not independently verified — <what is unchecked>`. Every finding carries the line; there is no blank and no omission. The line reports on this finding's own particulars — never on the run's typecheck or test results, which belong in the Verification Summary table.
+
+### Template — code-shaped:
 
 ```markdown
 # {Title} — Round {N} Review Report
@@ -308,6 +323,7 @@ Monitor agent completion. Don't consolidate until all agents report back. If one
 **{code} — {title}**
 *Source: {agent(s)}*
 File(s): `{path}:{line}`
+**Verified:** {what you confirmed, and what you did not}
 
 {What's wrong, why it matters, fix suggestion. Cite directives where applicable.}
 
@@ -321,6 +337,7 @@ File(s): `{path}:{line}`
 **{code} — {title}**
 *Source: {agent(s)}*
 File(s): `{path}:{line}`
+**Verified:** {what you confirmed, and what you did not}
 
 {Why it's deferred, why it still matters, fix sketch.}
 
@@ -354,6 +371,7 @@ File(s): `{path}:{line}`
 **{Label} — {title}**
 *Source: {agent(s)}*
 File(s): `{path}:{line-range or section heading}`
+**Verified:** {what you confirmed, and what you did not}
 
 {What's wrong, why it matters, suggested resolution. Cite directives where applicable.}
 
@@ -396,6 +414,7 @@ Agents used: {list}
 
 - **Read-only.** Nobody edits code. The only file created is the report.
 - **Agents read actual source code.** Not just filenames.
+- **The report's voice is authoritative.** Step 7's verification gate is what earns it. A particular that survived no check is marked, not stated.
 - **Project-aware.** Every agent gets the project's directives.
 - **Severity is honest.** Critical means production bugs.
 - **Round-aware.** The report filename includes round N, computed by counting existing reports + 1. v1 does not parse prior reports for fixed-findings status — agents may flag items that already shipped in a prior round; deduplication against prior rounds is future work (spec §12).
