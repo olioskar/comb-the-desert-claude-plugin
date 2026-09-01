@@ -50,7 +50,9 @@ If the focus brief is empty, no directives are flagged primary; all directives s
 
 ## Step 3: Run review
 
-Run the `/comb:review` workflow with these overrides:
+Read `${CLAUDE_PLUGIN_ROOT}/skills/review/SKILL.md` and execute that workflow with these overrides. Where the texts conflict, these overrides win. Do not invoke the Skill tool for the sub-command — loading it as a skill would inject its wait-and-present instructions.
+
+Overrides:
 
 - All agents use `models.the_desert`
 - Save the report to `paths.reviews` per the standard naming
@@ -81,7 +83,7 @@ If **code-shaped**, proceed to Step 4 below as today.
 
 ## Step 4: Run plan
 
-Run the `/comb:plan` workflow with these overrides:
+Read `${CLAUDE_PLUGIN_ROOT}/skills/plan/SKILL.md` and execute that workflow with these overrides (same mechanism as Step 3 — read the file, do not invoke the Skill tool):
 
 - All agents use `models.the_desert`
 - **Include every finding** — Critical, High, Medium, Low, Test gaps, AND Deferred. Nothing is skipped.
@@ -97,13 +99,13 @@ Moving to fix →
 
 ## Step 5: Run fix
 
-Run the `/comb:fix` workflow with these overrides:
+Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/SKILL.md` and execute that workflow with these overrides (same mechanism as Step 3 — read the file, do not invoke the Skill tool):
 
 - All implementers use `models.the_desert` — including trivial items (no sonnet downgrade)
 - All reviewers use `models.the_desert`
 - **Per-item commits per `fix.commit_per_item` (default `true`) apply during the desert sweep.** The `models.the_desert` coercion governs subagent models; commit behavior is unaffected.
 - **Execute every item** — nothing is deferred or excluded
-- **Every item gets a reviewer** — no "trivial — skipped review". The reviewer is `agents.test-auditor.subagent_type` (default `comb:test-auditor`), per spec §5.3, with model coerced to `models.the_desert` unless an explicit `agents.test-auditor.model` user override is set.
+- **Every item gets a reviewer** — no "trivial — skipped review". The reviewer role follows `/comb:fix` Step 4e: it is picked from the plan file's `**Specialty:**` header, with model coerced to `models.the_desert` unless an explicit `agents.<role>.model` user override is set.
 - **Make grouping decisions yourself** — combine same-file trivial items without asking
 - Execution order: Critical → High → Medium → Low → Test gaps → Deferred (now treated as regular items) → Discovered
 - Run parallel batches where safe (different writes), sequential otherwise — launch parallel batches by issuing multiple Task tool calls in a single assistant message (do not use `run_in_background: true`; that is a Bash-tool parameter and has no effect on the Task tool).
