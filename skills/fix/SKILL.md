@@ -1,6 +1,6 @@
 ---
 name: fix
-description: Execute comb fix instructions sequentially or in parallel batches. Use after /comb:plan has produced instruction files. Each instruction goes to an implementer; standard items also go to a verifier. The user must invoke this explicitly — Claude does not auto-trigger it because it edits code.
+description: Use after /comb:plan has produced instruction files and the user wants them executed. The user must invoke this explicitly — Claude does not auto-trigger it because it edits code.
 argument-hint: "[instruction-folder] [focus brief]"
 allowed-tools:
   - Bash
@@ -342,7 +342,7 @@ The orchestrator runs the commit, not the implementer subagent. Two safety rules
 - **Pre-flight already happened** at Step 1.5 — the only changes in the working tree at this point are the implementer's. (Or: the user chose `(c) proceed without per-item commits` and `commit_per_item` is effectively off for this run.)
 - **On commit failure** (pre-commit hook reject, signing failure, conflict, anything non-zero): abort the run, surface the error, name the affected item. Do not retry blindly. The user investigates.
 
-If `fix.commit_per_item` is `false`, skip the commit. Implementer changes accumulate in the working tree (legacy v0.4.x behavior).
+If `fix.commit_per_item` is `false`, skip the commit. Implementer changes accumulate in the working tree.
 
 ### 4g. Trivial escape hatch (orchestrator-applied fix after 3 failures)
 

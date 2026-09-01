@@ -1,6 +1,6 @@
 ---
 name: the-desert
-description: Run the full comb pipeline — review → plan → fix — as one continuous sweep. No pauses, no items skipped, no confirmations. Opus everywhere. The user must invoke this explicitly — it executes code changes.
+description: Use when the user wants the full comb pipeline — review → plan → fix — run as one continuous sweep. The user must invoke this explicitly — it executes code changes.
 argument-hint: "[scope] [focus brief]"
 allowed-tools:
   - Bash

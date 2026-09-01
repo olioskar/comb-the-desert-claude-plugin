@@ -79,7 +79,7 @@ If you'd rather not hand-edit JSON, run `/comb:configure` and describe the chang
 
 The default is `general-purpose` (Claude's built-in writer-capable subagent), which is suitable for most projects. Override only if you have a specialist implementer for your stack.
 
-**Disable per-item commits** (back to v0.4.x behavior):
+**Disable per-item commits**:
 
 ```json
 {
@@ -176,6 +176,8 @@ The plugin registers five `comb:*` subagents — read-only reviewers (`disallowe
 - `comb:silent-failure-hunter` — error handling, swallowed errors
 - `comb:test-auditor` — coverage, real tests, behavior parity
 - `comb:consistency-auditor` — patterns, reference impl, feature completeness (against a spec/plan, or against intent reconstructed from evidence when no spec exists)
+
+The `disallowedTools` list blocks the file-editing tools; Bash stays available for git and read commands, so read-only is enforced by instruction, not by sandbox.
 
 A sixth read-only subagent, `comb:pattern-scanner`, is **generation-only** — dispatched by `/comb:patterns` to map one codebase area, never part of the review/plan/fix palette.
 

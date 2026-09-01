@@ -1,6 +1,6 @@
 ---
 name: patterns
-description: Scan the codebase and generate or refresh the PATTERNS manifest — a project-specific record of concrete conventions (structural patterns, naming & vocabulary, closed token/enum sets, abstraction calibration, reuse points, error/async patterns, testing conventions) with real code references. The manifest feeds /comb:review, /comb:plan, and /comb:fix as an observed-baseline context block. Use when the user wants to set up, generate, or refresh comb's project conventions manifest.
+description: Use when the user wants to set up, generate, or refresh comb's PATTERNS manifest — the project-specific record of concrete conventions (structure, naming, closed sets, abstraction, reuse, error handling, testing) that /comb:review, /comb:plan, and /comb:fix consume as an observed baseline.
 argument-hint: "[focus brief]"
 allowed-tools:
   - Bash

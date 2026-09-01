@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Turn comb review findings into per-finding fix instructions. Use after a comb review when the user wants the findings translated into executable fix plans. Each finding gets its own instruction document an implementer can execute cold.
+description: Use after a comb review when the user wants the findings translated into executable fix instructions.
 argument-hint: "[report-path] [focus brief]"
 allowed-tools:
   - Bash

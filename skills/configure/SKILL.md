@@ -1,6 +1,6 @@
 ---
 name: configure
-description: Configure the comb plugin — change paths, swap models, enable/disable agents, edit directive settings. Use when the user wants to configure comb, change comb settings, disable an agent, change which model comb uses, set the base branch, change where reviews are saved, or otherwise tweak `.claude/comb.config.json`.
+description: Use when the user wants to configure comb, change comb settings, disable an agent, change which model comb uses, set the base branch, change where reviews are saved, point comb at their directives, or otherwise tweak `.claude/comb.config.json`.
 argument-hint: "[scope] [change]"
 allowed-tools:
   - Bash

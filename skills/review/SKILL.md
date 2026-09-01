@@ -1,6 +1,6 @@
 ---
 name: review
-description: Run a comb code review on a PR, branch, or file list. Use when the user wants to review code for issues, audit a PR, find bugs in a diff, comb through changes, or check a spec/plan against existing patterns. The user may provide a focus brief after the command (e.g., "/comb:review look for ambiguities and inconsistencies").
+description: Use when the user wants to review code for issues, audit a PR or branch, find bugs in a diff, comb through changes, or check a spec/plan against existing patterns. The user may provide a focus brief after the command (e.g., "/comb:review look for ambiguities and inconsistencies").
 argument-hint: "[scope] [focus brief]"
 allowed-tools:
   - Bash
@@ -240,7 +240,7 @@ Carry each agent's `Confidence` line forward. Where an agent reported `Unverifie
 - PR → `pr-{number}-round{N}-report.md`
 - Branch → `branch-{slug}-round{N}-report.md` where `{slug}` is the branch name with `/`, whitespace, and any other path-unsafe character (`:`, `\`, `?`, `*`, `<`, `>`, `|`, `"`) replaced with `-`. Collapse consecutive `-` and trim trailing `-`. Example: `feature/foo bar` → `feature-foo-bar`.
 
-**N is computed as `(count of existing files matching the prefix in paths.reviews) + 1`.**
+**N is computed by parsing the round number out of the existing filenames matching the prefix in `paths.reviews`: N = the highest round found + 1 (1 when none match).** Never count files — after a deletion, a count collides with a surviving later round.
 
 **Template selection.** Use the template that matches the Step 3.5 classification.
 
