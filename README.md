@@ -191,6 +191,16 @@ Each finding also carries a **Confidence** field, and `/comb:review` verifies be
 
 The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Task call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
 
+## Development
+
+The release gate, in order:
+
+1. `claude plugin validate .` — structural lint of the manifest, skills, and agents.
+2. `scripts/check-contract.sh` — deterministic greps: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked.
+3. `claude plugin eval . --scaffold` — the behavioral suite in `evals/` (five cases covering the known regression classes). The eval feature is early access; until it is enabled for your account, run `scripts/smoke.sh` as the interim behavioral gate.
+
+CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workflow dispatch (it needs `ANTHROPIC_API_KEY`). `/skill-doctor` is a usage/cost report, useful for periodic monitoring — it is not a lint step and not part of the gate.
+
 ## Status
 
 v0.9.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
