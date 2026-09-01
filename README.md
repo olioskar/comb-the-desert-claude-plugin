@@ -203,7 +203,7 @@ CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workfl
 
 ## Status
 
-v0.9.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.10.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 

@@ -5,6 +5,27 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] — 2026-09-01
+
+### Added
+
+- **`shared/` contract blocks.** Four blocks that were copy-pasted across the skills — config loading (×6), the focus-brief directive matcher (×4), the dispatch delivery contract (×5), and the observed-baseline paragraph (×6) — now live once under `shared/*.md`, read at runtime via `${CLAUDE_PLUGIN_ROOT}`. Copy drift had already produced a real contradiction (the stale reviewer rule fixed below); one source removes the failure class. The runtime contract is now the skill bodies plus `shared/*.md`.
+- **An eval suite and release gates.** `evals/` carries five behavioral cases in the `claude plugin eval` format, one per known regression class: help verbatim output, `null`-as-delete config merge, the-desert's non-code short-circuit, the fix reviewer's diff scope (the v0.9.0 `HEAD~1` bug class), and path-based dispatch delivery. The eval feature is early access; until enabled, `scripts/smoke.sh` is the interim behavioral gate. `scripts/check-contract.sh` greps the shipped contract deterministically (no dead citations, shared references resolve, no re-inlined blocks, no `.DS_Store`). CI runs `claude plugin validate` + the contract greps on every push; evals run on manual dispatch. The README documents the gate order.
+
+### Changed
+
+- **Directives and the PATTERNS manifest reach every agent as file paths — the embed branch is gone.** The old contract embedded the full directive corpus (~600 lines) into every foreign-agent dispatch, and the *default* implementer (`general-purpose`) is foreign, so every `/comb:plan` and `/comb:fix` writer dispatch paid it. An agent that cannot read files cannot review or fix code, so embedding bought no robustness. Foreign agents now get the same paths plus an explicit authority instruction and a specialty statement.
+- **Model delivery is stated, not implied.** The skills resolved a model from config but never said how to apply it; if the orchestrator did not pass it, the agent frontmatter's `model: opus` silently won and `models.*` config did nothing. Every dispatch site now says: pass the resolved model as the Task call's `model` parameter, which overrides agent frontmatter.
+- **`/comb:the-desert` states its sub-workflow mechanism.** "Run the `/comb:review` workflow" left the mechanism to guesswork — invoking the Skill tool would load conflicting wait-and-present instructions. Each step now says: read the sub-skill's `SKILL.md` from the plugin root and execute it with the overrides, which win on conflict.
+- **Skill descriptions carry triggers only.** A description that summarizes the workflow invites the model to follow the summary instead of loading the body; all seven descriptions now state when to invoke, not what the steps are.
+- **Review round numbering parses instead of counts.** `N` is now the highest round parsed from existing report filenames + 1; counting files collided with a surviving later round after a deletion.
+- **Version-history asides removed from user-facing text.** Help and README no longer explain v0.4.x behavior to readers who never saw it; the README also states plainly that reviewer read-only is enforced by instruction (Bash remains available), not by sandbox.
+
+### Fixed
+
+- **`/comb:the-desert` dispatched the wrong fix reviewer.** Its Step 5 still hardcoded `test-auditor` as the reviewer for every item — the v0.4.x rule — contradicting `/comb:fix` Step 4e's specialty matching (v0.5.0) and the-desert's own ground rule that it overrides only transitions, models, deferral, and confirmation. It now defers to the fix skill's specialty rule.
+- **Dead spec citations removed.** 28 lines cited `spec §N` / `decision §N` from a design spec that is gitignored and does not ship, so the runtime model could never open them. Every cited rule was already stated inline; the citations are gone, and the contract grep keeps them out.
+
 ## [0.9.0] — 2026-09-01
 
 ### Added
