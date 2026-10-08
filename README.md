@@ -193,6 +193,8 @@ The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. Th
 
 ## Development
 
+[PLAYBOOK.md](PLAYBOOK.md) describes the development workflow: the design-to-release loop, design rules, and conventions.
+
 The release gate, in order:
 
 1. `claude plugin validate .` — structural lint of the manifest, skills, and agents.
