@@ -60,7 +60,13 @@ Read these:
 - Any plan/design doc the user points to in the focus brief
 - A reference implementation, if the user names one or `CLAUDE.md` points to one
 
-**Load the PATTERNS manifest.** If `paths.patterns` resolves to a file, read it and run the commit-based staleness heuristic — do not invent a variant: let `cited` = the file paths the manifest references and `touched` = the files in the diff under review; if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` returns non-empty, record a non-blocking staleness note for the presentation. Record the manifest path for the dispatch prompt. If `paths.patterns` is absent or `null`, skip — manifest consumption is a graceful no-op.
+**Load the PATTERNS manifest.** If `paths.patterns` resolves to a file, record its path; do not read it. Once the diff's file names are gathered (above), write them to a file and cut this run's excerpt per `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`:
+
+```
+python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py excerpt --skill review --manifest <paths.patterns> --touched-from <file with the diff's name list>
+```
+
+Record `run`, `excerpt`, the log line, and `stale` from its output for the dispatch prompt and the presentation. On the contract's fallback condition, print the fallback notice and deliver the full path alone. If `paths.patterns` is absent or `null`, skip — manifest consumption is a graceful no-op.
 
 ## Step 3: Surface relevant directives
 
@@ -113,7 +119,7 @@ Pick 2–5 agents from `config.agents` based on:
 - The focus brief (required-include any agent matching it)
 
 **Hard cap:** 5 agents — never dispatch more than 5 in one run, even if both diff content and focus brief argue for more. If forced to choose, drop lower-priority required-includes by judgment.
-**`pattern-scanner` is never eligible.** It is generation-only (dispatched by `/comb:patterns`). Exclude it from the review palette regardless of diff content or focus brief.
+**`pattern-scanner` and `pattern-shaver` are never eligible.** They are generation-only (dispatched by `/comb:patterns`). Exclude them from the review palette regardless of diff content or focus brief.
 **Soft floor:** 1 — the orchestrator always dispatches at least one agent for objectivity (self-review by the session that produced the artifact is biased). The anchor agent shifts with the Step 3.5 classification:
 
 - **code-shaped** → `code-reviewer` is the anchor.
@@ -168,7 +174,7 @@ For each picked role, resolve and construct the dispatch prompt:
 
 3. **Directives:** supply resolved absolute **paths** per the delivery contract — plugin defaults (`${CLAUDE_PLUGIN_ROOT}/directives/*.md` if `include_plugin_defaults`) and user directives (`<project-root>/<directives.user_path>/*.md` if it resolves), the contract's authority sentence and specialty statement when the agent is foreign, and the `Directives most relevant to this run:` list with the primary matches from Step 3.
 
-4. **Project conventions (observed baseline)** — insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` (manifest path + verbatim paragraph; no role note for review dispatches). Omit this part entirely when no manifest resolved.
+4. **Project conventions (observed baseline)** — insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` (excerpt path + manifest path + verbatim paragraph, or the fallback form; no role note for review dispatches). Omit this part entirely when no manifest resolved.
 
 5. **User focus brief**, under `## User focus for this run` heading, verbatim, with framing: "Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip."
 
@@ -370,12 +376,15 @@ Agents used: {list}
 ```
 
 **Manifest notes (non-blocking).** Append, when recorded:
-- Commit-based staleness: `PATTERNS manifest may be stale — consider re-running /comb:patterns.`
+- The excerpt log line (`PATTERNS excerpt: …`) verbatim.
+- Commit-based staleness (`stale: yes`): `PATTERNS manifest may be stale — consider re-running /comb:patterns.` When `stale: unknown`: `PATTERNS staleness unknown (<detail>).`
 - Semantic refresh: `This diff evolves a convention not in the manifest — consider re-running /comb:patterns to capture it.`
+
+Then, last of all, remove this run's excerpt working files: `python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py clean --run <run>`.
 
 ## Ground rules
 
-- **Read-only.** Nobody edits code. The only file created is the report.
+- **Read-only.** Nobody edits code. The only files created are the report and this run's excerpt working files under `.comb/excerpts/`, which are removed at the end.
 - **Agents read actual source code.** Not just filenames.
 - **The report's voice is authoritative.** Step 7's verification gate is what earns it. A particular that survived no check is marked, not stated.
 - **Project-aware.** Every agent gets the project's directives.

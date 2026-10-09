@@ -32,7 +32,7 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. Fro
 - `directives` and `agents` (for verifier dispatch)
 - `paths.patterns` — the PATTERNS manifest, if it resolves
 
-**Load the PATTERNS manifest.** If `paths.patterns` resolves, read it and run the commit-based staleness heuristic (do not invent a variant): `cited` = the paths the manifest references, `touched` = the files referenced by the instruction set; flag if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` is non-empty. Record any staleness note for presentation. If absent or `null`, skip — graceful no-op.
+**Load the PATTERNS manifest.** If `paths.patterns` resolves, record its path; do not read it. The excerpt is cut after Step 2.5 (below), which is after the pre-flight. If absent or `null`, skip — graceful no-op.
 
 ## Step 1.5: Pre-flight — check for an unrelated dirty tree
 
@@ -72,6 +72,14 @@ Surface the detection to the user before proceeding:
 Instruction folder shape: {per-finding | single revise-doc}
 {N items to process | 1 consolidated revise-doc: revise-{spec-stem}.md}
 ```
+
+**Cut the manifest excerpt** (only when `paths.patterns` resolved), per `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`, with every instruction file in the folder (or the single revise doc) as the touched text:
+
+```
+python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py excerpt --skill fix --manifest <paths.patterns> --touched-from <every instruction file, or the revise doc>
+```
+
+Record `run`, `excerpt`, the log line, and `stale`. On the contract's fallback condition, print the fallback notice and deliver the full path alone.
 
 ## Step 3: Suggest groupings
 
@@ -171,7 +179,7 @@ Directives most relevant to this run:
 
 ## Project conventions (observed baseline)
 
-{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — manifest path + verbatim paragraph — only when `paths.patterns` resolved.}
+{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — excerpt path + manifest path + verbatim paragraph, or the fallback form — only when `paths.patterns` resolved.}
 
 (Implementer note) Conform to the baseline UNLESS this instruction is implementing a sanctioned improvement or a new canonical pattern. Omit the whole block when no manifest resolved.
 
@@ -225,7 +233,7 @@ Do not include code in your reply — your edits are the artifact.
 
   **Single-revise-doc override:** if the instruction file is a `revise-*.md` (per Step 2.5 detection), bypass plan-file specialty parsing entirely. The reviewer role is always `consistency-auditor` (it is reviewing whether spec revisions match the spec/lens framing of the upstream review). The fallback chain still applies if `agents.consistency-auditor` isn't configured.
 
-- **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error. `pattern-scanner` is generation-only and is never selected as the reviewer role.
+- **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error. `pattern-scanner` and `pattern-shaver` are generation-only and are never selected as the reviewer role.
 - **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. Honor the user's config.
 - **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.reviewer` (default `opus`); pass the resolved model as the Task call's `model` parameter.
 - **Fresh agent.**
@@ -258,7 +266,7 @@ Directives most relevant to this run:
 
 ## Project conventions (observed baseline)
 
-{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — manifest path + verbatim paragraph — only when `paths.patterns` resolved.}
+{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — excerpt path + manifest path + verbatim paragraph, or the fallback form — only when `paths.patterns` resolved.}
 
 (Reviewer note) Conformance to the baseline is expected, but a deliberate improvement/migration or a new canonical introduced by this fix is NOT a compliance failure. Omit the whole block when no manifest resolved.
 
@@ -395,7 +403,7 @@ All {N} items complete:
   - X1: {title} (found reviewing H2) — PASS
 ```
 
-**Manifest notes (non-blocking).** Append any commit-based staleness note or semantic-refresh note recorded during this run.
+**Manifest notes (non-blocking).** Append the excerpt log line verbatim, then any staleness note (`stale: yes` → `PATTERNS manifest may be stale — consider re-running /comb:patterns.`; `unknown` → `PATTERNS staleness unknown (<detail>).`) or semantic-refresh note recorded during this run. Then, last of all: `python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py clean --run <run>`.
 
 ## Ground rules
 
