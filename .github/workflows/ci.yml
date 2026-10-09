@@ -15,7 +15,7 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
       - name: Validate plugin manifest
         run: claude plugin validate .
-      - name: Contract greps
+      - name: Contract greps and manifest script tests (python3 ships on ubuntu-latest)
         run: bash scripts/check-contract.sh
 
   # Behavioral suite. Manual dispatch only: it needs an API key, spends tokens,
