@@ -34,3 +34,4 @@ Until the feature is enabled, `scripts/smoke.sh` is the interim gate.
 | `noncode-shortcircuit` | `/comb:the-desert` running plan/fix on a prose artifact |
 | `fix-reviewer-diff-scope` | The fix reviewer reading the wrong diff (`HEAD~1` bug class, v0.9.0) |
 | `dispatch-delivery` | Directive embedding returning for foreign agents (paths-only contract) |
+| `manifest-slice` | Whole-manifest delivery returning: agents must get a per-run excerpt (entity-page section in, pdf and theme out) and the orchestrator must never print the manifest body |
