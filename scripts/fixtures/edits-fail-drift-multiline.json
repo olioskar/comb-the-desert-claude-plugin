@@ -1,0 +1,7 @@
+[
+ {
+  "section": "3. SidePanel / PanelHost",
+  "class": "fixed-drift",
+  "old": "- Header actions come from the entity's action list \u2014 `PanelHost.tsx:88`.\n- Primitives come from the design system \u2014 `src/components/primitives/Button.tsx:1` (restated; home is #9)."
+ }
+]

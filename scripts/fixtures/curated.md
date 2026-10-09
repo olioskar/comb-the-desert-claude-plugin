@@ -46,7 +46,7 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 **Home:** `src/theme/**`, `src/components/primitives/**`
 
 - Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (canonical: `src/theme/tokens.css:1`).
-- Primitives never import from pages — `src/components/primitives/Button.tsx:1`.
+- Primitives never import from pages — `src/components/primitives/Button.tsx:1`, `src/components/primitives/Card.tsx:1`.
 - Panel chrome uses primitives — `src/components/sidePanel/PanelHost.tsx:14` (restated; home is #3).
 
 ⚠ Drift: `src/theme/legacy.css:1` half fixed; still open in #1015.
@@ -56,11 +56,14 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 **Home:** `src/pdf/**` — owns PDF rendering and the `GeneratePdfResult` contract.
 
 - Templates are pure functions of typed data — `src/pdf/templates/Invoice.tsx:10`.
+- Page breaks use `Math.max` floors and `React.FC` shells — no citation beyond the template above.
 - Shared primitives mirror design tokens by hand — `src/pdf/primitives/styles.ts:1` (manual sync).
 
 ⚠ Drift: the legacy renderer was fixed in #1200.
 
 ## 14. Testing conventions
+
+**Home:** `src/test/` (shared infra) + `src/setupTests.ts` (global shims) + co-located `*.test.ts(x)` everywhere.
 
 - Global setup lives in `src/setupTests.ts:1-20`; the i18n mock factory is `src/test/i18nMock.ts:5`.
 - Suites are named `*.test.tsx` beside the unit — `src/components/primitives/Button.test.tsx:1`.

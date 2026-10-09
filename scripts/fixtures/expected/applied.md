@@ -1,7 +1,7 @@
 # PATTERNS — demo-curated
 
-**Generated:** 2026-06-08 · **Base:** `docs/pattern-manifest` @ `6aff510f` (off `staging`) · `file:line` references are valid as of this commit · **Patched:** 2026-07-03 @ `d33250f6` (line re-anchors + pattern 13) · **Patched:** 2026-07-04 on `refactor/uicomponents` (pattern 4 re-based on the Base UI composition; the mirroring drift-register row was missed and stayed wrong until 2026-08-21) · **Patched:** 2026-08-21 on `refactor/ionic-shell-exit` (#9 token census recounted post-Ionic-exit; drift rows 5/9 updated; seven stale `file:line` refs corrected) · **Patched:** DATE (§4 anchor re-based and its gate claim corrected; §8 picker rows restated on the shared search core) · **Regenerated (partial):** 2026-09-30 @ `BASECOMMIT0` via `/comb:patterns` — §2, §9, §15 rescanned · count 20261009
-**Shaved:** DATE (4810 → 4622 bytes)
+**Generated:** 2026-06-08 · **Base:** `docs/pattern-manifest` @ `6aff510f` (off `staging`) · `file:line` references are valid as of this commit · **Patched:** 2026-07-03 @ `d33250f6` (line re-anchors + pattern 13) · **Patched:** 2026-07-04 on `refactor/uicomponents` (pattern 4 re-based on the Base UI composition; the mirroring drift-register row was missed and stayed wrong until 2026-08-21) · **Patched:** 2026-08-21 on `refactor/ionic-shell-exit` (#9 token census recounted post-Ionic-exit; drift rows 5/9 updated; seven stale `file:line` refs corrected) · **Patched:** 2026-09-05 (§4 anchor re-based and its gate claim corrected; §8 picker rows restated on the shared search core) · **Regenerated (partial):** 2026-09-30 @ `BASECOMMIT0` via `/comb:patterns` — §2, §9, §15 rescanned · count 20261009
+**Shaved:** DATE (5066 → 4923 bytes)
 **Scope:** the canonical UI + data patterns of the demo web app, each pinned to a real reference implementation.
 
 > **Observed baseline, not law.** Live code wins. Project directives outrank it.
@@ -46,7 +46,7 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 **Home:** `src/theme/**`, `src/components/primitives/**`
 
 - Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (canonical: `src/theme/tokens.css:1`).
-- Primitives never import from pages — `src/components/primitives/Button.tsx:1`.
+- Primitives never import from pages — `src/components/primitives/Button.tsx:1`, `src/components/primitives/Card.tsx:1`.
 - Panel chrome uses primitives — `src/components/sidePanel/PanelHost.tsx:14` (restated; home is #3).
 
 ⚠ Drift: `src/theme/legacy.css:1` half fixed; still open in #1015.
@@ -56,11 +56,14 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 **Home:** `src/pdf/**` — owns PDF rendering and the `GeneratePdfResult` contract.
 
 - Templates are pure functions of typed data — `src/pdf/templates/Invoice.tsx:10`.
+- Page breaks use `Math.max` floors and `React.FC` shells — no citation beyond the template above.
 - Shared primitives mirror design tokens by hand — `src/pdf/primitives/styles.ts:1` (manual sync).
 
 ⚠ Drift: the legacy renderer was fixed in #1200.
 
 ## 14. Testing conventions
+
+**Home:** `src/test/` (shared infra) + `src/setupTests.ts` (global shims) + co-located `*.test.ts(x)` everywhere.
 
 - Global setup lives in `src/setupTests.ts:1-20`; the i18n mock factory is `src/test/i18nMock.ts:5`.
 - Suites are named `*.test.tsx` beside the unit — `src/components/primitives/Button.test.tsx:1`.

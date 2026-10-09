@@ -1,0 +1,69 @@
+run: RUN
+PATTERNS excerpt: 3 of 6 area sections included (1. Entity Page; 14. Testing conventions; Appendix); 5 global; omitted: 3. SidePanel / PanelHost; 9. Design system / primitives; 12. PDF / reporting
+stale: no (no cited file in the touched set)
+base_commit: BASECOMMIT0
+--- excerpt body ---
+> comb excerpt of docs/combs/PATTERNS.md for this run. Omitted sections, readable by line range with `sed -n START,ENDp docs/combs/PATTERNS.md`:
+> - 3. SidePanel / PanelHost — lines 33–43
+> - 9. Design system / primitives — lines 44–53
+> - 12. PDF / reporting — lines 54–63
+
+# PATTERNS — demo-curated
+
+**Generated:** 2026-06-08 · **Base:** `docs/pattern-manifest` @ `6aff510f` (off `staging`) · `file:line` references are valid as of this commit · **Patched:** 2 … [truncated in excerpt; full line in the manifest]
+**Scope:** the canonical UI + data patterns of the demo web app, each pinned to a real reference implementation.
+
+> **Observed baseline, not law.** Live code wins. Project directives outrank it.
+
+## How to read this
+- **Curated canonical refs.** Each section names the implementation to copy.
+- **Single home per convention.** Cross-cutting homes: styling/tokens → #9, data access → #10, testing idioms → #14.
+
+## Patterns
+1. Entity Page · 3. SidePanel / PanelHost · 9. Design system / primitives · 12. PDF / reporting · 14. Testing conventions
+
+---
+
+## 1. Entity Page
+
+The full page assembly: route → `*Page.tsx` (state owner) → `*Body.tsx` (layout).
+
+**Canonical reference:** `src/pages/entity/contact/` — copy this for a simple page. `ContactsPage.tsx:32-234` is the orchestrator; `ContactsBody.tsx:25-54` is the layout shell. Secondary anchor for a complex page: `src/pages/entity/job/JobsPage.tsx:56-550` + `JobsBody.tsx:33-85`.
+
+**Home:** `src/pages/entity/{entity}/` — owns `{Entity}Page.tsx`, `{Entity}Body.tsx`, `screens/` (panel screen folder + `index.ts` registration array).
+
+**Key conventions:**
+- Page is the single state owner; Body is presentation-only — `ContactsPage.tsx:200-208`, `ContactsBody.tsx:3,38-44`.
+- Panel routing is delegated to `usePanelRouter` — `ContactsPage.tsx:66-73` (canonical: `src/pages/entity/contact/ContactsPage.tsx:66`).
+- Grid selection clears on scope change — `src/pages/entity/contact/ContactsGrid.tsx:31-35,149-172`.
+- Tokens come from the design system — `src/theme/tokens.css:1` (restated; home is #9).
+
+**Cross-refs:** #9 primitives, #14 testing.
+
+## 14. Testing conventions
+
+**Home:** `src/test/` (shared infra) + `src/setupTests.ts` (global shims) + co-located `*.test.ts(x)` everywhere.
+
+- Global setup lives in `src/setupTests.ts:1-20`; the i18n mock factory is `src/test/i18nMock.ts:5`.
+- Suites are named `*.test.tsx` beside the unit — `src/components/primitives/Button.test.tsx:1`.
+- Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (restated; home is #9).
+
+## Appendix
+
+Notes with no code references: naming history, retired vocabulary, and the reasoning behind the single-home rule.
+
+## Cross-reference map
+
+- **#1 Entity Page** wires #3 (panel) and draws tokens from #9.
+- **#14 Testing** enforces #1's grid recipe.
+
+## ⚠ Drift register — do not propagate (with tracking)
+
+| # | Legacy / drift (present, do not seed new work) | Forward canonical | Tracking |
+|---|---|---|---|
+| 9 | legacy `components.css` | `--demo-*` tokens + CSS Modules | #1015 |
+| 14 | hand-rolled i18n mocks in 20 suites | `i18nMockFactory` (`src/test/i18nMock.ts`) | #1583 — new suites use the factory |
+
+## Maintenance
+
+Refresh a section when its canonical pattern changes. Consumed automatically by `/comb:review|plan|fix` when present.

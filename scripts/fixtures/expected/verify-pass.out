@@ -1,6 +1,5 @@
 ok 1. Entity Page [anchor]
 ok 14. Testing conventions [duplicate]
 ok 3. SidePanel / PanelHost [fixed-drift]
-FAIL 1. Entity Page [duplicate]: removes an anchor another edit removes: tokens.css (14. Testing conventions)
-verify: 3 passing, 1 rejected; passing set: TMP/pass.json
-exit=1
+verify: 3 passing, 0 rejected, 0 unusable file(s); passing set: TMP/pass.json
+exit=0

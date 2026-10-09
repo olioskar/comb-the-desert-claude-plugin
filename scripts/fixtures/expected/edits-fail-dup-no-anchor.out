@@ -1,0 +1,3 @@
+FAIL 1. Entity Page [duplicate]: duplicate old contains no anchor
+verify: 0 passing, 1 rejected, 0 unusable file(s); passing set: TMP/edits-fail-dup-no-anchor.json
+exit=1

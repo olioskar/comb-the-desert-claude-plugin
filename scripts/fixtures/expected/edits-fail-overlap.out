@@ -1,4 +1,4 @@
 ok 3. SidePanel / PanelHost [fixed-drift]
 FAIL 3. SidePanel / PanelHost [fixed-drift]: span overlaps another edit (3. SidePanel / PanelHost)
-verify: 1 passing, 1 rejected; passing set: TMP/edits-fail-overlap.json
+verify: 1 passing, 1 rejected, 0 unusable file(s); passing set: TMP/edits-fail-overlap.json
 exit=1

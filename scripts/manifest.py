@@ -27,6 +27,9 @@ SEG = r"[A-Za-z0-9_.@~+\-]+"
 FULL_PATH = re.compile(r"^(?:\.\./|\./)?(?:%s/)+%s\.[A-Za-z]{1,5}$" % (SEG, SEG))
 BASENAME = re.compile(r"^%s\.[A-Za-z]{2,5}$" % SEG)
 BASENAME_WITH_LINE = re.compile(r"^%s\.[A-Za-z]{1,5}$" % SEG)
+# A basename without a line part counts only with a file-like extension; `Math.max`,
+# `React.FC`, `vi.mock`, `document.body` must not pass as anchors.
+FILE_EXT = re.compile(r"\.(tsx?|jsx?|mjs|cjs|css|scss|less|html?|md|json|ya?ml|toml|py|rb|go|rs|java|kt|swift|cs|php|sql|sh|bash|ps1|xml|svg|txt|csv|ini|cfg|env|lock|gradle|vue|svelte|ex|exs|erl|hs|lua|pl|r|m|mm|c|h|cc|cpp|hpp|dart|scala|clj|graphql|proto|tf|ipynb)$", re.I)
 URL = re.compile(r"^[a-z]+://")
 HEX = re.compile(r"\b[0-9a-f]{7,40}\b")
 HEADER_TRUNCATE_AT = 400
@@ -74,8 +77,17 @@ def mint_stem(skill):
 
 
 def read_lines(path):
-    with open(path, encoding="utf-8") as f:
-        return f.read().split("\n")
+    try:
+        with open(path, encoding="utf-8", newline="") as f:
+            raw = f.read()
+    except OSError as ex:
+        die("cannot read %s: %s" % (path, ex))
+    global LINE_END
+    LINE_END = "\r\n" if "\r\n" in raw else "\n"
+    return raw.replace("\r\n", "\n").split("\n")
+
+
+LINE_END = "\n"
 
 
 def strip_token(tok):
@@ -105,7 +117,7 @@ def classify_anchor(tok):
         return None
     if line and BASENAME_WITH_LINE.match(body):
         return ("base", body, line)
-    if not line and BASENAME.match(body):
+    if not line and BASENAME.match(body) and FILE_EXT.search(body):
         return ("base", body, line)
     return None
 
@@ -128,7 +140,9 @@ def basename_key(path):
 
 def norm_path(p):
     p = p.strip()
-    if p.startswith("./"):
+    while p.startswith("./"):
+        p = p[2:]
+    if re.match(r"^[ab]/", p):
         p = p[2:]
     return p
 
@@ -136,7 +150,7 @@ def norm_path(p):
 # ------------------------------------------------------------ manifest model
 
 def heading_text(line):
-    return line[3:].strip()
+    return line[3:].strip() or "(untitled)"
 
 
 def is_global(heading):
@@ -158,15 +172,16 @@ def scope_globs_of(lines):
         if not items:
             rest = rest.split(" — ")[0]
             rest = rest.strip().strip("_*").strip()
-            items = [x.strip() for x in rest.split(",") if x.strip()]
+            items = [x.strip().strip("_").strip() for x in rest.split(",") if x.strip()]
         for it in items:
-            it = it.strip().strip("_*").strip()
-            if not it or ("/" not in it and not any(c in it for c in "*?[")):
+            it = it.strip()
+            if not it or " " in it or ("/" not in it and not any(c in it for c in "*?[")):
                 continue  # prose, not a path: the line contributes nothing
             it = re.sub(r"\{[^}]*\}", "*", it)
+            it = re.sub(r"\([^)]*\)", "*", it)  # `*.test.ts(x)` shorthand
             if it.endswith("/"):
                 it += "**"
-            elif not any(c in it for c in "*?["):
+            elif not any(c in it for c in "*?[") and not FILE_EXT.search(it):
                 it += "/**"
             globs.append(it)
     return globs
@@ -192,14 +207,15 @@ def parse_manifest(lines):
         full = [p for k, p in anchors if k == "full"]
         base = [p for k, p in anchors if k == "base"]
         globs = scope_globs_of(body) if kind == "area" else []
-        anchor_dirs = sorted({os.path.dirname(p) for p in full})
+        anchor_dirs = sorted({os.path.dirname(norm_path(p)) for p in full})
+        anchors_norm = sorted({norm_path(p) for p in full})
         unscoped = kind == "area" and not globs and not full
         sections.append({
             "n": n + 1, "kind": kind, "heading": heading,
             "start": s + 1, "end": e,  # 1-based inclusive
             "bytes": len(text.encode("utf-8")),
             "scope_globs": globs, "anchor_dirs": anchor_dirs,
-            "anchors": full, "basenames": base, "unscoped": unscoped,
+            "anchors": full, "anchors_norm": anchors_norm, "basenames": base, "unscoped": unscoped,
         })
     return header_end, sections
 
@@ -229,7 +245,7 @@ def relevant(section, touched):
         for g in section["scope_globs"]:
             if fnmatch.fnmatchcase(t, g):
                 return True
-        if t in section["anchors"]:
+        if t in section["anchors_norm"]:
             return True
         if not section["scope_globs"]:
             td = os.path.dirname(t)
@@ -242,8 +258,20 @@ def touched_from_files(paths):
     touched = []
     seen = set()
     for p in paths:
-        with open(p, encoding="utf-8", errors="replace") as f:
-            text = f.read()
+        text = ""
+        if p == "-":
+            text = sys.stdin.read()
+            files = []
+        elif os.path.isdir(p):
+            files = sorted(os.path.join(p, n) for n in os.listdir(p) if n.endswith(".md"))
+        else:
+            files = [p]
+        for fp in files:
+            try:
+                with open(fp, encoding="utf-8", errors="replace") as f:
+                    text += f.read() + "\n"
+            except OSError as ex:
+                die("cannot read touched text %s: %s" % (fp, ex))
         for tok in tokens_of(text):
             if URL.match(tok) or "*" in tok or "{" in tok:
                 continue
@@ -388,29 +416,43 @@ def print_size_table(lines, header_end, sections, with_edits=False):
 # ------------------------------------------------------------------- verify
 
 def load_edits(paths):
-    edits = []
+    """Return (edits, unusable) — a bad file is reported, never fatal."""
+    edits, unusable = [], []
     for p in paths:
-        with open(p, encoding="utf-8") as f:
-            raw = f.read().strip()
-        if raw.startswith("```"):
-            raw = re.sub(r"^```[a-zA-Z]*\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
-        data = json.loads(raw)
+        try:
+            with open(p, encoding="utf-8") as f:
+                raw = f.read().strip()
+        except OSError as ex:
+            unusable.append((p, "cannot read: %s" % ex))
+            continue
+        m = re.search(r"```[a-zA-Z]*\s*(.*?)\s*```", raw, re.S)
+        if m:
+            raw = m.group(1)
+        else:
+            i, j = raw.find("["), raw.rfind("]")
+            if i >= 0 and j > i and not raw.startswith("["):
+                raw = raw[i:j + 1]
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as ex:
+            unusable.append((p, "not valid JSON: %s" % ex))
+            continue
         if isinstance(data, dict) and "edits" in data:
             data = data["edits"]
-        if not isinstance(data, list):
-            raise ValueError("%s: not a list" % p)
+        if not isinstance(data, list) or not all(isinstance(e, dict) for e in data):
+            unusable.append((p, "not a list of edit objects"))
+            continue
         for e in data:
             e["_file"] = p
             edits.append(e)
-    return edits
+    return edits, unusable
 
 
 def section_by_heading(index, heading):
-    for s in index["sections"]:
-        if s["heading"] == heading:
-            return s
-    return None
+    hits = [s for s in index["sections"] if s["heading"] == heading]
+    if len(hits) > 1:
+        return "ambiguous"
+    return hits[0] if hits else None
 
 
 def section_text(lines, s):
@@ -448,7 +490,9 @@ def derive_anchor_new(old, dropped):
         if tok + sep in old:
             return old.replace(tok + sep, "", 1)
     new = old.replace(tok, "", 1)
-    return re.sub(r"[ \t]{2,}", " ", new)
+    new = re.sub(r"[ \t]{2,}", " ", new)
+    new = re.sub(r"—\s*\(canonical:\s*(`[^`]+`)\)", r"— \1", new)
+    return new
 
 
 def anchor_keys(text):
@@ -462,7 +506,6 @@ def verify_edits(lines, index, edits):
     """Return (passing, rejected). passing edits gain start/end/new."""
     passing, rejected = [], []
     spans = []
-    removed_keys = {}
     owners = {}
 
     def reject(e, why):
@@ -470,6 +513,9 @@ def verify_edits(lines, index, edits):
 
     for e in edits:
         sec = section_by_heading(index, e.get("section", ""))
+        if sec == "ambiguous":
+            reject(e, "section heading occurs more than once in the manifest")
+            continue
         if not sec or sec["kind"] != "area":
             reject(e, "section is not an area section of the manifest")
             continue
@@ -522,7 +568,7 @@ def verify_edits(lines, index, edits):
                 continue
             owner = e.get("owner", "")
             osec = section_by_heading(index, owner)
-            if not osec or osec["kind"] != "area" or osec["heading"] == sec["heading"]:
+            if osec == "ambiguous" or not osec or osec["kind"] != "area" or osec["heading"] == sec["heading"]:
                 reject(e, "owner must be another area section")
                 continue
             otext = section_text(lines, osec)
@@ -568,14 +614,41 @@ def verify_edits(lines, index, edits):
                 break
         if e is None:
             continue
-        clash = [k for k in removed if k in removed_keys]
-        if clash:
-            reject(e, "removes an anchor another edit removes: %s (%s)" % (clash[0], removed_keys[clash[0]]))
-            continue
-        for k in removed:
-            removed_keys[k] = e["section"]
+        e["_removed"] = sorted(removed)
         spans.append((s_line, e_line, e["section"]))
         passing.append(e)
+
+    # No anchor may vanish from the manifest: for every anchor key an edit removes,
+    # the key must still occur somewhere after all passing edits are applied.
+    manifest_keys = {}
+    for k, pth in anchors_in("\n".join(lines)):
+        manifest_keys[basename_key(pth)] = manifest_keys.get(basename_key(pth), 0)
+    for tok in tokens_of("\n".join(lines)):
+        c = classify_anchor(tok)
+        if c:
+            manifest_keys[basename_key(c[1])] = manifest_keys.get(basename_key(c[1]), 0) + 1
+    net = {}
+    for e in passing:
+        if e["class"] == "fixed-drift":
+            continue  # a fixed drift line's legacy anchors are meant to go
+        for tok in tokens_of(e["old"]):
+            c = classify_anchor(tok)
+            if c:
+                net[basename_key(c[1])] = net.get(basename_key(c[1]), 0) - 1
+        for tok in tokens_of(e.get("new", "") or ""):
+            c = classify_anchor(tok)
+            if c:
+                net[basename_key(c[1])] = net.get(basename_key(c[1]), 0) + 1
+    vanishing = {k for k, d in net.items() if manifest_keys.get(k, 0) + d <= 0}
+    if vanishing:
+        kept = []
+        for e in passing:
+            hit = [k for k in e["_removed"] if k in vanishing] if e["class"] != "fixed-drift" else []
+            if hit:
+                reject(e, "anchor would vanish from the manifest: %s" % hit[0])
+            else:
+                kept.append(e)
+        passing = kept
 
     # owner graph cycles
     def has_cycle():
@@ -603,6 +676,7 @@ def verify_edits(lines, index, edits):
         passing = kept
     for e in passing:
         e.pop("_file", None)
+        e.pop("_removed", None)
     return passing, rejected
 
 
@@ -610,19 +684,20 @@ def cmd_verify(a):
     lines = read_lines(a.manifest)
     with open(a.index, encoding="utf-8") as f:
         index = json.load(f)
-    try:
-        edits = load_edits(a.edits)
-    except (ValueError, json.JSONDecodeError) as ex:
-        die("unusable edit script: %s" % ex, 1)
+    edits, unusable = load_edits(a.edits)
     passing, rejected = verify_edits(lines, index, edits)
     for e in passing:
         print("ok %s [%s]" % (e["section"], e["class"]))
     for r in rejected:
         print("FAIL %s [%s]: %s" % (r["section"], r["class"], r["check"]))
+    for p, why in unusable:
+        print("UNUSABLE %s: %s (file skipped)" % (p, why))
     with open(a.out, "w", encoding="utf-8") as f:
-        json.dump({"manifest": a.manifest, "index": a.index, "edits": passing, "rejected": rejected}, f, indent=1)
-    print("verify: %d passing, %d rejected; passing set: %s" % (len(passing), len(rejected), a.out))
-    sys.exit(1 if rejected else 0)
+        json.dump({"manifest": a.manifest, "index": a.index, "edits": passing, "rejected": rejected,
+                   "unusable": [{"file": p, "why": w} for p, w in unusable]}, f, indent=1)
+    print("verify: %d passing, %d rejected, %d unusable file(s); passing set: %s" % (
+        len(passing), len(rejected), len(unusable), a.out))
+    sys.exit(1 if (rejected or unusable) else 0)
 
 
 # --------------------------------------------------------------------- gate
@@ -631,6 +706,7 @@ def cmd_gate(a):
     with open(a.edits, encoding="utf-8") as f:
         data = json.load(f)
     edits, rejected = data["edits"], data.get("rejected", [])
+    unusable = data.get("unusable", [])
     by_sec = {}
     for e in edits:
         by_sec.setdefault(e["section"], []).append(e)
@@ -667,6 +743,10 @@ def cmd_gate(a):
         print("\nRejected (not applied):")
         for r in rejected:
             print("  %s [%s]: %s" % (r["section"], r["class"], r["check"]))
+    if unusable and not a.show:
+        print("\nUnusable edit files (skipped):")
+        for u in unusable:
+            print("  %s: %s" % (u["file"], u["why"]))
 
 
 # ------------------------------------------------------------------- filter
@@ -717,6 +797,7 @@ def cmd_apply(a):
                 stext2 = stext[:i - 1] + stext[j:]
             else:
                 stext2 = stext[:i] + stext[j:]
+        stext2 = re.sub(r"\n\n\n+", "\n\n", stext2)
         new_lines = stext2.split("\n")
         lines[sec["start"] - 1:sec["end"]] = new_lines
         # shift later sections
@@ -728,8 +809,7 @@ def cmd_apply(a):
                 s["end"] += delta
     if a.stamp:
         header_end = index["header_end"]
-        after = len("\n".join(lines).encode("utf-8"))
-        stamp = "**Shaved:** %s (%d → %d bytes)" % (time.strftime("%Y-%m-%d"), before, after)
+        stamp = "**Shaved:** %s (%d → %d bytes)" % (time.strftime("%Y-%m-%d"), before, 0)
         hdr = lines[:header_end]
         placed = False
         for k, l in enumerate(hdr):
@@ -749,9 +829,20 @@ def cmd_apply(a):
                 k -= 1
             hdr.insert(k, stamp)
         lines[:header_end] = hdr
+        # the stamp line is part of the final size, and its digit count can change it
+        base = len("\n".join(lines).encode("utf-8")) - len(stamp.encode("utf-8"))
+        after = base
+        for _ in range(3):
+            final = "**Shaved:** %s (%d → %d bytes)" % (time.strftime("%Y-%m-%d"), before, after)
+            after = base + len(final.encode("utf-8"))
+        final = "**Shaved:** %s (%d → %d bytes)" % (time.strftime("%Y-%m-%d"), before, after)
+        for k, l in enumerate(lines[:header_end + 1]):
+            if l == stamp:
+                lines[k] = final
+                break
     out = "\n".join(lines)
-    with open(a.manifest, "w", encoding="utf-8") as f:
-        f.write(out)
+    with open(a.manifest, "w", encoding="utf-8", newline="") as f:
+        f.write(out.replace("\n", LINE_END))
     after = len(out.encode("utf-8"))
     print("apply: %d edits applied; %d → %d bytes" % (len(passing), before, after))
 
@@ -797,7 +888,7 @@ def main(argv=None):
     s.set_defaults(fn=cmd_verify)
 
     s = sub.add_parser("gate", help="print the gate listing for a passing set")
-    s.add_argument("--manifest", required=True)
+    s.add_argument("--manifest", required=False, help="accepted for symmetry; unused")
     s.add_argument("--edits", required=True)
     s.add_argument("--show", default=None)
     s.set_defaults(fn=cmd_gate)

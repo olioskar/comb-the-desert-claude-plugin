@@ -1,0 +1,8 @@
+[
+ {
+  "section": "12. PDF / reporting",
+  "class": "anchor",
+  "old": "- Templates are pure functions of typed data \u2014 `src/pdf/templates/Invoice.tsx:10`.",
+  "dropped_anchor": "src/pdf/templates/Invoice.tsx:10"
+ }
+]

@@ -1,3 +1,3 @@
 FAIL 1. Entity Page [fixed-drift]: old occurs 0 times as whole lines inside the section (need exactly 1)
-verify: 0 passing, 1 rejected; passing set: TMP/edits-fail-not-once.json
+verify: 0 passing, 1 rejected, 0 unusable file(s); passing set: TMP/edits-fail-not-once.json
 exit=1

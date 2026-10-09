@@ -1,0 +1,16 @@
+[
+ {
+  "section": "1. Entity Page",
+  "class": "duplicate",
+  "old": "- Tokens come from the design system \u2014 `src/theme/tokens.css:1` (restated; home is #9).",
+  "new": "- See 9. Design system / primitives.",
+  "owner": "9. Design system / primitives"
+ },
+ {
+  "section": "14. Testing conventions",
+  "class": "duplicate",
+  "old": "- Tokens are CSS custom properties \u2014 `src/theme/tokens.css:1-40` (restated; home is #9).",
+  "new": "- See 9. Design system / primitives.",
+  "owner": "9. Design system / primitives"
+ }
+]

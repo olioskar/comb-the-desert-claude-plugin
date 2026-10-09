@@ -1,0 +1,9 @@
+[
+ {
+  "section": "14. Testing conventions",
+  "class": "duplicate",
+  "old": "- Tokens are CSS custom properties \u2014 `src/theme/tokens.css:1-40` (restated; home is #9).",
+  "new": "- See 9. Design system / primitives `src/theme/tokens.css:1`.",
+  "owner": "9. Design system / primitives"
+ }
+]

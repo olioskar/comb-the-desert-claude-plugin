@@ -1,5 +1,5 @@
 run: RUN
-PATTERNS excerpt: 2 of 6 area sections included (14. Testing conventions; Appendix); 5 global; omitted: 1. Entity Page; 3. SidePanel / PanelHost; 9. Design system / primitives; 12. PDF / reporting
+PATTERNS excerpt: 1 of 6 area sections included (Appendix); 5 global; omitted: 1. Entity Page; 3. SidePanel / PanelHost; 9. Design system / primitives; 12. PDF / reporting; 14. Testing conventions
 stale: no (no cited file in the touched set)
 base_commit: BASECOMMIT0
 --- excerpt body ---
@@ -7,7 +7,8 @@ base_commit: BASECOMMIT0
 > - 1. Entity Page — lines 17–32
 > - 3. SidePanel / PanelHost — lines 33–43
 > - 9. Design system / primitives — lines 44–53
-> - 12. PDF / reporting — lines 54–62
+> - 12. PDF / reporting — lines 54–63
+> - 14. Testing conventions — lines 64–71
 
 # PATTERNS — demo-curated
 
@@ -24,12 +25,6 @@ base_commit: BASECOMMIT0
 1. Entity Page · 3. SidePanel / PanelHost · 9. Design system / primitives · 12. PDF / reporting · 14. Testing conventions
 
 ---
-
-## 14. Testing conventions
-
-- Global setup lives in `src/setupTests.ts:1-20`; the i18n mock factory is `src/test/i18nMock.ts:5`.
-- Suites are named `*.test.tsx` beside the unit — `src/components/primitives/Button.test.tsx:1`.
-- Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (restated; home is #9).
 
 ## Appendix
 

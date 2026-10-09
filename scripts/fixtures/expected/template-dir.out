@@ -1,0 +1,4 @@
+run: RUN
+PATTERNS excerpt: 3 of 3 area sections included (React frontend; API; Shared types); 2 global; omitted: none
+stale: no (0 cited files changed since BASECOMMIT0)
+base_commit: BASECOMMIT0

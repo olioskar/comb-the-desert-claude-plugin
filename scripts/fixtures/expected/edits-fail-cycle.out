@@ -1,4 +1,4 @@
 FAIL 9. Design system / primitives [duplicate]: duplicate owner graph has a cycle
 FAIL 3. SidePanel / PanelHost [duplicate]: duplicate owner graph has a cycle
-verify: 0 passing, 2 rejected; passing set: TMP/edits-fail-cycle.json
+verify: 0 passing, 2 rejected, 0 unusable file(s); passing set: TMP/edits-fail-cycle.json
 exit=1
