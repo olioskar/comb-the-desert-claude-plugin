@@ -5,6 +5,26 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] — 2026-10-09
+
+### Added
+
+- **Per-run manifest excerpts.** `/comb:review`, `/comb:plan`, and `/comb:fix` no longer hand every agent the whole PATTERNS manifest. A consuming project reported a 188 KB / 18-section manifest costing every agent roughly 70k tokens before it opened the diff, multiplied across a 4–5 agent palette and again by `/comb:fix` and `/comb:the-desert`. Each run now cuts an excerpt with the new `scripts/manifest.py`: the header, the global sections (how-to-read, cross-reference map, drift register), and the area sections whose scope meets the change. Scope comes from a section's `Scope:`/`Home:` line (backticked path tokens; placeholders read as wildcards; prose lines count as absent) or from its `file:line` anchors (equality, or same directory when the section has no scope line); a section with neither always travels. The excerpt opens with the omitted sections and their line ranges, so an agent that is pointed to one reads it with `sed -n` rather than reading the file. On that project's manifest a new entity-page diff yields a 19 KB excerpt; on the curated fixture a page diff yields 2.9 KB from 4.8 KB.
+- **`/comb:patterns --shave`.** Trims an existing manifest without changing what it asserts, through a new read-only `comb:pattern-shaver` agent (one per large section, at most five at a time) that writes an edit script in three classes only: a secondary anchor that pins the same claim as the canonical one, a bullet that restates a convention owned by another section (replaced by a pointer), and an in-section drift line whose every item is fixed. The script verifies every edit mechanically with a stated bound (exact once-in-section match, no heading removed, no anchor removed twice, the owner really cites it, no open marker or issue reference on a drift line, acyclic owners), prints one gate with no default reply, applies all-or-nothing, and stamps the header. Prose rewriting and directive-echo removal were considered and rejected: both let a shaver change meaning while passing every mechanical check. Rules live once in `shared/shave-rules.md`.
+- **A size line on every manifest write**, with a notice above 100 KB suggesting `--shave`. Fixed threshold; a correctness-adjacent notice does not get a knob.
+- **`scripts/test-manifest.sh`**: 28 expectations over a template-shaped and a hand-curated manifest fixture (numbered headings, placeholder Home lines, basename anchors, an emoji-prefixed drift register, a ` / ` heading, a long provenance line), with one failing edit file per verify check. Runs inside `check-contract.sh` and CI. An eval case, `manifest-slice`, guards the excerpt delivery end to end.
+
+### Changed
+
+- **The orchestrator never reads the manifest.** The old load step read the file to compute `cited ∩ touched`; the script now computes staleness from the manifest's anchors (basenames resolved through their section's directories), reports `stale: unknown` instead of failing when the base commit is unreachable, and treats an empty intersection as not stale rather than running a pathspec-free `git diff`. The old wording is a contract-gate needle so a full read cannot return.
+- **Observed-baseline delivery has two forms.** With an excerpt: the excerpt path and the full path, plus three sentences telling the agent to read an omitted section by range and never the whole file. Without one (no `python3`, or the script failed to write): the v0.10.0 block unchanged, with a printed notice. Never silent.
+- **Working files live under `.comb/`** in the working directory, created by the script with a self-ignoring `.gitignore`, so they never appear in `git status`, never trip `/comb:fix`'s dirty-tree pre-flight, and need no change to a project's ignore rules. A temp directory outside the working directory was rejected because reading it would prompt every agent.
+- **Command lines live in skill bodies, contracts in `shared/`.** `${CLAUDE_PLUGIN_ROOT}` is substituted in skill and agent bodies only, so a command line in a shared block would expand to nothing at the shell.
+
+### Not changed
+
+- The manifest format. Every manifest written since v0.7.0, and hand-curated ones, work unchanged. Generating a cross-reference map and a drift register from `/comb:patterns` was deferred; the consumers recognise hand-written ones.
+
 ## [0.10.0] — 2026-09-01
 
 ### Added
