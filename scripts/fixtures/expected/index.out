@@ -1,0 +1,14 @@
+run: RUN
+header 1-7 1040B
+global 8-11 220B [1] How to read this
+global 12-16 143B [2] Patterns
+area 17-32 1063B [3] 1. Entity Page edits=.comb/excerpts/RUN.edits-3.json
+area 33-43 452B [4] 3. SidePanel / PanelHost edits=.comb/excerpts/RUN.edits-4.json
+area 44-53 454B [5] 9. Design system / primitives edits=.comb/excerpts/RUN.edits-5.json
+area 54-62 347B [6] 12. PDF / reporting edits=.comb/excerpts/RUN.edits-6.json
+area 63-68 319B [7] 14. Testing conventions edits=.comb/excerpts/RUN.edits-7.json
+area 69-72 127B [8] Appendix edits=.comb/excerpts/RUN.edits-8.json
+global 73-77 133B [9] Cross-reference map
+global 78-84 367B [10] ⚠ Drift register — do not propagate (with tracking)
+global 85-88 134B [11] Maintenance
+total 4810B ~1202 tokens (bytes/4); 6 area, 5 global

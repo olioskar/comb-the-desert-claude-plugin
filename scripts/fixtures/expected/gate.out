@@ -1,0 +1,15 @@
+Shave gate — 3 edits in 3 sections, 1 rejected. Reply: apply · skip <class> · skip <section> · show <section>
+
+## 1. Entity Page — anchor×1; −28B
+  anchor: drop `ContactsBody.tsx:3,38-44` from: - Page is the single state owner; Body is presentation-only — `ContactsPage.tsx:200-208`, `ContactsBody.tsx:3,38-44`.
+
+## 14. Testing conventions — duplicate×1; −54B
+  duplicate → 9. Design system / primitives:
+    - - Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (restated; home is #9).
+    + - See 9. Design system / primitives.
+
+## 3. SidePanel / PanelHost — fixed-drift×1; −105B
+  fixed-drift: ⚠ Drift: the hand-rolled focus trap was retired on 2026-07-04 and the `createPortal` half is fixed too.
+
+Rejected (not applied):
+  1. Entity Page [duplicate]: removes an anchor another edit removes: tokens.css (14. Testing conventions)

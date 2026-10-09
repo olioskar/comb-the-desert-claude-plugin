@@ -1,0 +1,6 @@
+## Findings by Severity
+
+### M1 — Button variant invented outside the closed set
+**File:** `src/web/components/Toolbar.tsx:22`
+The toolbar passes `variant="ghost"`; see the closed set at `src/web/components/Button.tsx:4`.
+Verified: Read src/web/components/Toolbar.tsx:18-26; recomputed the set (3 of 3).

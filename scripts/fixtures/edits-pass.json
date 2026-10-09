@@ -1,0 +1,23 @@
+[
+ {
+  "section": "1. Entity Page",
+  "class": "anchor",
+  "old": "- Page is the single state owner; Body is presentation-only \u2014 `ContactsPage.tsx:200-208`, `ContactsBody.tsx:3,38-44`.",
+  "dropped_anchor": "ContactsBody.tsx:3,38-44",
+  "evidence": "read src/pages/entity/contact/ContactsPage.tsx:200-208 and ContactsBody.tsx:3,38-44; both show the same props-only Body"
+ },
+ {
+  "section": "14. Testing conventions",
+  "class": "duplicate",
+  "old": "- Tokens are CSS custom properties \u2014 `src/theme/tokens.css:1-40` (restated; home is #9).",
+  "new": "- See 9. Design system / primitives.",
+  "owner": "9. Design system / primitives",
+  "evidence": "owner states it at src/theme/tokens.css:1-40"
+ },
+ {
+  "section": "3. SidePanel / PanelHost",
+  "class": "fixed-drift",
+  "old": "\u26a0 Drift: the hand-rolled focus trap was retired on 2026-07-04 and the `createPortal` half is fixed too.",
+  "evidence": "line says so"
+ }
+]

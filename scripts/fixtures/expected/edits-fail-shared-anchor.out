@@ -1,0 +1,4 @@
+ok 1. Entity Page [anchor]
+FAIL 1. Entity Page [anchor]: removes an anchor another edit removes: ContactsBody.tsx (1. Entity Page)
+verify: 1 passing, 1 rejected; passing set: TMP/edits-fail-shared-anchor.json
+exit=1

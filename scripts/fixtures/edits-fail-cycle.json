@@ -1,0 +1,16 @@
+[
+ {
+  "section": "9. Design system / primitives",
+  "class": "duplicate",
+  "old": "- Panel chrome uses primitives \u2014 `src/components/sidePanel/PanelHost.tsx:14` (restated; home is #3).",
+  "new": "",
+  "owner": "3. SidePanel / PanelHost"
+ },
+ {
+  "section": "3. SidePanel / PanelHost",
+  "class": "duplicate",
+  "old": "- Primitives come from the design system \u2014 `src/components/primitives/Button.tsx:1` (restated; home is #9).",
+  "new": "",
+  "owner": "9. Design system / primitives"
+ }
+]

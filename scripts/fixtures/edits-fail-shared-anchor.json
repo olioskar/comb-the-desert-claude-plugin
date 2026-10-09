@@ -1,0 +1,14 @@
+[
+ {
+  "section": "1. Entity Page",
+  "class": "anchor",
+  "old": "- Page is the single state owner; Body is presentation-only \u2014 `ContactsPage.tsx:200-208`, `ContactsBody.tsx:3,38-44`.",
+  "dropped_anchor": "ContactsBody.tsx:3,38-44"
+ },
+ {
+  "section": "1. Entity Page",
+  "class": "anchor",
+  "old": "**Canonical reference:** `src/pages/entity/contact/` \u2014 copy this for a simple page. `ContactsPage.tsx:32-234` is the orchestrator; `ContactsBody.tsx:25-54` is the layout shell. Secondary anchor for a complex page: `src/pages/entity/job/JobsPage.tsx:56-550` + `JobsBody.tsx:33-85`.",
+  "dropped_anchor": "ContactsBody.tsx:25-54"
+ }
+]
