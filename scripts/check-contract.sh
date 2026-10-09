@@ -55,6 +55,12 @@ for skill in review plan fix; do
     fail=1
   fi
 done
+for cmd in index verify gate apply; do
+  if ! grep -q "manifest.py $cmd" skills/patterns/SKILL.md; then
+    echo "FAIL: skills/patterns does not invoke manifest.py $cmd"
+    fail=1
+  fi
+done
 
 
 # 4. .DS_Store is never tracked.

@@ -1,7 +1,7 @@
 ---
 name: patterns
-description: Use when the user wants to set up, generate, or refresh comb's PATTERNS manifest — the project-specific record of concrete conventions (structure, naming, closed sets, abstraction, reuse, error handling, testing) that /comb:review, /comb:plan, and /comb:fix consume as an observed baseline.
-argument-hint: "[focus brief]"
+description: Use when the user wants to set up, generate, or refresh comb's PATTERNS manifest — the project-specific record of concrete conventions (structure, naming, closed sets, abstraction, reuse, error handling, testing) that /comb:review, /comb:plan, and /comb:fix consume as an observed baseline — or wants to shave, shrink, or compress an existing manifest (`--shave`).
+argument-hint: "[--shave] [focus brief]"
 allowed-tools:
   - Bash
   - Read
@@ -18,7 +18,8 @@ This is an **interactive** command. You do recon, propose scan areas, and wait f
 
 ## Inputs
 
-1. **Focus brief** — `$ARGUMENTS` (optional). Biases which lenses the scanners weight.
+1. **Mode.** If `$ARGUMENTS` contains `--shave` anywhere, or the request is to shave, shrink, or compress the manifest, enter **Shave mode** (below) directly after Step 1 and skip Steps 2–8. Otherwise run the generate flow (Steps 2–9).
+2. **Focus brief** — the rest of `$ARGUMENTS` (optional). In generate mode it biases which lenses the scanners weight; in shave mode it narrows which sections are dispatched (e.g. "only sections 16–18").
 
 ## Step 1: Load config
 
@@ -238,16 +239,19 @@ Reply "write" to save · "rescan {area} [new scope/notes]" to re-run one area ·
 
 ## Step 9: Write and present
 
-Write the assembled (reconciled, re-scanned, cherry-picked) manifest text to `paths.patterns`, creating the directory if it doesn't exist. Then present:
+Write the assembled (reconciled, re-scanned, cherry-picked) manifest text to `paths.patterns`, creating the directory if it doesn't exist. Then run `python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py index --manifest <paths.patterns>` for the size line (its last lines: total bytes, `~tokens (bytes/4)`, section counts, and the `Large manifest` notice above 100 KB), then present:
 
 ```
 PATTERNS manifest written to {paths.patterns}
 
 Areas: {N} ({labels})   ·   Excluded: {count} non-authoritative regions
 Captured: {one-line summary, e.g. "structural + closed-set conventions for 3 areas, 27 entries"}
+Size: {total bytes}B ~{tokens} tokens; {area} area, {global} global sections{ · Large manifest — consider /comb:patterns --shave}
 
-Consumed automatically by /comb:review, /comb:plan, /comb:fix when present.
+Consumed automatically by /comb:review, /comb:plan, /comb:fix when present (as a per-run excerpt).
 ```
+
+Then `python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py clean --run <run>` for the index run.
 
 **Reconciliation outcomes (only when Step 7 ran).** Append whichever apply — these turn the old dead-end warning into an actionable result:
 
@@ -262,9 +266,70 @@ Drift to fix ({count}) — the manifest keeps the directive's expectation; these
   - [{area}] {practice} vs `{directive}.md §{N}` — dominant ({k}/{n}), e.g. `path:line`
 ```
 
+## Shave mode (`--shave`)
+
+Reduce the manifest's token cost without changing what it asserts. Rules for everyone involved: `${CLAUDE_PLUGIN_ROOT}/shared/shave-rules.md`. Requires an existing manifest at `paths.patterns`; otherwise report `No manifest at {paths.patterns} — run /comb:patterns to generate one first.` and stop.
+
+**S1. Index.** Run:
+
+```
+python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py index --manifest <paths.patterns>
+```
+
+It prints `run: <stem>`, `index: <path>`, one line per section (`<kind> <START>-<END> <bytes>B [<n>] <heading> edits=<path>`), and the totals. Record `run` and `index`. Show the per-section lines and totals to the user as the size table. Do not read the manifest or the index file.
+
+**S2. Dispatch shavers.** One per **area** section of 4 KB or more (narrowed by the focus brief when it names sections), at most five at a time, per `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. Role: `agents.pattern-shaver` (`subagent_type`, default `comb:pattern-shaver`); model: `agents.pattern-shaver.model` if set, else `models.patterns`, passed as the Task call's `model` parameter. Header and global sections are never dispatched or edited. Dispatch prompt:
+
+```
+You're a read-only manifest shaver for ONE section. Rules: read ${CLAUDE_PLUGIN_ROOT}/shared/shave-rules.md first and follow it exactly.
+
+Manifest: <absolute paths.patterns>
+Index: <absolute index path>
+Your section: "<heading>" — lines <START>-<END> (open with: sed -n START,ENDp <manifest>)
+Write your edit script to: <absolute edits path from the index line>
+
+Return only that path and the edit count. Write nothing else.
+```
+
+A foreign `subagent_type` gets the same prompt; the rules file carries the full contract.
+
+**S3. Collect.** A reply that names no file, or names a file that is missing, is recorded as `section <heading>: no usable edit script, skipped`. Nothing is merged by hand.
+
+**S4. Verify.** Run, listing every edit file the shavers wrote:
+
+```
+python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py verify --manifest <paths.patterns> --index <index> --edits <edits-n.json ...> --out .comb/excerpts/<run>.passing.json
+```
+
+It prints one line per edit (`ok` or `FAIL … : <check>`) and a summary, and writes the passing set. A non-zero exit means some edits were rejected, not that the run failed. **Bound:** verify checks the mechanical properties in the rules file only; it does not judge whether a surviving anchor still supports its claim, does not open the codebase, and does not evaluate the shaver's comparison.
+
+**S5. Gate** (shave mode's one hard stop; no default). Run:
+
+```
+python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py gate --manifest <paths.patterns> --edits .comb/excerpts/<run>.passing.json
+```
+
+Show its output verbatim: per section the counts by class and bytes removed, every `duplicate` in full (`old` → `new`, owner), every `anchor` as the dropped anchor and its line, every `fixed-drift` as the line, and the rejected edits with their checks; past 200 lines of full text the duplicates collapse to one line each. Replies: `apply`; `skip <class>` or `skip <section>` (run `manifest.py filter --edits <passing> --skip-class … --skip-section … --out .comb/excerpts/<run>.final.json`, then show the gate again for the final file); `show <section>` (run `gate … --show "<heading>"`). Nothing is applied until the user says `apply`.
+
+**S6. Write.** Run:
+
+```
+python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py apply --manifest <paths.patterns> --index <index> --edits <final or passing file> --stamp
+```
+
+All-or-nothing: it re-verifies against the current text and refuses if anything no longer verifies. `--stamp` writes `**Shaved:** <date> (<before> → <after> bytes)` into the header (replacing an earlier one). Then run `index` once more for the size totals, present:
+
+```
+Manifest shaved: {applied} edits applied ({skipped} skipped, {rejected} rejected)
+Size: {before}B → {after}B (~{tokens} tokens; {area} area, {global} global sections)
+```
+
+and finish with `python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py clean --run <run>`. Step 9's generate presentation does not apply to shave.
+
 ## Ground rules
 
-- **Interactive before heavy work, but never naggy.** Confirm the scan plan (Step 3) before dispatching scanners, and confirm before overwriting an existing manifest (Steps 4, 8). Batch every gate into one prompt with safe "go"/"write" defaults — never drip questions one at a time, and never ask what recon already detected. The interactive steps that involve the user (3, 7, 8) only stop when there's a real decision to make: Step 7 fires only when dominant conflicts exist, Step 8's re-scan only when the user asks.
-- **Read-only scanners.** `comb:pattern-scanner` never edits. Only this orchestrator writes, and only the manifest file.
+- **Interactive before heavy work, but never naggy.** One hard stop per mode: the scan plan (Step 3) in generate mode, the shave gate in shave mode. In generate mode also confirm before overwriting an existing manifest (Steps 4, 8). Batch every gate into one prompt with safe "go"/"write" defaults — never drip questions one at a time, and never ask what recon already detected. The interactive steps that involve the user (3, 7, 8) only stop when there's a real decision to make: Step 7 fires only when dominant conflicts exist, Step 8's re-scan only when the user asks.
+- **Read-only scanners.** `comb:pattern-scanner` never edits. `comb:pattern-shaver` writes only the one edit-script file it is told to write. This orchestrator writes the manifest and, through `scripts/manifest.py`, the run's working files under `.comb/excerpts/`; nothing else.
+- **Shave never rescans.** It reads code only to confirm two anchors pin one convention. In shave mode the orchestrator never reads the manifest; it reads the script's output and the shavers' replies.
 - **Facts, not principles.** Every entry cites real code. Omit empty lenses rather than padding.
 - **Full scan lives here only.** The consuming skills never re-scan the whole codebase; they read this manifest plus the files around their diff.
