@@ -189,11 +189,11 @@ Each finding also carries a **Confidence** field, and `/comb:review` verifies be
 
 ### A note on skill `model` frontmatter
 
+The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Task call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
+
 ### Manifest delivery
 
-Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/comb:plan`, or `/comb:fix` cuts an excerpt with `scripts/manifest.py`: the header, the global sections (how-to-read, cross-reference map, drift register), and the area sections whose scope meets the change, where scope comes from each section's `Scope:`/`Home:` line or its `file:line` anchors. The excerpt lists the omitted sections with their line ranges so an agent can read one with `sed -n` when pointed to it. The orchestrator never reads the manifest either; the script computes staleness. Excerpts live under `.comb/` in the working directory, which the script creates with a self-ignoring `.gitignore`, and are removed at the end of the run. The script needs `python3` (3.8+, stdlib only); without it the full manifest is delivered as before, with a printed notice.
-
-The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Task call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
+Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/comb:plan`, or `/comb:fix` cuts an excerpt with `scripts/manifest.py`: the header, the global sections (how-to-read, cross-reference map, drift register), and the area sections whose scope meets the change. Scope comes from a section's `Scope:`/`Home:` line (globs) or, for a section without one, from the directories of its `file:line` anchors; the second rule can over-include on a large manifest, and a one-line `Home:` per section is how to tighten it. The excerpt lists the omitted sections with their line ranges so an agent can read one with `sed -n` when pointed to it. The orchestrator never reads the manifest either; the script computes staleness. Excerpts live under `.comb/` in the working directory, which the script creates with a self-ignoring `.gitignore`, and are removed at the end of the run. The script needs `python3` (3.8+, stdlib only); without it the full manifest is delivered as before, with a printed notice.
 
 ## Development
 
@@ -202,7 +202,7 @@ The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. Th
 The release gate, in order:
 
 1. `claude plugin validate .` — structural lint of the manifest, skills, and agents.
-2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, and `scripts/test-manifest.sh` (28 fixture expectations over two manifest shapes) passes.
+2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, and `scripts/test-manifest.sh` (51 fixture expectations over two manifest shapes) passes.
 3. `claude plugin eval . --scaffold` — the behavioral suite in `evals/` (six cases covering the known regression classes). The eval feature is early access; until it is enabled for your account, run `scripts/smoke.sh` as the interim behavioral gate.
 
 CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workflow dispatch (it needs `ANTHROPIC_API_KEY`). `/skill-doctor` is a usage/cost report, useful for periodic monitoring — it is not a lint step and not part of the gate.

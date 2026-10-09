@@ -74,8 +74,10 @@ Count every code (C/H/M/L/T/D). Confirm the total with the user before sending a
 **Cut the manifest excerpt** (only when `paths.patterns` resolved), per `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`, with the report as the touched text:
 
 ```
-python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py excerpt --skill plan --manifest <paths.patterns> --touched-from <the review report>
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" excerpt --skill plan --manifest <paths.patterns> --touched-from <the review report>
 ```
+
+Run it from the project root.
 
 Record `run`, `excerpt`, the log line, and `stale`. On the contract's fallback condition, print the fallback notice and deliver the full path alone.
 
@@ -349,7 +351,7 @@ Revision instructions ready: {output_folder}/revise-{spec-stem}.md
 {N} revisions targeting `{spec_path}`: {breakdown by label}
 ```
 
-**Manifest notes (non-blocking).** Append the excerpt log line verbatim, then any staleness note (`stale: yes` → `PATTERNS manifest may be stale — consider re-running /comb:patterns.`; `unknown` → `PATTERNS staleness unknown (<detail>).`) or semantic-refresh note recorded during this run. Then, last of all: `python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py clean --run <run>`.
+**Manifest notes (non-blocking).** Append the excerpt log line verbatim, then any staleness note (`stale: yes` → `PATTERNS manifest may be stale — consider re-running /comb:patterns.`; `unknown` → `PATTERNS staleness unknown (<detail>).`) or semantic-refresh note recorded during this run. Then, last of all: `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>`.
 
 ## Ground rules
 

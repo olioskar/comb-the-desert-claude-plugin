@@ -33,11 +33,11 @@ This is the codebase's observed convention baseline
 Read the layered config in this order
 the shipped allowlist is exactly
 Splits the manifest into a header
-derives each area section's scope from two sources
+Derives each area section's scope from two sources
 read it and run the commit-based staleness heuristic
 NEEDLES
 
-# 5. Manifest excerpts: the script ships, its fixture test passes, and every
+# 5. Manifest excerpts (see 4 below for .DS_Store): the script ships, its fixture test passes, and every
 #    consuming skill invokes it (the orchestrator never reads the manifest).
 if [ ! -f scripts/manifest.py ]; then
   echo "FAIL: scripts/manifest.py missing"
@@ -50,13 +50,13 @@ elif ! bash scripts/test-manifest.sh >/dev/null 2>&1; then
   fail=1
 fi
 for skill in review plan fix; do
-  if ! grep -q 'manifest.py excerpt' "skills/$skill/SKILL.md"; then
+  if ! grep -Eq 'manifest\.py"? excerpt' "skills/$skill/SKILL.md"; then
     echo "FAIL: skills/$skill does not invoke manifest.py excerpt"
     fail=1
   fi
 done
 for cmd in index verify gate apply; do
-  if ! grep -q "manifest.py $cmd" skills/patterns/SKILL.md; then
+  if ! grep -Eq "manifest\.py\"? $cmd" skills/patterns/SKILL.md; then
     echo "FAIL: skills/patterns does not invoke manifest.py $cmd"
     fail=1
   fi

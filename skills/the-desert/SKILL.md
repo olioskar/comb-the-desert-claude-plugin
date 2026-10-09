@@ -44,6 +44,8 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. The
 
 Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally. The matched-directive flagging carries through review → plan → fix without re-computing.
 
+**Plugin root for the sweep.** `${CLAUDE_PLUGIN_ROOT}` is substituted in this skill body but not in the sub-skill files you Read below, and it is not a shell variable. Wherever a sub-skill's command line contains `${CLAUDE_PLUGIN_ROOT}` (the `manifest.py` calls), substitute this literal path: `${CLAUDE_PLUGIN_ROOT}`. A command run with the variable unexpanded fails and would silently fall back to delivering the full manifest.
+
 ## Step 3: Run review
 
 Read `${CLAUDE_PLUGIN_ROOT}/skills/review/SKILL.md` and execute that workflow with these overrides. Where the texts conflict, these overrides win. Do not invoke the Skill tool for the sub-command — loading it as a skill would inject its wait-and-present instructions.
@@ -52,7 +54,7 @@ Overrides:
 
 - All agents use `models.the_desert`
 - Save the report to `paths.reviews` per the standard naming
-- **Do NOT present the report and wait** — log the verdict and finding count, then immediately continue
+- **Do NOT present the report and wait** — log the verdict and finding count, the excerpt log line, and any staleness note, run the excerpt `clean`, then immediately continue
 
 When review finishes, announce one of:
 

@@ -81,3 +81,5 @@ cat > src/pages/entity/order/OrdersPage.tsx <<'EOT'
 export function OrdersPage() { const data = fetch("/orders"); return null; }
 EOT
 git add -A && git commit -qm "feat: orders page"
+# review Step 2 diffs against origin/<base>; give the scratch repo an origin
+git remote add origin "$PWD" && git fetch -q origin

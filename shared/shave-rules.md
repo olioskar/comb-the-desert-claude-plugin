@@ -29,7 +29,7 @@ Resolve a basename anchor (`Foo.tsx:12`) by joining it to your section's `scope_
 
 ## What you return
 
-Write the edit script as JSON to the path you were given, with a Bash heredoc. Then reply with that path and the edit count, nothing else. A section with nothing to shave gets `[]`.
+Write the edit script as JSON to the path you were given, with a Bash heredoc (`cat > <path> <<'EOF' … EOF`). This is the one file you write. Then reply with that path and the edit count, nothing else. A section with nothing to shave gets `[]`.
 
 ```json
 [
@@ -50,4 +50,4 @@ Write the edit script as JSON to the path you were given, with a Bash heredoc. T
 
 ## What the orchestrator does with it
 
-`manifest.py verify` applies the checks above plus: `old` occurs exactly once inside its section, removes no heading, overlaps no other edit, and removes no anchor another edit removes. **Bound:** verify checks these properties only. It does not judge whether a surviving anchor still supports its claim, does not open the codebase, and does not evaluate your comparison. Those are your job and the gate's. Rejected edits are listed with the failing check and excluded; the passing set goes to the gate, where the user accepts or skips by class or section, and `manifest.py apply` writes all-or-nothing.
+`manifest.py verify` applies the checks above plus: `old` occurs exactly once inside its section, removes no heading, overlaps no other edit, and (for `anchor` and `duplicate` edits) leaves every anchor it removes still present somewhere in the manifest after all edits, so no citation vanishes. A file it cannot parse is reported as `UNUSABLE` and skipped; the other files still verify. **Bound:** verify checks these properties only. It does not judge whether a surviving anchor still supports its claim, does not open the codebase, and does not evaluate your comparison. Those are your job and the gate's. Rejected edits are listed with the failing check and excluded; the passing set goes to the gate, where the user accepts or skips by class or section, and `manifest.py apply` writes all-or-nothing.

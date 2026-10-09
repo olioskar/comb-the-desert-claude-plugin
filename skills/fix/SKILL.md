@@ -73,11 +73,13 @@ Instruction folder shape: {per-finding | single revise-doc}
 {N items to process | 1 consolidated revise-doc: revise-{spec-stem}.md}
 ```
 
-**Cut the manifest excerpt** (only when `paths.patterns` resolved), per `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`, with every instruction file in the folder (or the single revise doc) as the touched text:
+**Cut the manifest excerpt** (only when `paths.patterns` resolved), per `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`, with the instruction folder as the touched text (the script reads every `.md` in it, so this covers per-finding files and the single revise doc alike):
 
 ```
-python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py excerpt --skill fix --manifest <paths.patterns> --touched-from <every instruction file, or the revise doc>
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" excerpt --skill fix --manifest <paths.patterns> --touched-from <instruction folder>
 ```
+
+Run it from the project root. An X-item discovered mid-run (Step 4) was not in the folder when the excerpt was cut; its implementer and reviewer still get the excerpt, and its banner lists the omitted sections by line range for them to read if needed.
 
 Record `run`, `excerpt`, the log line, and `stale`. On the contract's fallback condition, print the fallback notice and deliver the full path alone.
 
@@ -403,7 +405,7 @@ All {N} items complete:
   - X1: {title} (found reviewing H2) — PASS
 ```
 
-**Manifest notes (non-blocking).** Append the excerpt log line verbatim, then any staleness note (`stale: yes` → `PATTERNS manifest may be stale — consider re-running /comb:patterns.`; `unknown` → `PATTERNS staleness unknown (<detail>).`) or semantic-refresh note recorded during this run. Then, last of all: `python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py clean --run <run>`.
+**Manifest notes (non-blocking).** Append the excerpt log line verbatim, then any staleness note (`stale: yes` → `PATTERNS manifest may be stale — consider re-running /comb:patterns.`; `unknown` → `PATTERNS staleness unknown (<detail>).`) or semantic-refresh note recorded during this run. Then, last of all: `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>`.
 
 ## Ground rules
 

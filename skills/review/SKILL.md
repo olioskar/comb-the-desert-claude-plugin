@@ -60,11 +60,13 @@ Read these:
 - Any plan/design doc the user points to in the focus brief
 - A reference implementation, if the user names one or `CLAUDE.md` points to one
 
-**Load the PATTERNS manifest.** If `paths.patterns` resolves to a file, record its path; do not read it. Once the diff's file names are gathered (above), write them to a file and cut this run's excerpt per `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`:
+**Load the PATTERNS manifest.** If `paths.patterns` resolves to a file, record its path; do not read it. Once the diff's file names are gathered (above), pipe that same name list into the script to cut this run's excerpt per `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md` — no intermediate file:
 
 ```
-python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py excerpt --skill review --manifest <paths.patterns> --touched-from <file with the diff's name list>
+git diff --name-only origin/<base>...<branch> | python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" excerpt --skill review --manifest <paths.patterns> --touched-from -
 ```
+
+(For a PR, pipe `gh pr diff <number> --name-only`; for a user-given file list, pipe `printf '%s\n' <files>`.) Run it from the project root.
 
 Record `run`, `excerpt`, the log line, and `stale` from its output for the dispatch prompt and the presentation. On the contract's fallback condition, print the fallback notice and deliver the full path alone. If `paths.patterns` is absent or `null`, skip — manifest consumption is a graceful no-op.
 
@@ -380,7 +382,7 @@ Agents used: {list}
 - Commit-based staleness (`stale: yes`): `PATTERNS manifest may be stale — consider re-running /comb:patterns.` When `stale: unknown`: `PATTERNS staleness unknown (<detail>).`
 - Semantic refresh: `This diff evolves a convention not in the manifest — consider re-running /comb:patterns to capture it.`
 
-Then, last of all, remove this run's excerpt working files: `python3 -I ${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py clean --run <run>`.
+Then, last of all, remove this run's excerpt working files: `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>`.
 
 ## Ground rules
 

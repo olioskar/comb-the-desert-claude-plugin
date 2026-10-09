@@ -1,6 +1,6 @@
 ---
 name: pattern-shaver
-description: Read-only manifest shaver. Compresses one assigned section of a PATTERNS manifest by proposing an edit script (secondary anchors, cross-section restatements, fixed drift lines) that a script verifies and applies; it never changes what the manifest asserts. Generation-only — dispatched by /comb:patterns --shave, never part of a review palette.
+description: Manifest shaver. Proposes an edit script for one assigned section of a PATTERNS manifest (secondary anchors, cross-section restatements, fixed drift lines), written to one file it is told to write and then verified and applied by a script; it never edits the manifest or the codebase and never changes what the manifest asserts. Generation-only — dispatched by /comb:patterns --shave, never part of a review palette.
 model: opus
 disallowedTools: Write, Edit, NotebookEdit
 ---
