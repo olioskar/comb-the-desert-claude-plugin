@@ -19,6 +19,11 @@ git init -q -b main . && git config user.email test@example.com && git config us
 while read -r f; do mkdir -p "$(dirname "$f")"; echo "// $f" > "$f"; done < "$F/cited-files.txt"
 git add -A && git commit -qm base
 SHA=$(git rev-parse --short=8 HEAD)
+# the manifest's base-commit rule needs a hex token containing a letter; an
+# all-digit short SHA (about 2% of commits) would pick an older stamp instead
+while ! echo "$SHA" | grep -q '[a-f]'; do
+  echo "// retry" >> src/setupTests.ts && git commit -qam base-retry && SHA=$(git rev-parse --short=8 HEAD)
+done
 mkdir -p docs/combs
 sed "s/BASECOMMIT0/$SHA/" "$F/curated.md" > docs/combs/PATTERNS.md
 sed "s/BASECOMMIT0/$SHA/" "$F/template.md" > docs/combs/TEMPLATE.md
