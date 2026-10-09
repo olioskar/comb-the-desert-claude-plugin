@@ -44,7 +44,7 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. The
 
 Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally. The matched-directive flagging carries through review → plan → fix without re-computing.
 
-**Plugin root for the sweep.** `${CLAUDE_PLUGIN_ROOT}` is substituted in this skill body but not in the sub-skill files you Read below, and it is not a shell variable. Wherever a sub-skill's command line contains `${CLAUDE_PLUGIN_ROOT}` (the `manifest.py` calls), substitute this literal path: `${CLAUDE_PLUGIN_ROOT}`. A command run with the variable unexpanded fails and would silently fall back to delivering the full manifest.
+**Plugin root for the sweep.** The sub-skill files you Read below are not variable-substituted, and the plugin-root placeholder is not a shell variable. In those files the placeholder is written as a dollar sign, an opening brace, the name CLAUDE_PLUGIN_ROOT, and a closing brace. Wherever you see it — in the `manifest.py` command lines, and in every Read target under `shared/`, `directives/`, and `skills/` — replace it with this literal path: `${CLAUDE_PLUGIN_ROOT}`. A `manifest.py` command run with the placeholder unexpanded fails and would silently fall back to delivering the full manifest.
 
 ## Step 3: Run review
 

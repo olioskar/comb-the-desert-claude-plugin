@@ -1,7 +1,7 @@
 # PATTERNS — demo-curated
 
 **Generated:** 2026-06-08 · **Base:** `docs/pattern-manifest` @ `6aff510f` (off `staging`) · `file:line` references are valid as of this commit · **Patched:** 2026-07-03 @ `d33250f6` (line re-anchors + pattern 13) · **Patched:** 2026-07-04 on `refactor/uicomponents` (pattern 4 re-based on the Base UI composition; the mirroring drift-register row was missed and stayed wrong until 2026-08-21) · **Patched:** 2026-08-21 on `refactor/ionic-shell-exit` (#9 token census recounted post-Ionic-exit; drift rows 5/9 updated; seven stale `file:line` refs corrected) · **Patched:** 2026-09-05 (§4 anchor re-based and its gate claim corrected; §8 picker rows restated on the shared search core) · **Regenerated (partial):** 2026-09-30 @ `BASECOMMIT0` via `/comb:patterns` — §2, §9, §15 rescanned · count 20261009
-**Shaved:** DATE (5066 → 4923 bytes)
+**Shaved:** DATE (5514 → 5370 bytes)
 **Scope:** the canonical UI + data patterns of the demo web app, each pinned to a real reference implementation.
 
 > **Observed baseline, not law.** Live code wins. Project directives outrank it.
@@ -40,14 +40,16 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 - Header actions come from the entity's action list — `PanelHost.tsx:88`.
 - Primitives come from the design system — `src/components/primitives/Button.tsx:1` (restated; home is #9).
 
-
 ## 9. Design system / primitives
 
-**Home:** `src/theme/**`, `src/components/primitives/**`
+**Home:** `src/theme/**`, `src/components/primitives/**` — owns the `--demo-*` token layer and the `src/components/primitives/` catalog; see `refactor/uicomponents` history.
 
 - Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (canonical: `src/theme/tokens.css:1`).
 - Primitives never import from pages — `src/components/primitives/Button.tsx:1`, `src/components/primitives/Card.tsx:1`.
+- Token values are generated into `src/theme/styles.ts:1` and `src/theme/tokens.css:1`; Node.js scripts never read them.
 - Panel chrome uses primitives — `src/components/sidePanel/PanelHost.tsx:14` (restated; home is #3).
+- Env flags are read via `process.env` and `import.meta.env` — `src/theme/env.ts:1`.
+⚠ Drift: the old `src/components/primitives/Card.tsx:1` wrapper was retired; fixed.
 
 ⚠ Drift: `src/theme/legacy.css:1` half fixed; still open in #1015.
 
@@ -57,7 +59,7 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 
 - Templates are pure functions of typed data — `src/pdf/templates/Invoice.tsx:10`.
 - Page breaks use `Math.max` floors and `React.FC` shells — no citation beyond the template above.
-- Shared primitives mirror design tokens by hand — `src/pdf/primitives/styles.ts:1` (manual sync).
+- Shared primitives mirror design tokens by hand — `src/pdf/primitives/styles.ts:1` (manual sync), `src/pdf/templates/Invoice.tsx:1`.
 
 ⚠ Drift: the legacy renderer was fixed in #1200.
 

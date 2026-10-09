@@ -278,7 +278,7 @@ python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" index --manifest <paths.p
 
 Run every `manifest.py` command from the project root. It prints `run: <stem>`, `index: <path>`, one line per section (`<kind> <START>-<END> <bytes>B [<n>] <heading> edits=<path>`), and the totals. Record `run` and `index`. Show the per-section lines and totals to the user as the size table. Do not read the manifest or the index file.
 
-**S2. Dispatch shavers.** One per **area** section of 4 KB or more (narrowed by the focus brief when it names sections), at most five at a time, per `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. Role: `agents.pattern-shaver` (`subagent_type`, default `comb:pattern-shaver`); model: `agents.pattern-shaver.model` if set, else `models.patterns`, passed as the Task call's `model` parameter. Header and global sections are never dispatched or edited. Dispatch prompt:
+**S2. Dispatch shavers.** If no area section is 4 KB or more (after any focus-brief narrowing), report `Nothing to shave: no area section is 4 KB or more` and stop with `clean`. Otherwise one shaver per **area** section of 4 KB or more, at most five at a time, per `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. Role: `agents.pattern-shaver` (`subagent_type`, default `comb:pattern-shaver`); model: `agents.pattern-shaver.model` if set, else `models.patterns`, passed as the Task call's `model` parameter. Header and global sections are never dispatched or edited. Dispatch prompt:
 
 ```
 You shave ONE section of a PATTERNS manifest. You edit nothing except the one edit-script file named below. Rules: read ${CLAUDE_PLUGIN_ROOT}/shared/shave-rules.md first and follow it exactly.
@@ -293,7 +293,7 @@ Write that file with a Bash heredoc, then reply with its path and the edit count
 
 A foreign `subagent_type` gets the same prompt; the rules file carries the full contract.
 
-**S3. Collect.** A reply that names no file, or names a file that is missing, is recorded as `section <heading>: no usable edit script, skipped`. A file that exists but is not valid JSON is reported by `verify` as `UNUSABLE` and skipped the same way. Nothing is merged or retyped by hand.
+**S3. Collect.** A reply that names no file, or names a file that is missing, is recorded as `section <heading>: no usable edit script, skipped`. A file that exists but is not valid JSON is reported by `verify` as `UNUSABLE` and skipped the same way. Nothing is merged or retyped by hand. If no shaver produced a file, report `Nothing to shave: no usable edit script` and stop with `clean`.
 
 **S4. Verify.** Run, listing every edit file the shavers wrote:
 
@@ -317,11 +317,11 @@ Show its output verbatim: per section the counts by class and bytes removed, eve
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" apply --manifest <paths.patterns> --index <index> --edits <final or passing file> --stamp
 ```
 
-All-or-nothing: it re-verifies against the current text and refuses if anything no longer verifies. `--stamp` writes `**Shaved:** <date> (<before> → <after> bytes)` into the header (replacing an earlier one). It prints the applied count and the before/after bytes; present:
+All-or-nothing: it re-verifies against the current text and refuses if anything no longer verifies. `--stamp` writes `**Shaved:** <date> (<before> → <after> bytes)` into the header (replacing an earlier one). It prints the applied count, the before/after bytes, and the token estimate; present them with the counts `verify` and `filter` printed:
 
 ```
-Manifest shaved: {applied} edits applied ({skipped} skipped, {rejected} rejected, {unusable} unusable files)
-Size: {before}B → {after}B (~{after/4} tokens)
+Manifest shaved: {applied} edits applied ({skipped by the user} skipped, {rejected} rejected, {unusable} unusable files)
+Size: {before}B → {after}B (~{tokens} tokens)
 ```
 
 and finish with `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>`. Step 9's generate presentation does not apply to shave.

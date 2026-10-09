@@ -43,11 +43,14 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 
 ## 9. Design system / primitives
 
-**Home:** `src/theme/**`, `src/components/primitives/**`
+**Home:** `src/theme/**`, `src/components/primitives/**` — owns the `--demo-*` token layer and the `src/components/primitives/` catalog; see `refactor/uicomponents` history.
 
 - Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (canonical: `src/theme/tokens.css:1`).
 - Primitives never import from pages — `src/components/primitives/Button.tsx:1`, `src/components/primitives/Card.tsx:1`.
+- Token values are generated into `src/theme/styles.ts:1` and `src/theme/tokens.css:1`; Node.js scripts never read them.
 - Panel chrome uses primitives — `src/components/sidePanel/PanelHost.tsx:14` (restated; home is #3).
+- Env flags are read via `process.env` and `import.meta.env` — `src/theme/env.ts:1`.
+⚠ Drift: the old `src/components/primitives/Card.tsx:1` wrapper was retired; fixed.
 
 ⚠ Drift: `src/theme/legacy.css:1` half fixed; still open in #1015.
 
@@ -57,7 +60,7 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 
 - Templates are pure functions of typed data — `src/pdf/templates/Invoice.tsx:10`.
 - Page breaks use `Math.max` floors and `React.FC` shells — no citation beyond the template above.
-- Shared primitives mirror design tokens by hand — `src/pdf/primitives/styles.ts:1` (manual sync).
+- Shared primitives mirror design tokens by hand — `src/pdf/primitives/styles.ts:1` (manual sync), `src/pdf/templates/Invoice.tsx:1`.
 
 ⚠ Drift: the legacy renderer was fixed in #1200.
 

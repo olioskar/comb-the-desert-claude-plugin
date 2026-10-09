@@ -179,7 +179,7 @@ The plugin registers five `comb:*` subagents — read-only reviewers (`disallowe
 
 The `disallowedTools` list blocks the file-editing tools; Bash stays available for git and read commands, so read-only is enforced by instruction, not by sandbox.
 
-Two more read-only subagents are **generation-only** and never part of the review/plan/fix palette: `comb:pattern-scanner`, dispatched by `/comb:patterns` to map one codebase area, and `comb:pattern-shaver`, dispatched by `/comb:patterns --shave` to propose an edit script for one manifest section.
+Two more subagents are **generation-only** and never part of the review/plan/fix palette: `comb:pattern-scanner` (read-only), dispatched by `/comb:patterns` to map one codebase area, and `comb:pattern-shaver`, dispatched by `/comb:patterns --shave` to propose an edit script for one manifest section; it writes that one file and nothing else.
 
 You can invoke them directly via the Task tool or let the comb skills pick them automatically.
 

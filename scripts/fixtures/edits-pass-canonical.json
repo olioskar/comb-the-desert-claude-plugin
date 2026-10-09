@@ -1,0 +1,8 @@
+[
+ {
+  "section": "1. Entity Page",
+  "class": "anchor",
+  "old": "- Panel routing is delegated to `usePanelRouter` \u2014 `ContactsPage.tsx:66-73` (canonical: `src/pages/entity/contact/ContactsPage.tsx:66`).",
+  "dropped_anchor": "ContactsPage.tsx:66-73"
+ }
+]

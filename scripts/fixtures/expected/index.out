@@ -2,13 +2,13 @@ run: RUN
 header 1-7 1040B
 global 8-11 220B [1] How to read this
 global 12-16 143B [2] Patterns
-area 17-32 1063B [3] 1. Entity Page edits=.comb/excerpts/RUN.edits-3.json
-area 33-43 452B [4] 3. SidePanel / PanelHost edits=.comb/excerpts/RUN.edits-4.json
-area 44-53 494B [5] 9. Design system / primitives edits=.comb/excerpts/RUN.edits-5.json
-area 54-63 448B [6] 12. PDF / reporting edits=.comb/excerpts/RUN.edits-6.json
-area 64-71 434B [7] 14. Testing conventions edits=.comb/excerpts/RUN.edits-7.json
-area 72-75 127B [8] Appendix edits=.comb/excerpts/RUN.edits-8.json
-global 76-80 133B [9] Cross-reference map
-global 81-87 367B [10] ⚠ Drift register — do not propagate (with tracking)
-global 88-91 134B [11] Maintenance
-total 5066B ~1266 tokens (bytes/4); 6 area, 5 global
+area 17-32 1063B [3] 1. Entity Page edits=TMP/.comb/excerpts/RUN.edits-3.json
+area 33-43 452B [4] 3. SidePanel / PanelHost edits=TMP/.comb/excerpts/RUN.edits-4.json
+area 44-56 907B [5] 9. Design system / primitives edits=TMP/.comb/excerpts/RUN.edits-5.json
+area 57-66 483B [6] 12. PDF / reporting edits=TMP/.comb/excerpts/RUN.edits-6.json
+area 67-74 434B [7] 14. Testing conventions edits=TMP/.comb/excerpts/RUN.edits-7.json
+area 75-78 127B [8] Appendix edits=TMP/.comb/excerpts/RUN.edits-8.json
+global 79-83 133B [9] Cross-reference map
+global 84-90 367B [10] ⚠ Drift register — do not propagate (with tracking)
+global 91-94 134B [11] Maintenance
+total 5514B ~1378 tokens (bytes/4); 6 area, 5 global

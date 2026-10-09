@@ -1,6 +1,6 @@
 ok 1. Entity Page [anchor]
 ok 14. Testing conventions [duplicate]
 ok 3. SidePanel / PanelHost [fixed-drift]
-UNUSABLE /Users/olafur/Development/comb-the-desert-claude-skill/scripts/fixtures/edits-unusable-broken.json: not valid JSON: Expecting value: line 1 column 35 (char 34) (file skipped)
+UNUSABLE FIXTURES/edits-unusable-broken.json: not valid JSON: Expecting value: line 1 column 35 (char 34) (file skipped)
 verify: 3 passing, 0 rejected, 1 unusable file(s); passing set: TMP/mixed.json
 exit=1

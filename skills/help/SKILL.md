@@ -246,7 +246,7 @@ Shave (--shave)
     item is fixed. Nothing else — no prose rewriting, no renumbering,
     no edits to the header, drift register, or cross-reference map.
   - scripts/manifest.py verifies every edit mechanically (exact match,
-    no heading removed, no anchor lost twice, owner really states it)
+    no heading removed, no citation vanishes, owner really cites it)
     and shows one gate: accept, or skip by class or section. Apply is
     all-or-nothing and stamps the header with "Shaved: <date>".
   - Every write prints the manifest's size; above 100 KB it suggests

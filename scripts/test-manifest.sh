@@ -30,7 +30,8 @@ sed "s/BASECOMMIT0/$SHA/" "$F/template.md" > docs/combs/TEMPLATE.md
 echo "// changed" >> src/pages/entity/contact/ContactsPage.tsx
 git commit -qam change
 
-norm() { sed -E -e "s/$SHA/BASECOMMIT0/g" -e 's/[a-z]+-[0-9]{9,}-[0-9a-f]{4}/RUN/g' -e 's/^(\*\*Shaved:\*\*) [0-9]{4}-[0-9]{2}-[0-9]{2}/\1 DATE/' -e "s#$T#TMP#g" ; }
+TR=$(cd "$T" && pwd -P)   # macOS: $TMPDIR is a symlink into /private
+norm() { sed -E -e "s/$SHA/BASECOMMIT0/g" -e 's/[a-z]+-[0-9]{9,}-[0-9a-f]{4}/RUN/g' -e 's/^(\*\*Shaved:\*\*) [0-9]{4}-[0-9]{2}-[0-9]{2}/\1 DATE/' -e "s#$TR#TMP#g" -e "s#$T#TMP#g" -e "s#$F#FIXTURES#g" -e "s#$ROOT#PLUGIN#g" ; }
 
 run_excerpt() { # name skill manifest touched
   python3 -I "$S" excerpt --skill "$2" --manifest "$3" --touched-from "$F/$4" > "$OUT/$1.log" 2>&1
@@ -45,6 +46,7 @@ run_excerpt curated-root   review docs/combs/PATTERNS.md curated.root.touched
 run_excerpt curated-stale  review docs/combs/PATTERNS.md curated.stale.touched
 run_excerpt curated-test   review docs/combs/PATTERNS.md curated.test.touched
 run_excerpt curated-prefix review docs/combs/PATTERNS.md curated.prefixed.touched
+run_excerpt curated-primitive review docs/combs/PATTERNS.md curated.primitive.touched
 run_excerpt template-web   review docs/combs/TEMPLATE.md template.web.touched
 run_excerpt template-types plan   docs/combs/TEMPLATE.md template.types.touched
 run_excerpt template-report plan  docs/combs/TEMPLATE.md template.report.touched
@@ -61,7 +63,7 @@ set +e
 python3 -I "$S" verify --manifest docs/combs/PATTERNS.md --index "$IDX" --edits "$F/edits-pass.json" --out "$T/pass.json" 2>&1 | norm > "$OUT/verify-pass.out"
 echo "exit=${PIPESTATUS[0]}" >> "$OUT/verify-pass.out"
 set -e
-for f in "$F"/edits-fail-*.json "$F"/edits-unusable-*.json; do
+for f in "$F"/edits-fail-*.json "$F"/edits-unusable-*.json "$F"/edits-pass-prose-fence.json "$F"/edits-pass-canonical.json; do
   n=$(basename "$f" .json)
   set +e
   python3 -I "$S" verify --manifest docs/combs/PATTERNS.md --index "$IDX" --edits "$f" --out "$T/$n.json" 2>&1 | norm > "$OUT/$n.out"
@@ -73,6 +75,11 @@ set +e
 python3 -I "$S" verify --manifest docs/combs/PATTERNS.md --index "$IDX" --edits "$F/edits-pass-two-dups.json" --out "$T/twodups.json" 2>&1 | norm > "$OUT/verify-two-dups.out"
 echo "exit=${PIPESTATUS[0]}" >> "$OUT/verify-two-dups.out"
 set -e
+# an empty touched set is refused (fallback condition), not a silent 0-area excerpt
+set +e
+python3 -I "$S" excerpt --skill review --manifest docs/combs/PATTERNS.md --touched-from "$F/curated.empty.touched" > "$OUT/curated-empty.out" 2>&1
+echo "exit=$?" >> "$OUT/curated-empty.out"
+set -e
 # stdin touched text
 git diff --name-only HEAD~1 HEAD | python3 -I "$S" excerpt --skill review --manifest docs/combs/PATTERNS.md --touched-from - 2>&1 | norm | grep -v '^excerpt: ' > "$OUT/curated-stdin.out"
 # a good file beside an unusable one still yields the good file's passing set
@@ -80,6 +87,21 @@ set +e
 python3 -I "$S" verify --manifest docs/combs/PATTERNS.md --index "$IDX" --edits "$F/edits-pass.json" "$F/edits-unusable-broken.json" --out "$T/mixed.json" 2>&1 | norm > "$OUT/verify-mixed.out"
 echo "exit=${PIPESTATUS[0]}" >> "$OUT/verify-mixed.out"
 set -e
+# ambiguous headings are rejected; CRLF manifests round-trip with CRLF sizes
+{ cat docs/combs/PATTERNS.md; printf '\n## 1. Entity Page\n\n- dup\n'; } > "$T/dup.md"
+python3 -I "$S" index --manifest "$T/dup.md" > "$T/dup-index.log" 2>&1; DIDX=$(sed -n 's/^index: //p' "$T/dup-index.log")
+set +e
+python3 -I "$S" verify --manifest "$T/dup.md" --index "$DIDX" --edits "$F/edits-pass.json" --out "$T/dup-pass.json" 2>&1 | norm | grep -E 'Entity Page' > "$OUT/ambiguous-heading.out"
+set -e
+python3 -I "$S" clean --run "$(sed -n 's/^run: //p' "$T/dup-index.log")" > /dev/null
+sed 's/$/\r/' docs/combs/PATTERNS.md > "$T/crlf.md"
+python3 -I "$S" index --manifest "$T/crlf.md" > "$T/crlf-index.log" 2>&1; CIDX=$(sed -n 's/^index: //p' "$T/crlf-index.log")
+set +e
+python3 -I "$S" verify --manifest "$T/crlf.md" --index "$CIDX" --edits "$F/edits-pass.json" --out "$T/crlf-pass.json" > /dev/null 2>&1
+python3 -I "$S" apply --manifest "$T/crlf.md" --index "$CIDX" --edits "$T/crlf-pass.json" --stamp 2>&1 | norm > "$OUT/crlf-apply.out"
+set -e
+{ printf 'crlf-lines='; grep -c $'\r$' "$T/crlf.md"; printf 'lf-only-lines='; grep -vc $'\r$' "$T/crlf.md" || true; printf 'stamp-bytes='; sed -n 's/^\*\*Shaved:\*\* .* → \([0-9]*\) bytes)\r$/\1/p' "$T/crlf.md"; printf 'actual-bytes='; wc -c < "$T/crlf.md" | tr -d ' '; } >> "$OUT/crlf-apply.out"
+python3 -I "$S" clean --run "$(sed -n 's/^run: //p' "$T/crlf-index.log")" > /dev/null
 # touched text may be a directory of instruction files
 mkdir -p "$T/plan" && cp "$F/template.instruction.touched" "$T/plan/M1-x.md" && cp "$F/template.report.touched" "$T/plan/M2-y.md"
 python3 -I "$S" excerpt --skill fix --manifest docs/combs/TEMPLATE.md --touched-from "$T/plan" 2>&1 | norm | grep -v '^excerpt: ' > "$OUT/template-dir.out"

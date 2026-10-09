@@ -18,7 +18,7 @@ It prints, and nothing more:
 
 ```
 run: <stem>
-excerpt: .comb/excerpts/<stem>.md
+excerpt: <absolute path under .comb/excerpts/>
 PATTERNS excerpt: <n> of <m> area sections included (<headings>); <g> global; omitted: <headings or none>
 stale: yes|no|unknown (<detail>)
 base_commit: <sha or none>
@@ -42,4 +42,4 @@ base_commit: <sha or none>
 
 ## Fallback
 
-When `python3` is missing, or `excerpt` exits non-zero without printing an `excerpt:` line, print `PATTERNS excerpt unavailable (<reason>) — full manifest delivered`, deliver the full manifest path with the **fallback form** of the observed-baseline block (no excerpt sentences), skip staleness, and continue. Never silent, never a stop. A `stale: unknown` line is not a failure.
+When `python3` is missing, or `excerpt` exits non-zero without printing an `excerpt:` line (including an empty touched set, which the script refuses so that an empty or failed diff never passes as a successful excerpt), print `PATTERNS excerpt unavailable (<reason>) — full manifest delivered`, deliver the full manifest path with the **fallback form** of the observed-baseline block (no excerpt sentences), skip staleness, and continue. Never silent, never a stop. A `stale: unknown` line is not a failure.

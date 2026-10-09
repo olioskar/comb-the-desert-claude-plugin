@@ -25,12 +25,14 @@ TRAILING_PUNCT = ",.;:)"
 LINE_PART = re.compile(r":[0-9][0-9,\-]*$")
 SEG = r"[A-Za-z0-9_.@~+\-]+"
 FULL_PATH = re.compile(r"^(?:\.\./|\./)?(?:%s/)+%s\.[A-Za-z]{1,5}$" % (SEG, SEG))
-BASENAME = re.compile(r"^%s\.[A-Za-z]{2,5}$" % SEG)
-BASENAME_WITH_LINE = re.compile(r"^%s\.[A-Za-z]{1,5}$" % SEG)
+BASENAME = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.@~+\-]*\.[A-Za-z]{2,5}$")
+BASENAME_WITH_LINE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.@~+\-]*\.[A-Za-z]{1,5}$")
 # A basename without a line part counts only with a file-like extension; `Math.max`,
 # `React.FC`, `vi.mock`, `document.body` must not pass as anchors.
-FILE_EXT = re.compile(r"\.(tsx?|jsx?|mjs|cjs|css|scss|less|html?|md|json|ya?ml|toml|py|rb|go|rs|java|kt|swift|cs|php|sql|sh|bash|ps1|xml|svg|txt|csv|ini|cfg|env|lock|gradle|vue|svelte|ex|exs|erl|hs|lua|pl|r|m|mm|c|h|cc|cpp|hpp|dart|scala|clj|graphql|proto|tf|ipynb)$", re.I)
+FILE_EXT = re.compile(r"\.(tsx?|jsx?|mjs|cjs|css|scss|less|html?|md|mdx|json|ya?ml|toml|py|rb|go|rs|java|kt|kts|swift|cs|php|sql|sh|bash|ps1|xml|svg|txt|csv|ini|cfg|lock|gradle|vue|svelte|ex|exs|erl|hs|lua|pl|mm|cc|cpp|hpp|dart|scala|clj|graphql|proto|tf|ipynb|snap|prisma|plist)$", re.I)
 URL = re.compile(r"^[a-z]+://")
+FRAMEWORK_NAMES = {"node.js", "next.js", "vue.js", "nuxt.js", "express.js", "react.js", "ember.js",
+                   "angular.js", "backbone.js", "three.js", "d3.js", "p5.js", "chart.js", "video.js"}
 HEX = re.compile(r"\b[0-9a-f]{7,40}\b")
 HEADER_TRUNCATE_AT = 400
 HEADER_KEEP = 160
@@ -90,6 +92,10 @@ def read_lines(path):
 LINE_END = "\n"
 
 
+def nbytes(text):
+    return len(text.replace("\n", LINE_END).encode("utf-8"))
+
+
 def strip_token(tok):
     tok = tok.strip()
     while tok and tok[-1] in TRAILING_PUNCT:
@@ -117,7 +123,7 @@ def classify_anchor(tok):
         return None
     if line and BASENAME_WITH_LINE.match(body):
         return ("base", body, line)
-    if not line and BASENAME.match(body) and FILE_EXT.search(body):
+    if not line and BASENAME.match(body) and FILE_EXT.search(body) and body.lower() not in FRAMEWORK_NAMES:
         return ("base", body, line)
     return None
 
@@ -138,12 +144,14 @@ def basename_key(path):
     return os.path.basename(path)
 
 
-def norm_path(p):
+def norm_path(p, root=None):
     p = p.strip()
     while p.startswith("./"):
         p = p[2:]
     if re.match(r"^[ab]/", p):
-        p = p[2:]
+        stripped = p[2:]
+        if root is None or (not os.path.exists(os.path.join(root, p)) and os.path.exists(os.path.join(root, stripped))):
+            p = stripped
     return p
 
 
@@ -167,18 +175,21 @@ def scope_globs_of(lines):
         m = re.match(r"(?i)^(scope|home)\s*:(.*)$", t)
         if not m:
             continue
-        rest = m.group(2)
+        rest = m.group(2).strip()
+        rest = re.sub(r"^\*\*\s*", "", rest)        # closing bold of `**Home:**`
+        # the scope is the first clause: cut at an em dash or a sentence end
+        rest = re.split(r" — |\. (?=[A-Z])|\.$", rest, maxsplit=1)[0]
         items = re.findall(r"`([^`]+)`", rest)
         if not items:
-            rest = rest.split(" — ")[0]
-            rest = rest.strip().strip("_*").strip()
+            rest = rest.strip().rstrip("_").strip()
             items = [x.strip().strip("_").strip() for x in rest.split(",") if x.strip()]
         for it in items:
             it = it.strip()
-            if not it or " " in it or ("/" not in it and not any(c in it for c in "*?[")):
-                continue  # prose, not a path: the line contributes nothing
+            # path-like only: a `/`, or a `*.ext` / `**/` glob; a bare `--token-*` or a word is prose
+            if not it or " " in it or not ("/" in it or it.startswith("*.") or it.startswith("**/")):
+                continue
             it = re.sub(r"\{[^}]*\}", "*", it)
-            it = re.sub(r"\([^)]*\)", "*", it)  # `*.test.ts(x)` shorthand
+            it = re.sub(r"\(([a-z]{1,3})\)$", "*", it)  # `*.test.ts(x)` shorthand only
             if it.endswith("/"):
                 it += "**"
             elif not any(c in it for c in "*?[") and not FILE_EXT.search(it):
@@ -213,7 +224,7 @@ def parse_manifest(lines):
         sections.append({
             "n": n + 1, "kind": kind, "heading": heading,
             "start": s + 1, "end": e,  # 1-based inclusive
-            "bytes": len(text.encode("utf-8")),
+            "bytes": nbytes(text),
             "scope_globs": globs, "anchor_dirs": anchor_dirs,
             "anchors": full, "anchors_norm": anchors_norm, "basenames": base, "unscoped": unscoped,
         })
@@ -254,7 +265,7 @@ def relevant(section, touched):
     return False
 
 
-def touched_from_files(paths):
+def touched_from_files(paths, root=None):
     touched = []
     seen = set()
     for p in paths:
@@ -276,7 +287,7 @@ def touched_from_files(paths):
             if URL.match(tok) or "*" in tok or "{" in tok:
                 continue
             body = LINE_PART.sub("", tok)
-            body = norm_path(body)
+            body = norm_path(body, root)
             if "/" in body and not FULL_PATH.match(body) and not re.match(r"^(?:%s/)+%s$" % (SEG, SEG), body):
                 continue
             if "/" not in body and not BASENAME.match(body):
@@ -326,7 +337,10 @@ def log_line(sections, included):
 def cmd_excerpt(a):
     lines = read_lines(a.manifest)
     header_end, sections = parse_manifest(lines)
-    touched = touched_from_files(a.touched_from)
+    root = repo_root()
+    touched = touched_from_files(a.touched_from, root)
+    if not touched:
+        die("touched set is empty: no path-shaped token in the input (an empty or failed diff?); no excerpt written", 3)
     included = {s["n"] for s in sections if relevant(s, touched)}
     ex_dir = comb_dir()
     stem = mint_stem(a.skill)
@@ -350,7 +364,6 @@ def cmd_excerpt(a):
         if not body or body[-1] != "":
             f.write("\n")
 
-    root = repo_root()
     cited = cited_of(sections, root)
     inter = sorted(cited & set(touched))
     base = base_commit_of(lines[:header_end])
@@ -371,7 +384,7 @@ def cmd_excerpt(a):
         except FileNotFoundError:
             stale = "unknown (git not available)"
     print("run: %s" % stem)
-    print("excerpt: %s" % os.path.relpath(out_path))
+    print("excerpt: %s" % os.path.abspath(out_path))
     print(log_line(sections, included))
     print("stale: %s" % stale)
     print("base_commit: %s" % (base or "none"))
@@ -387,25 +400,25 @@ def cmd_index(a):
     idx_path = os.path.join(ex_dir, stem + ".index.json")
     for s in sections:
         if s["kind"] == "area":
-            s["edits_path"] = os.path.relpath(os.path.join(ex_dir, "%s.edits-%d.json" % (stem, s["n"])))
+            s["edits_path"] = os.path.abspath(os.path.join(ex_dir, "%s.edits-%d.json" % (stem, s["n"])))
     data = {"manifest": a.manifest, "run": stem, "header_end": header_end,
             "base_commit": base_commit_of(lines[:header_end]), "sections": sections}
     with open(idx_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=1)
     print("run: %s" % stem)
-    print("index: %s" % os.path.relpath(idx_path))
+    print("index: %s" % os.path.abspath(idx_path))
     print_size_table(lines, header_end, sections, with_edits=True)
 
 
 def print_size_table(lines, header_end, sections, with_edits=False):
-    hb = len("\n".join(lines[:header_end]).encode("utf-8"))
+    hb = nbytes("\n".join(lines[:header_end]))
     print("header 1-%d %dB" % (header_end, hb))
     for s in sections:
         extra = ""
         if with_edits and s["kind"] == "area":
             extra = " edits=%s" % s["edits_path"]
         print("%s %d-%d %dB [%d] %s%s" % (s["kind"], s["start"], s["end"], s["bytes"], s["n"], s["heading"], extra))
-    total = len("\n".join(lines).encode("utf-8"))
+    total = nbytes("\n".join(lines))
     areas = sum(1 for s in sections if s["kind"] == "area")
     globs = sum(1 for s in sections if s["kind"] == "global")
     print("total %dB ~%d tokens (bytes/4); %d area, %d global" % (total, total // 4, areas, globs))
@@ -414,6 +427,16 @@ def print_size_table(lines, header_end, sections, with_edits=False):
 
 
 # ------------------------------------------------------------------- verify
+
+def load_json(path, what):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except OSError as ex:
+        die("cannot read %s %s: %s" % (what, path, ex))
+    except json.JSONDecodeError as ex:
+        die("%s %s is not valid JSON: %s" % (what, path, ex))
+
 
 def load_edits(paths):
     """Return (edits, unusable) — a bad file is reported, never fatal."""
@@ -524,6 +547,7 @@ def verify_edits(lines, index, edits):
             reject(e, "old is empty")
             continue
         old = old.rstrip("\n")
+        e["old"] = old
         if old.count("\n") >= 12:
             reject(e, "old exceeds 12 lines")
             continue
@@ -546,15 +570,17 @@ def verify_edits(lines, index, edits):
             if new is None:
                 reject(e, "dropped_anchor not found in old")
                 continue
-            dk = basename_key(LINE_PART.sub("", dropped))
-            if len({basename_key(p) for k, p in old_anchors}) < 2:
+            # count anchor occurrences, not distinct basenames: a secondary form beside
+            # its canonical (`X.tsx:66-73` … canonical: `src/…/X.tsx:66`) is the normal case
+            occurrences = sum(1 for tok in tokens_of(old) if classify_anchor(tok))
+            if occurrences < 2:
                 reject(e, "old must contain at least one other anchor")
                 continue
             if not anchors_in(new):
                 reject(e, "derived new has no anchor left")
                 continue
             e = dict(e, new=new)
-            removed = {dk}
+            removed = {basename_key(LINE_PART.sub("", dropped))}
         elif cls == "duplicate":
             if not old_anchors:
                 reject(e, "duplicate old contains no anchor")
@@ -618,72 +644,67 @@ def verify_edits(lines, index, edits):
         spans.append((s_line, e_line, e["section"]))
         passing.append(e)
 
-    # No anchor may vanish from the manifest: for every anchor key an edit removes,
-    # the key must still occur somewhere after all passing edits are applied.
-    manifest_keys = {}
-    for k, pth in anchors_in("\n".join(lines)):
-        manifest_keys[basename_key(pth)] = manifest_keys.get(basename_key(pth), 0)
-    for tok in tokens_of("\n".join(lines)):
-        c = classify_anchor(tok)
-        if c:
-            manifest_keys[basename_key(c[1])] = manifest_keys.get(basename_key(c[1]), 0) + 1
-    net = {}
+    # No anchor may vanish from the manifest: for every anchor an `anchor` or
+    # `duplicate` edit removes, a matching occurrence must survive somewhere after
+    # all passing edits are applied. Match: same basename, and the same directory
+    # when both sides carry one (a bare basename anchor matches any directory).
+    def occ(text):
+        out = []
+        for tok in tokens_of(text):
+            c = classify_anchor(tok)
+            if c:
+                pth = norm_path(c[1])
+                out.append((os.path.basename(pth), os.path.dirname(pth)))
+        return out
+
+    def same(a, b):
+        return a[0] == b[0] and (not a[1] or not b[1] or a[1] == b[1])
+
+    manifest_occ = occ("\n".join(lines))
+    removed_occ = []
     for e in passing:
+        olds = occ(e["old"])
+        news = occ(e.get("new", "") or "")
+        for o in olds:
+            if not any(same(o, n) for n in news):
+                removed_occ.append((o, e))  # fixed-drift removals count, but are never doomed
+    # remaining occurrences = manifest occurrences minus everything removed (multiset)
+    remaining = list(manifest_occ)
+    for o, _ in removed_occ:
+        for k, r in enumerate(remaining):
+            if same(o, r):
+                del remaining[k]
+                break
+    doomed = set()
+    for o, e in removed_occ:
         if e["class"] == "fixed-drift":
             continue  # a fixed drift line's legacy anchors are meant to go
-        for tok in tokens_of(e["old"]):
-            c = classify_anchor(tok)
-            if c:
-                net[basename_key(c[1])] = net.get(basename_key(c[1]), 0) - 1
-        for tok in tokens_of(e.get("new", "") or ""):
-            c = classify_anchor(tok)
-            if c:
-                net[basename_key(c[1])] = net.get(basename_key(c[1]), 0) + 1
-    vanishing = {k for k, d in net.items() if manifest_keys.get(k, 0) + d <= 0}
-    if vanishing:
+        if not any(same(o, r) for r in remaining):
+            doomed.add(id(e))
+            e["_vanish"] = "%s/%s" % (o[1], o[0]) if o[1] else o[0]
+    if doomed:
         kept = []
         for e in passing:
-            hit = [k for k in e["_removed"] if k in vanishing] if e["class"] != "fixed-drift" else []
-            if hit:
-                reject(e, "anchor would vanish from the manifest: %s" % hit[0])
-            else:
-                kept.append(e)
-        passing = kept
-
-    # owner graph cycles
-    def has_cycle():
-        color = {}
-
-        def dfs(u):
-            color[u] = 1
-            for v in owners.get(u, ()):
-                c = color.get(v, 0)
-                if c == 1:
-                    return True
-                if c == 0 and dfs(v):
-                    return True
-            color[u] = 2
-            return False
-        return any(color.get(u, 0) == 0 and dfs(u) for u in list(owners))
-
-    if has_cycle():
-        kept = []
-        for e in passing:
-            if e["class"] == "duplicate":
-                reject(e, "duplicate owner graph has a cycle")
+            if id(e) in doomed:
+                reject(e, "anchor would vanish from the manifest: %s" % e["_vanish"])
             else:
                 kept.append(e)
         passing = kept
     for e in passing:
         e.pop("_file", None)
         e.pop("_removed", None)
+        e.pop("_vanish", None)
     return passing, rejected
 
 
 def cmd_verify(a):
     lines = read_lines(a.manifest)
-    with open(a.index, encoding="utf-8") as f:
-        index = json.load(f)
+    index = load_json(a.index, "index")
+    if not a.edits:
+        print("verify: no edit files given; nothing to verify")
+        with open(a.out, "w", encoding="utf-8") as f:
+            json.dump({"manifest": a.manifest, "index": a.index, "edits": [], "rejected": [], "unusable": []}, f, indent=1)
+        sys.exit(0)
     edits, unusable = load_edits(a.edits)
     passing, rejected = verify_edits(lines, index, edits)
     for e in passing:
@@ -703,8 +724,7 @@ def cmd_verify(a):
 # --------------------------------------------------------------------- gate
 
 def cmd_gate(a):
-    with open(a.edits, encoding="utf-8") as f:
-        data = json.load(f)
+    data = load_json(a.edits, "passing set")
     edits, rejected = data["edits"], data.get("rejected", [])
     unusable = data.get("unusable", [])
     by_sec = {}
@@ -752,8 +772,7 @@ def cmd_gate(a):
 # ------------------------------------------------------------------- filter
 
 def cmd_filter(a):
-    with open(a.edits, encoding="utf-8") as f:
-        data = json.load(f)
+    data = load_json(a.edits, "passing set")
     before = len(data["edits"])
     data["edits"] = [e for e in data["edits"]
                      if e["class"] not in (a.skip_class or [])
@@ -767,10 +786,8 @@ def cmd_filter(a):
 
 def cmd_apply(a):
     lines = read_lines(a.manifest)
-    with open(a.index, encoding="utf-8") as f:
-        index = json.load(f)
-    with open(a.edits, encoding="utf-8") as f:
-        data = json.load(f)
+    index = load_json(a.index, "index")
+    data = load_json(a.edits, "passing set")
     edits = data["edits"]
     # re-verify against the current text (all-or-nothing)
     passing, rejected = verify_edits(lines, index, [dict(e) for e in edits])
@@ -778,7 +795,7 @@ def cmd_apply(a):
         for r in rejected:
             print("FAIL %s [%s]: %s" % (r["section"], r["class"], r["check"]))
         die("apply refused: %d edit(s) no longer verify; nothing written" % len(rejected), 1)
-    before = len("\n".join(lines).encode("utf-8"))
+    before = nbytes("\n".join(lines))
     text = "\n".join(lines)
     # apply bottom-up by line
     for e in sorted(passing, key=lambda x: x["start"], reverse=True):
@@ -798,6 +815,7 @@ def cmd_apply(a):
             else:
                 stext2 = stext[:i] + stext[j:]
         stext2 = re.sub(r"\n\n\n+", "\n\n", stext2)
+        stext2 = re.sub(r"\n\n+$", "\n", stext2)  # a section ends with one blank line at most
         new_lines = stext2.split("\n")
         lines[sec["start"] - 1:sec["end"]] = new_lines
         # shift later sections
@@ -830,7 +848,7 @@ def cmd_apply(a):
             hdr.insert(k, stamp)
         lines[:header_end] = hdr
         # the stamp line is part of the final size, and its digit count can change it
-        base = len("\n".join(lines).encode("utf-8")) - len(stamp.encode("utf-8"))
+        base = nbytes("\n".join(lines)) - len(stamp.encode("utf-8"))
         after = base
         for _ in range(3):
             final = "**Shaved:** %s (%d → %d bytes)" % (time.strftime("%Y-%m-%d"), before, after)
@@ -843,8 +861,8 @@ def cmd_apply(a):
     out = "\n".join(lines)
     with open(a.manifest, "w", encoding="utf-8", newline="") as f:
         f.write(out.replace("\n", LINE_END))
-    after = len(out.encode("utf-8"))
-    print("apply: %d edits applied; %d → %d bytes" % (len(passing), before, after))
+    after = nbytes(out)
+    print("apply: %d edits applied; %d → %d bytes (~%d tokens, bytes/4)" % (len(passing), before, after, after // 4))
 
 
 # -------------------------------------------------------------------- clean
@@ -883,7 +901,7 @@ def main(argv=None):
     s = sub.add_parser("verify", help="check edit scripts mechanically; write the passing set")
     s.add_argument("--manifest", required=True)
     s.add_argument("--index", required=True)
-    s.add_argument("--edits", nargs="+", required=True)
+    s.add_argument("--edits", nargs="*", default=[])
     s.add_argument("--out", required=True)
     s.set_defaults(fn=cmd_verify)
 

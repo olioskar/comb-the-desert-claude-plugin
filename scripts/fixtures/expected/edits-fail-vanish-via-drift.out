@@ -1,0 +1,4 @@
+ok 9. Design system / primitives [fixed-drift]
+FAIL 9. Design system / primitives [anchor]: anchor would vanish from the manifest: src/components/primitives/Card.tsx
+verify: 1 passing, 1 rejected, 0 unusable file(s); passing set: TMP/edits-fail-vanish-via-drift.json
+exit=1
