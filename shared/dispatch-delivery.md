@@ -4,7 +4,7 @@ Apply this contract to every subagent dispatch (Task tool call) a comb skill mak
 
 ## Directives and manifest go by path — to every agent
 
-Resolve the loaded directive files, and the PATTERNS manifest when it resolved, to absolute paths and list the paths in the dispatch prompt. Never embed their contents. An agent that cannot read files cannot review or fix code, so embedding buys no robustness — it only multiplies the prompt by the size of the directive corpus.
+Resolve the loaded directive files, and the PATTERNS manifest when it resolved, to absolute paths and list the paths in the dispatch prompt. Never embed their contents. The manifest path is whatever `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md` delivered for this run: the per-run excerpt plus the full path, or the full path alone in fallback. An agent that cannot read files cannot review or fix code, so embedding buys no robustness — it only multiplies the prompt by the size of the directive corpus.
 
 ## Native vs. foreign framing
 
@@ -16,6 +16,7 @@ The native allowlist is exactly these strings:
 - `comb:test-auditor`
 - `comb:consistency-auditor`
 - `comb:pattern-scanner`
+- `comb:pattern-shaver`
 
 Compare the resolved `subagent_type` with literal string equality — a typo like `comb:my-typo` does not count as native.
 
