@@ -202,7 +202,7 @@ Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/
 The release gate, in order:
 
 1. `claude plugin validate .` — structural lint of the manifest, skills, and agents.
-2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, and `scripts/test-manifest.sh` (51 fixture expectations over two manifest shapes) passes.
+2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, and `scripts/test-manifest.sh` (62 fixture expectations over two manifest shapes) passes.
 3. `claude plugin eval . --scaffold` — the behavioral suite in `evals/` (six cases covering the known regression classes). The eval feature is early access; until it is enabled for your account, run `scripts/smoke.sh` as the interim behavioral gate.
 
 CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workflow dispatch (it needs `ANTHROPIC_API_KEY`). `/skill-doctor` is a usage/cost report, useful for periodic monitoring — it is not a lint step and not part of the gate.

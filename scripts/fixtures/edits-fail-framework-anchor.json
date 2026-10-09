@@ -2,7 +2,7 @@
  {
   "section": "9. Design system / primitives",
   "class": "anchor",
-  "old": "- Token values are generated into `src/theme/styles.ts:1` and `src/theme/tokens.css:1`; Node.js scripts never read them.",
-  "dropped_anchor": "src/theme/styles.ts:1"
+  "old": "- Build scripts run on Node.js \u2014 `src/theme/build.ts:1`.",
+  "dropped_anchor": "src/theme/build.ts:1"
  }
 ]

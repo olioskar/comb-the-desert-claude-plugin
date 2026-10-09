@@ -6,8 +6,8 @@ base_commit: BASECOMMIT0
 > comb excerpt of docs/combs/PATTERNS.md for this run. Omitted sections, readable by line range with `sed -n START,ENDp docs/combs/PATTERNS.md`:
 > - 1. Entity Page — lines 17–32
 > - 3. SidePanel / PanelHost — lines 33–43
-> - 9. Design system / primitives — lines 44–56
-> - 14. Testing conventions — lines 67–74
+> - 9. Design system / primitives — lines 44–57
+> - 14. Testing conventions — lines 68–75
 
 # PATTERNS — demo-curated
 

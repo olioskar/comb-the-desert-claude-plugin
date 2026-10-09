@@ -150,7 +150,7 @@ def norm_path(p, root=None):
         p = p[2:]
     if re.match(r"^[ab]/", p):
         stripped = p[2:]
-        if root is None or (not os.path.exists(os.path.join(root, p)) and os.path.exists(os.path.join(root, stripped))):
+        if root is None or not os.path.exists(os.path.join(root, p)):
             p = stripped
     return p
 
@@ -177,17 +177,21 @@ def scope_globs_of(lines):
             continue
         rest = m.group(2).strip()
         rest = re.sub(r"^\*\*\s*", "", rest)        # closing bold of `**Home:**`
-        # the scope is the first clause: cut at an em dash or a sentence end
-        rest = re.split(r" — |\. (?=[A-Z])|\.$", rest, maxsplit=1)[0]
-        items = re.findall(r"`([^`]+)`", rest)
-        if not items:
-            rest = rest.strip().rstrip("_").strip()
-            items = [x.strip().strip("_").strip() for x in rest.split(",") if x.strip()]
+        # the scope is the first clause that carries a path-like token; clauses end at
+        # an em dash or a sentence end. Parenthesised asides with prose are not scope.
+        clauses = re.split(r" — |\. (?=[A-Z])|\.$", rest)
+        items = []
+        for clause in clauses:
+            clause = re.sub(r"\([^)]*[ `][^)]*\)", "", clause)
+            found = re.findall(r"`([^`]+)`", clause)
+            if not found:
+                bare = clause.strip().rstrip("_").strip()
+                found = [x.strip().strip("_").strip() for x in bare.split(",") if x.strip()]
+            found = [x.strip() for x in found if x.strip() and " " not in x and ("/" in x or x.startswith("*.") or x.startswith("**/"))]
+            if found:
+                items = found
+                break
         for it in items:
-            it = it.strip()
-            # path-like only: a `/`, or a `*.ext` / `**/` glob; a bare `--token-*` or a word is prose
-            if not it or " " in it or not ("/" in it or it.startswith("*.") or it.startswith("**/")):
-                continue
             it = re.sub(r"\{[^}]*\}", "*", it)
             it = re.sub(r"\(([a-z]{1,3})\)$", "*", it)  # `*.test.ts(x)` shorthand only
             if it.endswith("/"):
@@ -292,8 +296,6 @@ def touched_from_files(paths, root=None):
                 continue
             if "/" not in body and not BASENAME.match(body):
                 continue
-            if "/" not in body:
-                continue  # bare basenames are not touched paths
             if body not in seen:
                 seen.add(body)
                 touched.append(body)
@@ -340,7 +342,7 @@ def cmd_excerpt(a):
     root = repo_root()
     touched = touched_from_files(a.touched_from, root)
     if not touched:
-        die("touched set is empty: no path-shaped token in the input (an empty or failed diff?); no excerpt written", 3)
+        die("touched set is empty: no file-shaped token in the input (an empty or failed diff?); no excerpt written", 3)
     included = {s["n"] for s in sections if relevant(s, touched)}
     ex_dir = comb_dir()
     stem = mint_stem(a.skill)
@@ -428,14 +430,17 @@ def print_size_table(lines, header_end, sections, with_edits=False):
 
 # ------------------------------------------------------------------- verify
 
-def load_json(path, what):
+def load_json(path, what, key=None):
     try:
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
     except OSError as ex:
         die("cannot read %s %s: %s" % (what, path, ex))
     except json.JSONDecodeError as ex:
         die("%s %s is not valid JSON: %s" % (what, path, ex))
+    if key and (not isinstance(data, dict) or key not in data):
+        die("%s %s has no %r key (wrong file?)" % (what, path, key))
+    return data
 
 
 def load_edits(paths):
@@ -640,7 +645,6 @@ def verify_edits(lines, index, edits):
                 break
         if e is None:
             continue
-        e["_removed"] = sorted(removed)
         spans.append((s_line, e_line, e["section"]))
         passing.append(e)
 
@@ -675,6 +679,32 @@ def verify_edits(lines, index, edits):
             if same(o, r):
                 del remaining[k]
                 break
+    # owner graph over duplicate edits must be acyclic
+    def has_cycle():
+        color = {}
+
+        def dfs(u):
+            color[u] = 1
+            for v in owners.get(u, ()):
+                c = color.get(v, 0)
+                if c == 1:
+                    return True
+                if c == 0 and dfs(v):
+                    return True
+            color[u] = 2
+            return False
+        return any(color.get(u, 0) == 0 and dfs(u) for u in list(owners))
+
+    if has_cycle():
+        kept = []
+        for e in passing:
+            if e["class"] == "duplicate":
+                reject(e, "duplicate owner graph has a cycle")
+            else:
+                kept.append(e)
+        passing = kept
+        removed_occ = [(o, e) for o, e in removed_occ if e in passing]
+
     doomed = set()
     for o, e in removed_occ:
         if e["class"] == "fixed-drift":
@@ -692,14 +722,13 @@ def verify_edits(lines, index, edits):
         passing = kept
     for e in passing:
         e.pop("_file", None)
-        e.pop("_removed", None)
         e.pop("_vanish", None)
     return passing, rejected
 
 
 def cmd_verify(a):
     lines = read_lines(a.manifest)
-    index = load_json(a.index, "index")
+    index = load_json(a.index, "index", "sections")
     if not a.edits:
         print("verify: no edit files given; nothing to verify")
         with open(a.out, "w", encoding="utf-8") as f:
@@ -724,9 +753,13 @@ def cmd_verify(a):
 # --------------------------------------------------------------------- gate
 
 def cmd_gate(a):
-    data = load_json(a.edits, "passing set")
+    data = load_json(a.edits, "passing set", "edits")
     edits, rejected = data["edits"], data.get("rejected", [])
     unusable = data.get("unusable", [])
+    if not edits:
+        print("Nothing to shave: the passing set is empty (%d rejected, %d unusable file(s)). Run clean and stop." % (
+            len(rejected), len(unusable)))
+        return
     by_sec = {}
     for e in edits:
         by_sec.setdefault(e["section"], []).append(e)
@@ -772,7 +805,7 @@ def cmd_gate(a):
 # ------------------------------------------------------------------- filter
 
 def cmd_filter(a):
-    data = load_json(a.edits, "passing set")
+    data = load_json(a.edits, "passing set", "edits")
     before = len(data["edits"])
     data["edits"] = [e for e in data["edits"]
                      if e["class"] not in (a.skip_class or [])
@@ -786,9 +819,11 @@ def cmd_filter(a):
 
 def cmd_apply(a):
     lines = read_lines(a.manifest)
-    index = load_json(a.index, "index")
-    data = load_json(a.edits, "passing set")
+    index = load_json(a.index, "index", "sections")
+    data = load_json(a.edits, "passing set", "edits")
     edits = data["edits"]
+    if not edits:
+        die("apply: the passing set is empty; nothing to apply and no stamp written", 1)
     # re-verify against the current text (all-or-nothing)
     passing, rejected = verify_edits(lines, index, [dict(e) for e in edits])
     if rejected:

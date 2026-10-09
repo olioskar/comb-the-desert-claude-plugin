@@ -5,8 +5,8 @@ base_commit: BASECOMMIT0
 --- excerpt body ---
 > comb excerpt of docs/combs/PATTERNS.md for this run. Omitted sections, readable by line range with `sed -n START,ENDp docs/combs/PATTERNS.md`:
 > - 3. SidePanel / PanelHost — lines 33–43
-> - 9. Design system / primitives — lines 44–56
-> - 12. PDF / reporting — lines 57–66
+> - 9. Design system / primitives — lines 44–57
+> - 12. PDF / reporting — lines 58–67
 
 # PATTERNS — demo-curated
 

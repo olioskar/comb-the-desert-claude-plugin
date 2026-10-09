@@ -47,6 +47,7 @@ run_excerpt curated-stale  review docs/combs/PATTERNS.md curated.stale.touched
 run_excerpt curated-test   review docs/combs/PATTERNS.md curated.test.touched
 run_excerpt curated-prefix review docs/combs/PATTERNS.md curated.prefixed.touched
 run_excerpt curated-primitive review docs/combs/PATTERNS.md curated.primitive.touched
+run_excerpt curated-rootfiles review docs/combs/PATTERNS.md curated.rootfiles.touched
 run_excerpt template-web   review docs/combs/TEMPLATE.md template.web.touched
 run_excerpt template-types plan   docs/combs/TEMPLATE.md template.types.touched
 run_excerpt template-report plan  docs/combs/TEMPLATE.md template.report.touched

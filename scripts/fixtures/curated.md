@@ -50,6 +50,7 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 - Token values are generated into `src/theme/styles.ts:1` and `src/theme/tokens.css:1`; Node.js scripts never read them.
 - Panel chrome uses primitives — `src/components/sidePanel/PanelHost.tsx:14` (restated; home is #3).
 - Env flags are read via `process.env` and `import.meta.env` — `src/theme/env.ts:1`.
+- Build scripts run on Node.js — `src/theme/build.ts:1`.
 ⚠ Drift: the old `src/components/primitives/Card.tsx:1` wrapper was retired; fixed.
 
 ⚠ Drift: `src/theme/legacy.css:1` half fixed; still open in #1015.
