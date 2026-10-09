@@ -15,7 +15,7 @@ How this plugin is developed. It describes the current process, not its history.
 2. **Plan.** Turn the spec into a plan in `docs/superpowers/plans/`, one task per commit.
 3. **Branch.** Work on a feature branch. `main` changes through pull requests.
 4. **Execute.** One commit per task. An approved plan plus "go" authorizes those commits; confirm the commit policy once at the start, not per commit.
-5. **Review.** Run `/comb:the-desert` (or `/comb:review` → `/comb:plan` → `/comb:fix`) over the branch. Reports land in `docs/combs/reviews/`.
+5. **Review.** Adversarial review by independent subagents on the strongest available model, falling back to the next one down when it is unavailable. Review the spec and the plan before executing, and the branch before releasing. Brief each reviewer with the files, not with conclusions; use separate reviewers for separate lenses (correctness and ambiguity; implementation practice). Reports land in `docs/combs/reviews/`. The plugin's own `/comb:*` commands are not used to review the plugin.
 6. **Gate.** Run the release gate. Fix what it finds; do not skip a step.
 7. **Release.** Add the changelog entry, bump `version` in `.claude-plugin/plugin.json`, open a PR, merge.
 
