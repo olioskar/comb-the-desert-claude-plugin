@@ -1,6 +1,6 @@
 ---
 name: fix
-description: Use after /comb:plan has produced instruction files and the user wants them executed. The user must invoke this explicitly — Claude does not auto-trigger it because it edits code.
+description: Use after /comb:plan has produced instruction files and the user wants them executed. The user must invoke this explicitly — Claude does not auto-trigger it because it edits code. A project can opt in to natural-language invocation with fix.model_invocation: true, which routes through /comb:fix-auto.
 argument-hint: "[instruction-folder] [focus brief]"
 allowed-tools:
   - Bash

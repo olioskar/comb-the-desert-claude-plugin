@@ -62,6 +62,8 @@ The configurable schema is:
 | `models.fix.implementer_standard` | string | Fix-step implementer for non-trivial work. |
 | `models.fix.implementer_trivial` | string | Fix-step implementer for trivial work. |
 | `models.fix.reviewer` | string | Fix-step internal reviewer. |
+| `fix.commit_per_item` | boolean | Commit each fix item on reviewer PASS (default `true`). |
+| `fix.model_invocation` | boolean | Let Claude start the fix workflow from a natural-language request via `/comb:fix-auto` (default `false`; `/comb:fix` itself stays user-only). |
 | `models.the_desert` | string | Model for the desert orchestrator. |
 
 **Translation rules:**
@@ -73,6 +75,7 @@ The configurable schema is:
 - **"Use model M for agent X"** → set `agents.X.model = "M"` (per-agent override beats step-level).
 - **"Change reviews/plans dir"** → set `paths.<reviews|plans>`.
 - **"Change base branch"** → set `paths.base_branch`.
+- **"Allow Claude to run fix" / "let the model apply fixes"** → set `fix.model_invocation = true` in the project override (or globally if asked). Say that `/comb:fix` is still user-only; the opt-in routes natural-language requests through `/comb:fix-auto`, which runs the same workflow with the same questions and commits.
 - **"Change patterns manifest path"** → set `paths.patterns`. Setting it to `null` disables manifest consumption in review/plan/fix.
 - **"Use model M for patterns/scanning"** → set `models.patterns = "M"`.
 - **"Stop loading plugin directives"** → set `directives.include_plugin_defaults = false`.

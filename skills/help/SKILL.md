@@ -186,6 +186,9 @@ Models
 
 Config knobs
   fix.commit_per_item    (default: true)  per-item commit on PASS
+  fix.model_invocation   (default: false) let Claude start fix from a
+                         natural-language request ("apply the fixes")
+                         via /comb:fix-auto; /comb:fix stays user-only
   agents.implementer     (default: general-purpose)  the writer agent
 ```
 

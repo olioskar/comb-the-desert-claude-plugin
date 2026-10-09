@@ -5,6 +5,12 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`fix.model_invocation` and `/comb:fix-auto`.** `/comb:fix` is user-only by frontmatter (`disable-model-invocation: true`), and Claude Code offers no way to override a plugin skill's frontmatter from settings or config, so a project that wants Claude to start the fix workflow from "apply the fixes" had to edit the installed file. A new model-invocable entry, `/comb:fix-auto` (not user-invocable), reads `fix.model_invocation` (default `false`) and either stops with instructions to run `/comb:fix` or to enable the flag, or reads the fix skill from the plugin root and executes it unchanged, with every question, pre-flight check, and commit rule intact. The default is unchanged: nothing happens unless a project opts in.
+
 ## [0.11.0] — 2026-10-09
 
 ### Added

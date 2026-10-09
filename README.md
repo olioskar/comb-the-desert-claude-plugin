@@ -8,7 +8,7 @@ The plugin ships configurable reviewer agents, eight domain-neutral directives, 
 
 - **`/comb:review`** — dispatches 1–5 reviewer agents over a PR / branch / file list / spec doc; right-sizes the apparatus based on what the diff is (code-shaped → full severity-ranked report with verdict and verification; non-code → condensed report with flat labelled findings)
 - **`/comb:plan`** — turns each finding into a self-contained fix instruction
-- **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe; commits each item on reviewer PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`)
+- **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe; commits each item on reviewer PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`). User-invoked only; a project can let Claude start it from a natural-language request with `fix.model_invocation: true`
 - **`/comb:the-desert`** — runs all three steps as one continuous sweep, opus everywhere, no pauses; short-circuits to review-only on non-code artifacts (findings go back to your design conversation, not an autonomous rewrite)
 - **`/comb:patterns`** — scans the codebase and writes a PATTERNS manifest of concrete conventions (structure, naming, closed token sets, abstraction level, reuse points) with real `file:line` references; `/comb:review`, `/comb:plan`, and `/comb:fix` consume it as an observed baseline (a prior, not law), delivered to agents as a per-run excerpt. `/comb:patterns --shave` trims an existing manifest without changing what it asserts
 - **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
@@ -84,10 +84,13 @@ The default is `general-purpose` (Claude's built-in writer-capable subagent), wh
 ```json
 {
   "fix": {
-    "commit_per_item": false
+    "commit_per_item": false,
+    "model_invocation": true
   }
 }
 ```
+
+`fix.model_invocation` (default `false`) lets Claude start the fix workflow when you ask in your own words ("apply the fixes") instead of typing `/comb:fix`. The slash command itself stays user-only because it edits code and commits; the opt-in routes through a model-invocable entry, `/comb:fix-auto`, which checks the flag and then runs `/comb:fix` unchanged, with all of its questions and commits.
 
 **Add your team's specialist agents** (e.g., a project-local `react-expert` defined in `.claude/agents/react-expert.md`):
 
