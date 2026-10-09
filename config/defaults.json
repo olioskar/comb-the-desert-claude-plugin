@@ -37,6 +37,10 @@
     "pattern-scanner": {
       "subagent_type": "comb:pattern-scanner",
       "when_to_use": "Generation-only. Dispatched by /comb:patterns to scan one confirmed codebase area and extract concrete conventions with file:line references. Not part of the review/plan/fix palette."
+    },
+    "pattern-shaver": {
+      "subagent_type": "comb:pattern-shaver",
+      "when_to_use": "Generation-only. Dispatched by /comb:patterns --shave to propose an edit script for one manifest section (secondary anchors, cross-section restatements, fixed drift lines). Not part of the review/plan/fix palette."
     }
   },
   "fix": {
