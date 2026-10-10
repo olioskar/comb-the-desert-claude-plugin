@@ -62,9 +62,9 @@ The configurable schema is:
 | `models.fix.implementer_standard` | string | Fix-step implementer for non-trivial work. |
 | `models.fix.implementer_trivial` | string | Fix-step implementer for trivial work. |
 | `models.fix.reviewer` | string | Fix-step internal reviewer. |
-| `fix.commit_per_item` | boolean | Commit each fix item on reviewer PASS (default `true`). |
-| `fix.model_invocation` | boolean | Let Claude start the fix workflow from a natural-language request via `/comb:fix-auto` (default `false`; `/comb:fix` itself stays user-only). |
 | `models.the_desert` | string | Model for the desert orchestrator. |
+| `fix.commit_per_item` | boolean | Commit each fix item on reviewer PASS (default `true`). |
+| `fix.model_invocation` | boolean | Let Claude start the fix workflow from a natural-language request through the model-only `fix-auto` skill (default `false`; `/comb:fix` itself stays user-only). |
 
 **Translation rules:**
 
@@ -75,7 +75,7 @@ The configurable schema is:
 - **"Use model M for agent X"** → set `agents.X.model = "M"` (per-agent override beats step-level).
 - **"Change reviews/plans dir"** → set `paths.<reviews|plans>`.
 - **"Change base branch"** → set `paths.base_branch`.
-- **"Allow Claude to run fix" / "let the model apply fixes"** → set `fix.model_invocation = true` in the project override (or globally if asked). Say that `/comb:fix` is still user-only; the opt-in routes natural-language requests through `/comb:fix-auto`, which runs the same workflow with the same questions and commits.
+- **"Allow Claude to run fix" / "let the model apply fixes"** → set `fix.model_invocation = true` in the project override (or globally if asked). Say that `/comb:fix` is still user-only; the opt-in routes natural-language requests through the model-only `fix-auto` skill (not a slash command), which runs the same workflow with the same questions and commits.
 - **"Change patterns manifest path"** → set `paths.patterns`. Setting it to `null` disables manifest consumption in review/plan/fix.
 - **"Use model M for patterns/scanning"** → set `models.patterns = "M"`.
 - **"Stop loading plugin directives"** → set `directives.include_plugin_defaults = false`.
@@ -91,7 +91,7 @@ If the user's request would have no effect (the value already matches), tell the
 
 ## Step 5: Write
 
-Write the new file. Format with 2-space indentation. Pretty-print top-level keys in this order: `paths`, `directives`, `agents`, `models`. Within `agents`, list roles alphabetically. (Order is purely cosmetic — the plugin doesn't care.)
+Write the new file. Format with 2-space indentation. Pretty-print top-level keys in this order: `paths`, `directives`, `agents`, `models`, `fix`. Within `agents`, list roles alphabetically. (Order is purely cosmetic — the plugin doesn't care.)
 
 ## Step 6: Verify
 
@@ -105,6 +105,7 @@ Suggest the most relevant smoke test based on what changed:
 - Changed `agents.*` or `models.*` → "Run `/comb:review` against a small dirty branch and confirm the agent palette and model assignments match what you set."
 - Changed `paths.*` → "Run `/comb:review` and confirm the report lands in the new `paths.reviews` directory."
 - Changed `directives.*` → "Run `/comb:review` with a focus brief that mentions one of your directives and confirm it's flagged primary."
+- Changed `fix.model_invocation` → "Ask Claude to apply the fixes in your own words and confirm it starts (or refuses, naming the flag) as you set."
 - Changed `paths.patterns` or `models.patterns` → "Run `/comb:patterns` and confirm the manifest lands at the new path (or the scanners use the model you set)."
 
 ## Ground rules

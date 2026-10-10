@@ -37,6 +37,15 @@ Derives each area section's scope from two sources
 read it and run the commit-based staleness heuristic
 NEEDLES
 
+# 3b. A skill that Reads another skill's body carries the plugin-root expansion paragraph:
+#     Read output is not variable-substituted, so the placeholder would reach the shell literally.
+while IFS= read -r f; do
+  if ! grep -q 'replace it with this literal path: `\${CLAUDE_PLUGIN_ROOT}`' "$f"; then
+    echo "FAIL: $f Reads another skill but has no plugin-root expansion paragraph"
+    fail=1
+  fi
+done < <(grep -rl '\${CLAUDE_PLUGIN_ROOT}/skills/[a-z-]*/SKILL\.md' skills/ | sort -u)
+
 # 5. Manifest excerpts (see 4 below for .DS_Store): the script ships, its fixture test passes, and every
 #    consuming skill invokes it (the orchestrator never reads the manifest).
 if [ ! -f scripts/manifest.py ]; then
