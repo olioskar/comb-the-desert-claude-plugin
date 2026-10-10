@@ -9,3 +9,7 @@ docs/
 
 # macOS noise
 .DS_Store
+
+# Python bytecode from the manifest script and its tests
+__pycache__/
+*.pyc

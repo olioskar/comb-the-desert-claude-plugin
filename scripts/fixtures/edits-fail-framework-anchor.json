@@ -1,0 +1,8 @@
+[
+ {
+  "section": "9. Design system / primitives",
+  "class": "anchor",
+  "old": "- Build scripts run on Node.js \u2014 `src/theme/build.ts:1`.",
+  "dropped_anchor": "src/theme/build.ts:1"
+ }
+]

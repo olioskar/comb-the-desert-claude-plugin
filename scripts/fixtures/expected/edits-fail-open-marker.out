@@ -1,0 +1,3 @@
+FAIL 9. Design system / primitives [fixed-drift]: open marker present: still
+verify: 0 passing, 1 rejected, 0 unusable file(s); passing set: TMP/edits-fail-open-marker.json
+exit=1

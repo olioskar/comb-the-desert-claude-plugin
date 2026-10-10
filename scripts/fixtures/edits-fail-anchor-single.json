@@ -1,0 +1,8 @@
+[
+ {
+  "section": "3. SidePanel / PanelHost",
+  "class": "anchor",
+  "old": "- Header actions come from the entity's action list \u2014 `PanelHost.tsx:88`.",
+  "dropped_anchor": "PanelHost.tsx:88"
+ }
+]

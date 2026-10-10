@@ -1,0 +1,7 @@
+[
+ {
+  "section": "\u26a0 Drift register \u2014 do not propagate (with tracking)",
+  "class": "fixed-drift",
+  "old": "| 9 | legacy `components.css` | `--demo-*` tokens + CSS Modules | #1015 |"
+ }
+]

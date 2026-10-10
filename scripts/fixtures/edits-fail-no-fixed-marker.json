@@ -1,0 +1,7 @@
+[
+ {
+  "section": "14. Testing conventions",
+  "class": "fixed-drift",
+  "old": "- Suites are named `*.test.tsx` beside the unit \u2014 `src/components/primitives/Button.test.tsx:1`."
+ }
+]

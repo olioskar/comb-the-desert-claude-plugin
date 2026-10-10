@@ -1,0 +1,8 @@
+[
+ {
+  "section": "12. PDF / reporting",
+  "class": "anchor",
+  "old": "- Shared primitives mirror design tokens by hand \u2014 `src/pdf/primitives/styles.ts:1` (manual sync), `src/pdf/templates/Invoice.tsx:1`.",
+  "dropped_anchor": "src/pdf/primitives/styles.ts:1"
+ }
+]

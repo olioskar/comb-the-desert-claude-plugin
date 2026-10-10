@@ -1,0 +1,9 @@
+[
+ {
+  "section": "9. Design system / primitives",
+  "class": "duplicate",
+  "old": "- Panel chrome uses primitives — `src/components/sidePanel/PanelHost.tsx:14` (restated; home is #3).",
+  "new": 5,
+  "owner": "3. SidePanel / PanelHost"
+ }
+]

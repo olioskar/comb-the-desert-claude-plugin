@@ -1,0 +1,8 @@
+[
+ {
+  "section": "1. Entity Page",
+  "class": "anchor",
+  "old": "- Page is the single state owner; Body is presentation-only \u2014 `ContactsPage.tsx:200-208`, `ContactsBody.tsx:3,38-44`.",
+  "dropped_anchor": "Nope.tsx:1"
+ }
+]

@@ -53,7 +53,9 @@ Commands
                      concrete conventions (structure, naming, closed token
                      sets, abstraction level, reuse points) with real code
                      references. Interactive: confirms scan areas first.
-                     review/plan/fix consume it as an observed baseline.
+                     review/plan/fix consume it as an observed baseline,
+                     delivered to agents as a per-run excerpt. --shave
+                     trims an existing manifest without changing it.
 
   /comb:configure    Edit comb.config.json conversationally — paths,
                      models, enable/disable agents.
@@ -211,10 +213,12 @@ When not to use
 ### patterns
 
 ```
-/comb:patterns [focus brief]
+/comb:patterns [--shave] [focus brief]
 
 Generate or refresh the PATTERNS manifest — comb's record of this
 codebase's concrete conventions, with real file:line references.
+With --shave: trim an existing manifest without changing what it
+asserts.
 
 What it does
   - Recon: detects the codebase's regions (frontend, API, data, etc.)
@@ -234,6 +238,20 @@ What it does
   - Pre-write review flags thin/empty areas and lets you re-scan one;
     on regenerate, shows a diff to cherry-pick per section.
 
+Shave (--shave)
+  - Never rescans. One shaver per large section proposes removals in
+    three classes: a secondary anchor that pins the same claim as the
+    canonical one; a bullet that restates a convention owned by
+    another section (replaced by a pointer); a drift line whose every
+    item is fixed. Nothing else — no prose rewriting, no renumbering,
+    no edits to the header, drift register, or cross-reference map.
+  - scripts/manifest.py verifies every edit mechanically (exact match,
+    no heading removed, no citation vanishes, owner really cites it)
+    and shows one gate: accept, or skip by class or section. Apply is
+    all-or-nothing and stamps the header with "Shaved: <date>".
+  - Every write prints the manifest's size; above 100 KB it suggests
+    --shave.
+
 Output
   <paths.patterns>   (default: docs/combs/PATTERNS.md)
 
@@ -242,10 +260,18 @@ Consumed by
   baseline" (a prior, not law). Project directives outrank it.
   Silence falls back to reading code; deliberate improvements and
   new canonical patterns are not flagged as drift.
+  Agents receive a per-run excerpt, not the whole file: the header,
+  the global sections (how-to-read, cross-reference map, drift
+  register), and the area sections whose scope meets the change.
+  Omitted sections are listed with line ranges so an agent can read
+  one with sed -n. Excerpts live under .comb/ (self-ignored by git)
+  and are removed at the end of the run. Needs python3; without it
+  the full manifest is delivered with a printed notice.
 
 Config knobs
-  paths.patterns    (default: docs/combs/PATTERNS.md)  null disables consumption
-  models.patterns   (default: opus)                    scanner model
+  paths.patterns          (default: docs/combs/PATTERNS.md)  null disables consumption
+  models.patterns         (default: opus)                    scanner and shaver model
+  agents.pattern-shaver   (default: comb:pattern-shaver)     shaver role
 ```
 
 ### configure

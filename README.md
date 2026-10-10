@@ -10,7 +10,7 @@ The plugin ships configurable reviewer agents, eight domain-neutral directives, 
 - **`/comb:plan`** — turns each finding into a self-contained fix instruction
 - **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe; commits each item on reviewer PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`)
 - **`/comb:the-desert`** — runs all three steps as one continuous sweep, opus everywhere, no pauses; short-circuits to review-only on non-code artifacts (findings go back to your design conversation, not an autonomous rewrite)
-- **`/comb:patterns`** — scans the codebase and writes a PATTERNS manifest of concrete conventions (structure, naming, closed token sets, abstraction level, reuse points) with real `file:line` references; `/comb:review`, `/comb:plan`, and `/comb:fix` consume it as an observed baseline (a prior, not law)
+- **`/comb:patterns`** — scans the codebase and writes a PATTERNS manifest of concrete conventions (structure, naming, closed token sets, abstraction level, reuse points) with real `file:line` references; `/comb:review`, `/comb:plan`, and `/comb:fix` consume it as an observed baseline (a prior, not law), delivered to agents as a per-run excerpt. `/comb:patterns --shave` trims an existing manifest without changing what it asserts
 - **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
 - **`/comb:help`** — overview and per-command details. `/comb:help <command>` for a deep dive
 
@@ -179,7 +179,7 @@ The plugin registers five `comb:*` subagents — read-only reviewers (`disallowe
 
 The `disallowedTools` list blocks the file-editing tools; Bash stays available for git and read commands, so read-only is enforced by instruction, not by sandbox.
 
-A sixth read-only subagent, `comb:pattern-scanner`, is **generation-only** — dispatched by `/comb:patterns` to map one codebase area, never part of the review/plan/fix palette.
+Two more subagents are **generation-only** and never part of the review/plan/fix palette: `comb:pattern-scanner` (read-only), dispatched by `/comb:patterns` to map one codebase area, and `comb:pattern-shaver`, dispatched by `/comb:patterns --shave` to propose an edit script for one manifest section; it writes that one file and nothing else.
 
 You can invoke them directly via the Task tool or let the comb skills pick them automatically.
 
@@ -191,6 +191,10 @@ Each finding also carries a **Confidence** field, and `/comb:review` verifies be
 
 The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Task call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
 
+### Manifest delivery
+
+Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/comb:plan`, or `/comb:fix` cuts an excerpt with `scripts/manifest.py`: the header, the global sections (how-to-read, cross-reference map, drift register), and the area sections whose scope meets the change. Scope comes from a section's `Scope:`/`Home:` line (globs) or, for a section without one, from the directories of its `file:line` anchors; the second rule can over-include on a large manifest, and a one-line `Home:` per section is how to tighten it. The excerpt lists the omitted sections with their line ranges so an agent can read one with `sed -n` when pointed to it. The orchestrator never reads the manifest either; the script computes staleness. Excerpts live under `.comb/` in the working directory, which the script creates with a self-ignoring `.gitignore`, and are removed at the end of the run. The script needs `python3` (3.8+, stdlib only); without it the full manifest is delivered as before, with a printed notice.
+
 ## Development
 
 [PLAYBOOK.md](PLAYBOOK.md) describes the development workflow: the design-to-release loop, design rules, and conventions.
@@ -198,14 +202,14 @@ The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. Th
 The release gate, in order:
 
 1. `claude plugin validate .` — structural lint of the manifest, skills, and agents.
-2. `scripts/check-contract.sh` — deterministic greps: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked.
-3. `claude plugin eval . --scaffold` — the behavioral suite in `evals/` (five cases covering the known regression classes). The eval feature is early access; until it is enabled for your account, run `scripts/smoke.sh` as the interim behavioral gate.
+2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, and `scripts/test-manifest.sh` (69 fixture expectations over two manifest shapes) passes.
+3. `claude plugin eval . --scaffold` — the behavioral suite in `evals/` (six cases covering the known regression classes). The eval feature is early access; until it is enabled for your account, run `scripts/smoke.sh` as the interim behavioral gate.
 
 CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workflow dispatch (it needs `ANTHROPIC_API_KEY`). `/skill-doctor` is a usage/cost report, useful for periodic monitoring — it is not a lint step and not part of the gate.
 
 ## Status
 
-v0.10.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.11.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 

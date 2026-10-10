@@ -1,0 +1,44 @@
+run: RUN
+PATTERNS excerpt: 1 of 3 area sections included (Shared types); 2 global; omitted: React frontend; API
+stale: no (0 cited files changed since BASECOMMIT0)
+base_commit: BASECOMMIT0
+--- excerpt body ---
+> comb excerpt of docs/combs/TEMPLATE.md for this run. Omitted sections, readable by line range with `sed -n START,ENDp docs/combs/TEMPLATE.md`:
+> - React frontend — lines 16–32
+> - API — lines 33–45
+
+# PATTERNS — demo-template
+
+**Generated:** 2026-10-01
+**Base commit:** BASECOMMIT0
+**comb version:** 0.10.0
+**Scan areas:** React frontend, API, Shared types
+
+> Observed baseline, not law. comb's reviewers reconcile this against live code
+> (live code wins), treat a silent area as a cue to read the code rather than
+> permission to do anything, and classify divergence (drift vs. deliberate
+> improvement vs. new canonical) before flagging. Project directives outrank
+> this manifest. Refresh with `/comb:patterns`.
+
+---
+
+## Shared types
+
+_Scope: packages/types_
+
+### Naming & vocabulary
+- Domain terms are `user`, `order`, `line` — `packages/types/index.ts:1`
+
+### Closed sets
+- Order status: `OPEN`, `PAID`, `SHIPPED` — defined at `packages/types/order.ts:3`
+
+## Cross-reference map
+
+- **React frontend** composes with API (via `useFetch`) and Shared types.
+- **API** composes with Shared types.
+
+## Drift register
+
+| # | Legacy / drift | Forward canonical | Tracking |
+|---|---|---|---|
+| 1 | v1 routes under `src/api/v1/` | `src/api/routes/` | #1001 |

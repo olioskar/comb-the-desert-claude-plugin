@@ -1,0 +1,6 @@
+Shave gate — 3 edits in 3 sections, 0 rejected. Reply: apply · skip <class> · skip <section> · show <section>
+
+## 14. Testing conventions — duplicate×1; −54B
+  duplicate → 9. Design system / primitives:
+    - - Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (restated; home is #9).
+    + - See 9. Design system / primitives.

@@ -1,0 +1,70 @@
+run: RUN
+PATTERNS excerpt: 3 of 6 area sections included (3. SidePanel / PanelHost; 9. Design system / primitives; Appendix); 5 global; omitted: 1. Entity Page; 12. PDF / reporting; 14. Testing conventions
+stale: no (no cited file in the touched set)
+base_commit: BASECOMMIT0
+--- excerpt body ---
+> comb excerpt of docs/combs/PATTERNS.md for this run. Omitted sections, readable by line range with `sed -n START,ENDp docs/combs/PATTERNS.md`:
+> - 1. Entity Page — lines 17–32
+> - 12. PDF / reporting — lines 58–67
+> - 14. Testing conventions — lines 68–75
+
+# PATTERNS — demo-curated
+
+**Generated:** 2026-06-08 · **Base:** `docs/pattern-manifest` @ `6aff510f` (off `staging`) · `file:line` references are valid as of this commit · **Patched:** 2 … [truncated in excerpt; full line in the manifest]
+**Scope:** the canonical UI + data patterns of the demo web app, each pinned to a real reference implementation.
+
+> **Observed baseline, not law.** Live code wins. Project directives outrank it.
+
+## How to read this
+- **Curated canonical refs.** Each section names the implementation to copy.
+- **Single home per convention.** Cross-cutting homes: styling/tokens → #9, data access → #10, testing idioms → #14.
+
+## Patterns
+1. Entity Page · 3. SidePanel / PanelHost · 9. Design system / primitives · 12. PDF / reporting · 14. Testing conventions
+
+---
+
+## 3. SidePanel / PanelHost
+
+**Home:**
+
+Panel screens are registered per entity and hosted by `PanelHost` — `src/components/sidePanel/PanelHost.tsx:14-60`.
+
+- Header actions come from the entity's action list — `PanelHost.tsx:88`.
+- Primitives come from the design system — `src/components/primitives/Button.tsx:1` (restated; home is #9).
+
+⚠ Drift: the hand-rolled focus trap was retired on 2026-07-04 and the `createPortal` half is fixed too.
+
+## 9. Design system / primitives
+
+**Home:** `src/theme/**`, `src/components/primitives/**` — owns the `--demo-*` token layer and the `src/components/primitives/` catalog; see `refactor/uicomponents` history.
+
+- Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (canonical: `src/theme/tokens.css:1`).
+- Primitives never import from pages — `src/components/primitives/Button.tsx:1`, `src/components/primitives/Card.tsx:1`.
+- Token values are generated into `src/theme/styles.ts:1` and `src/theme/tokens.css:1`; Node.js scripts never read them.
+- Panel chrome uses primitives — `src/components/sidePanel/PanelHost.tsx:14` (restated; home is #3).
+- Env flags are read via `process.env` and `import.meta.env` — `src/theme/env.ts:1`.
+- Build scripts run on Node.js — `src/theme/build.ts:1`.
+⚠ Drift: the old `src/components/primitives/Card.tsx:1` wrapper was retired; fixed.
+
+⚠ Drift: `src/theme/legacy.css:1` half fixed; still open in #1015.
+
+## Appendix
+
+Notes with no code references: naming history, retired vocabulary, and the reasoning behind the single-home rule.
+
+## Cross-reference map
+
+- **#1 Entity Page** wires #3 (panel) and draws tokens from #9.
+- **#14 Testing** enforces #1's grid recipe.
+
+## ⚠ Drift register — do not propagate (with tracking)
+
+| # | Legacy / drift (present, do not seed new work) | Forward canonical | Tracking |
+|---|---|---|---|
+| 9 | legacy `components.css` | `--demo-*` tokens + CSS Modules | #1015 |
+| 14 | hand-rolled i18n mocks in 20 suites | `i18nMockFactory` (`src/test/i18nMock.ts`) | #1583 — new suites use the factory |
+
+## Maintenance
+
+Refresh a section when its canonical pattern changes. Consumed automatically by `/comb:review|plan|fix` when present.

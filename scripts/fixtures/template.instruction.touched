@@ -1,0 +1,4 @@
+## Where
+Exact file path(s) and line number(s): `src/api/routes/orders.ts:11-18` and the test at src/api/routes/orders.test.ts:30.
+## How
+Replace the inline schema with the shared one from packages/types/order.ts.

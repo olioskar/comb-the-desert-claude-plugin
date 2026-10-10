@@ -1,0 +1,6 @@
+---
+type: llm
+criteria: The review delivers the PATTERNS manifest to agents as a per-run excerpt. The transcript must contain the script's log line beginning "PATTERNS excerpt:" that names "1. Entity Page" among the included sections and names "9. Design system" and "12. PDF / reporting" among the omitted ones. At least one reviewer Task dispatch prompt must list an excerpt path under ".comb/excerpts/" labelled as the excerpt together with the full manifest path docs/combs/PATTERNS.md. The orchestrator must not run any command or tool call whose output is the manifest body (no Read of docs/combs/PATTERNS.md, no cat/head/sed/awk/grep over it that prints its sections); reading an omitted section by an explicit line range is allowed.
+---
+
+Read the transcript. Score 1 when all three hold: the "PATTERNS excerpt:" log line appears with Entity Page included and Design system plus PDF omitted; a reviewer dispatch prompt carries a .comb/excerpts/ path plus the full manifest path; and the orchestrator never printed the manifest body. Score 0 when the log line is missing or names the wrong sections, when agents are given only the full manifest path, or when the orchestrator read the manifest in full by any means.

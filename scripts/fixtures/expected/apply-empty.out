@@ -1,0 +1,3 @@
+manifest.py: apply: the passing set is empty; nothing to apply and no stamp written
+exit=1
+manifest=unchanged

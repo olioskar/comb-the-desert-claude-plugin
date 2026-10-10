@@ -44,6 +44,8 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. The
 
 Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally. The matched-directive flagging carries through review → plan → fix without re-computing.
 
+**Plugin root for the sweep.** The sub-skill files you Read below are not variable-substituted, and the plugin-root placeholder is not a shell variable. In those files the placeholder is written as a dollar sign, an opening brace, the name CLAUDE_PLUGIN_ROOT, and a closing brace. Wherever you see it — in the `manifest.py` command lines, and in every Read target under `shared/`, `directives/`, and `skills/` — replace it with this literal path: `${CLAUDE_PLUGIN_ROOT}`. A `manifest.py` command run with the placeholder unexpanded fails and would silently fall back to delivering the full manifest.
+
 ## Step 3: Run review
 
 Read `${CLAUDE_PLUGIN_ROOT}/skills/review/SKILL.md` and execute that workflow with these overrides. Where the texts conflict, these overrides win. Do not invoke the Skill tool for the sub-command — loading it as a skill would inject its wait-and-present instructions.
@@ -52,7 +54,7 @@ Overrides:
 
 - All agents use `models.the_desert`
 - Save the report to `paths.reviews` per the standard naming
-- **Do NOT present the report and wait** — log the verdict and finding count, then immediately continue
+- **Do NOT present the report and wait** — log the verdict and finding count, the excerpt log line, and any staleness note, run the excerpt `clean`, then immediately continue
 
 When review finishes, announce one of:
 
@@ -161,7 +163,7 @@ The findings are intended to feed your next round of design conversation, not an
 - **No confirmation prompts.** Don't ask "should I continue?" between steps. Don't ask about groupings or ordering. Decide and move.
 - **Nothing is deferred.** Every finding from review gets planned and fixed. "Deferred" is not a valid category in this mode.
 - **`models.the_desert` for lane defaults.** Explicit per-agent overrides survive.
-- **PATTERNS manifest is inherited, not regenerated.** the-desert inherits manifest loading, the "Project conventions (observed baseline)" dispatch block, and the manifest stance through review/plan/fix — it never runs `/comb:patterns`. Both the commit-based staleness note and the semantic refresh note are **printed log lines, never prompts**, so the no-pause contract holds. `models.the_desert` does **not** coerce `models.patterns` — the guarantee holds because the scanner is never dispatched during the sweep, not via any coercion-skip logic (a future maintainer wiring patterns into the-desert must add the exclusion explicitly).
+- **PATTERNS manifest is inherited, not regenerated.** the-desert inherits manifest loading, the per-run excerpt (`${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`), the "Project conventions (observed baseline)" dispatch block, and the manifest stance through review/plan/fix — it never runs `/comb:patterns`. Each sub-step cuts its own excerpt once its own touched text exists, records `run`/`excerpt` afresh, and runs `clean` before the next sub-step starts; the fix sub-step's excerpt still follows its pre-flight. The excerpt log line, the staleness note, and the semantic refresh note are **printed log lines, never prompts**, so the no-pause contract holds. `models.the_desert` does **not** coerce `models.patterns` — the guarantee holds because the scanner is never dispatched during the sweep, not via any coercion-skip logic (a future maintainer wiring patterns into the-desert must add the exclusion explicitly).
 - **The consolidation gate runs during the sweep.** `/comb:review` Step 7's verification gate asks the user nothing, so the no-pause contract holds. Do not strip it for speed.
 - **Only questions:** scope at the start (if ambiguous), the dirty-tree pre-flight question (only when the tree is non-empty per `git status --porcelain`), and "run again?" at the end. Clean tree at start → no pre-flight question, preserving the no-pause contract.
 - **All `/comb:review`, `/comb:plan`, `/comb:fix` rules still apply** — read source, fresh agents per item, scope boundaries, 3-failure escalation, parallel when safe. This skill overrides only transitions, model coercion, deferral policy, and confirmation policy.

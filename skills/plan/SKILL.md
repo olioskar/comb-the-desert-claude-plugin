@@ -30,7 +30,7 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. Fro
 - `directives` — for the planners' agent prompts
 - `paths.patterns` — the PATTERNS manifest, if it resolves
 
-**Load the PATTERNS manifest.** If `paths.patterns` resolves, read it and run the commit-based staleness heuristic (do not invent a variant): `cited` = the paths the manifest references, `touched` = the files referenced by the report's findings; flag if `git diff --name-only <Base commit> HEAD -- <cited ∩ touched>` is non-empty. Record any staleness note for presentation. If absent or `null`, skip — graceful no-op.
+**Load the PATTERNS manifest.** If `paths.patterns` resolves, record its path; do not read it. The excerpt is cut after Step 3 (below). If absent or `null`, skip — graceful no-op.
 
 ## Step 2: Surface relevant directives
 
@@ -70,6 +70,16 @@ If the Deferred section uses bullet points without codes (older review reports),
 Count every code (C/H/M/L/T/D). Confirm the total with the user before sending agents.
 
 **On a non-code report:** findings have plain labels (Ambiguity, Blind spot, Pattern-break, Reusability gap, Quality concern), not severity codes. Preserve the labels verbatim. The ordering for the consolidated revise-doc follows the report's order — no severity-based reshuffle. Skip the "confirm total with user" step; the count is just the number of findings.
+
+**Cut the manifest excerpt** (only when `paths.patterns` resolved), per `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`, with the report as the touched text:
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" excerpt --skill plan --manifest <paths.patterns> --touched-from <the review report>
+```
+
+Run it from the project root.
+
+Record `run`, `excerpt`, the log line, and `stale`. On the contract's fallback condition, print the fallback notice and deliver the full path alone.
 
 ## Step 4: Suggest groupings
 
@@ -127,7 +137,7 @@ Output file: {output_folder}/revise-{spec-stem}.md
 
 ## Project conventions (observed baseline)
 
-{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — manifest path + verbatim paragraph — only when `paths.patterns` resolved.}
+{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — excerpt path + manifest path + verbatim paragraph, or the fallback form — only when `paths.patterns` resolved.}
 
 (Planner note) When you author the instruction for a finding the review classified as a deliberate improvement or a new canonical, reference the manifest but do not bend the instruction back to the baseline — that divergence is sanctioned. Omit the whole block when no manifest resolved.
 
@@ -195,7 +205,7 @@ Launch all in parallel per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/
 
 **Agent config (resolved per finding):**
 
-- **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. `pattern-scanner` is generation-only and is never picked as a finding's lens. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
+- **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. `pattern-scanner` and `pattern-shaver` are generation-only and are never picked as a finding's lens. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
 - **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
 - **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default for this step is `models.plan` (default `opus`); pass the resolved model as the Task call's `model` parameter.
 
@@ -230,7 +240,7 @@ Directives most relevant to this run (matched against the focus brief):
 
 ## Project conventions (observed baseline)
 
-{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — manifest path + verbatim paragraph — only when `paths.patterns` resolved.}
+{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — excerpt path + manifest path + verbatim paragraph, or the fallback form — only when `paths.patterns` resolved.}
 
 (Planner note) When you author the instruction for a finding the review classified as a deliberate improvement or a new canonical, reference the manifest but do not bend the instruction back to the baseline — that divergence is sanctioned. Omit the whole block when no manifest resolved.
 
@@ -341,7 +351,7 @@ Revision instructions ready: {output_folder}/revise-{spec-stem}.md
 {N} revisions targeting `{spec_path}`: {breakdown by label}
 ```
 
-**Manifest notes (non-blocking).** Append any commit-based staleness note or semantic-refresh note recorded during this run.
+**Manifest notes (non-blocking).** Append the excerpt log line verbatim, then any staleness note (`stale: yes` → `PATTERNS manifest may be stale — consider re-running /comb:patterns.`; `unknown` → `PATTERNS staleness unknown (<detail>).`) or semantic-refresh note recorded during this run. Then, last of all: `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>`.
 
 ## Ground rules
 

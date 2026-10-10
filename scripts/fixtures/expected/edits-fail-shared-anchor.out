@@ -1,0 +1,4 @@
+FAIL 3. SidePanel / PanelHost [duplicate]: anchor would vanish from the manifest: src/components/primitives/Button.tsx
+FAIL 9. Design system / primitives [anchor]: anchor would vanish from the manifest: src/components/primitives/Button.tsx
+verify: 0 passing, 2 rejected, 0 unusable file(s); passing set: TMP/edits-fail-shared-anchor.json
+exit=1

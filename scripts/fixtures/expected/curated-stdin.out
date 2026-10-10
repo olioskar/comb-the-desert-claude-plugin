@@ -1,0 +1,4 @@
+run: RUN
+PATTERNS excerpt: 2 of 6 area sections included (1. Entity Page; Appendix); 5 global; omitted: 3. SidePanel / PanelHost; 9. Design system / primitives; 12. PDF / reporting; 14. Testing conventions
+stale: yes (1 cited files changed since BASECOMMIT0)
+base_commit: BASECOMMIT0

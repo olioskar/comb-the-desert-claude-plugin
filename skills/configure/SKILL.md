@@ -58,7 +58,7 @@ The configurable schema is:
 | `agents.<role>` | `null` | **Deletes** the role from the palette via merge semantics. |
 | `models.review` | string | Model for review-step agents. |
 | `models.plan` | string | Model for plan-step agents. |
-| `models.patterns` | string | Model for the pattern-scanner agents during /comb:patterns generation. |
+| `models.patterns` | string | Model for the pattern-scanner and pattern-shaver agents (`/comb:patterns`, `/comb:patterns --shave`). |
 | `models.fix.implementer_standard` | string | Fix-step implementer for non-trivial work. |
 | `models.fix.implementer_trivial` | string | Fix-step implementer for trivial work. |
 | `models.fix.reviewer` | string | Fix-step internal reviewer. |
