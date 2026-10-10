@@ -19,7 +19,7 @@ You are the model-invocable entry to `/comb:fix`. `/comb:fix` itself is user-onl
 
 Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` and read `fix.model_invocation`. Keep the merged config; the fix workflow's own config step reuses it rather than loading again.
 
-If the value is not exactly the boolean `true`, stop here and say, with the value you observed in place of `{value}` (`unset` when the key is absent):
+If the value is not exactly the boolean `true`, stop here and say, with the value you observed written as JSON in place of `{value}` (so a string `"true"` keeps its quotes; `unset` when the key is absent):
 
 ```
 Model invocation of /comb:fix is off for this project (fix.model_invocation: {value}).
@@ -33,4 +33,4 @@ Do not read or execute the fix workflow when the gate is off.
 
 **Plugin root for the workflow.** The skill file you Read below is not variable-substituted, and the plugin-root placeholder is not a shell variable. In that file the placeholder is written as a dollar sign, an opening brace, the name CLAUDE_PLUGIN_ROOT, and a closing brace. Wherever you see it — in the `manifest.py` command lines, and in every Read target under `shared/`, `directives/`, and `skills/` — replace it with this literal path: `${CLAUDE_PLUGIN_ROOT}`. A `manifest.py` command run with the placeholder unexpanded fails and would silently fall back to delivering the full manifest.
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/SKILL.md` and execute that workflow exactly as written. Its `$ARGUMENTS` placeholder arrives literal; where it appears, use the arguments this skill was invoked with: `$ARGUMENTS`. Nothing is overridden: every gate, question, pre-flight check, and commit rule in `/comb:fix` applies unchanged. Do not invoke the Skill tool for it (the model cannot; that is the point of this entry). The gate above is the only thing this skill adds.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/SKILL.md` and execute that workflow exactly as written, with one override: its Step 1 reuses the config loaded above instead of loading again. Its arguments placeholder, written as a dollar sign followed by the word ARGUMENTS, arrives literal because the file came through Read; wherever it appears, use this skill's own arguments, which are: `$ARGUMENTS`. If that is empty, the fix workflow runs with no folder named (its own default under `paths.plans`) and an empty focus brief. Every gate, question, pre-flight check, and commit rule in `/comb:fix` applies unchanged. Do not invoke the Skill tool for it (the model cannot; that is the point of this entry). The gate above is the only thing this skill adds.
