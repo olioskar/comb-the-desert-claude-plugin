@@ -20,3 +20,4 @@ src/pdf/primitives/styles.ts
 src/setupTests.ts
 src/test/i18nMock.ts
 src/components/primitives/Button.test.tsx
+a/src/theme/legacy.css

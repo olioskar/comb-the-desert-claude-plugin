@@ -1,0 +1,30 @@
+[
+ {
+  "section": "14. Testing conventions",
+  "class": "duplicate",
+  "old": "- Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (restated; home is #9).",
+  "new": "",
+  "owner": "9. Design system / primitives"
+ },
+ {
+  "section": "9. Design system / primitives",
+  "class": "duplicate",
+  "old": "- Tokens are CSS custom properties — `src/theme/tokens.css:1-40` (canonical: `src/theme/tokens.css:1`).",
+  "new": "",
+  "owner": "14. Testing conventions"
+ },
+ {
+  "section": "1. Entity Page",
+  "class": "duplicate",
+  "old": "- Tokens come from the design system — `src/theme/tokens.css:1` (restated; home is #9).",
+  "new": "",
+  "owner": "9. Design system / primitives"
+ },
+ {
+  "section": "9. Design system / primitives",
+  "class": "anchor",
+  "old": "- Token values are generated into `src/theme/styles.ts:1` and `src/theme/tokens.css:1`; Node.js scripts never read them.",
+  "dropped_anchor": "src/theme/tokens.css:1",
+  "evidence": "read src/theme/styles.ts:1; the generation step is shown there alone"
+ }
+]

@@ -1,5 +1,5 @@
 run: RUN
-PATTERNS excerpt: 2 of 6 area sections included (12. PDF / reporting; Appendix); 5 global; omitted: 1. Entity Page; 3. SidePanel / PanelHost; 9. Design system / primitives; 14. Testing conventions
+PATTERNS excerpt: 1 of 6 area sections included (Appendix); 5 global; omitted: 1. Entity Page; 3. SidePanel / PanelHost; 9. Design system / primitives; 12. PDF / reporting; 14. Testing conventions
 stale: no (no cited file in the touched set)
 base_commit: BASECOMMIT0
 --- excerpt body ---
@@ -7,6 +7,7 @@ base_commit: BASECOMMIT0
 > - 1. Entity Page — lines 17–32
 > - 3. SidePanel / PanelHost — lines 33–43
 > - 9. Design system / primitives — lines 44–57
+> - 12. PDF / reporting — lines 58–67
 > - 14. Testing conventions — lines 68–75
 
 # PATTERNS — demo-curated
@@ -24,16 +25,6 @@ base_commit: BASECOMMIT0
 1. Entity Page · 3. SidePanel / PanelHost · 9. Design system / primitives · 12. PDF / reporting · 14. Testing conventions
 
 ---
-
-## 12. PDF / reporting
-
-**Home:** one folder (plus `hooks/` helpers) — `src/pdf/**` — owns PDF rendering and the `GeneratePdfResult` contract.
-
-- Templates are pure functions of typed data — `src/pdf/templates/Invoice.tsx:10`.
-- Page breaks use `Math.max` floors and `React.FC` shells — no citation beyond the template above.
-- Shared primitives mirror design tokens by hand — `src/pdf/primitives/styles.ts:1` (manual sync), `src/pdf/templates/Invoice.tsx:1`.
-
-⚠ Drift: the legacy renderer was fixed in #1200.
 
 ## Appendix
 

@@ -1,7 +1,7 @@
 # PATTERNS — demo-curated
 
 **Generated:** 2026-06-08 · **Base:** `docs/pattern-manifest` @ `6aff510f` (off `staging`) · `file:line` references are valid as of this commit · **Patched:** 2026-07-03 @ `d33250f6` (line re-anchors + pattern 13) · **Patched:** 2026-07-04 on `refactor/uicomponents` (pattern 4 re-based on the Base UI composition; the mirroring drift-register row was missed and stayed wrong until 2026-08-21) · **Patched:** 2026-08-21 on `refactor/ionic-shell-exit` (#9 token census recounted post-Ionic-exit; drift rows 5/9 updated; seven stale `file:line` refs corrected) · **Patched:** 2026-09-05 (§4 anchor re-based and its gate claim corrected; §8 picker rows restated on the shared search core) · **Regenerated (partial):** 2026-09-30 @ `BASECOMMIT0` via `/comb:patterns` — §2, §9, §15 rescanned · count 20261009
-**Shaved:** DATE (5573 → 5429 bytes)
+**Shaved:** DATE (5612 → 5468 bytes)
 **Scope:** the canonical UI + data patterns of the demo web app, each pinned to a real reference implementation.
 
 > **Observed baseline, not law.** Live code wins. Project directives outrank it.
@@ -56,7 +56,7 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 
 ## 12. PDF / reporting
 
-**Home:** `src/pdf/**` — owns PDF rendering and the `GeneratePdfResult` contract.
+**Home:** one folder (plus `hooks/` helpers) — `src/pdf/**` — owns PDF rendering and the `GeneratePdfResult` contract.
 
 - Templates are pure functions of typed data — `src/pdf/templates/Invoice.tsx:10`.
 - Page breaks use `Math.max` floors and `React.FC` shells — no citation beyond the template above.

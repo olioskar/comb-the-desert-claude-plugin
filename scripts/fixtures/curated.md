@@ -57,7 +57,7 @@ Panel screens are registered per entity and hosted by `PanelHost` — `src/compo
 
 ## 12. PDF / reporting
 
-**Home:** `src/pdf/**` — owns PDF rendering and the `GeneratePdfResult` contract.
+**Home:** one folder (plus `hooks/` helpers) — `src/pdf/**` — owns PDF rendering and the `GeneratePdfResult` contract.
 
 - Templates are pure functions of typed data — `src/pdf/templates/Invoice.tsx:10`.
 - Page breaks use `Math.max` floors and `React.FC` shells — no citation beyond the template above.

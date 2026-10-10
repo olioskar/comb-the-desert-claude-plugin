@@ -309,7 +309,7 @@ It prints one line per edit (`ok` or `FAIL … : <check>`), one `UNUSABLE <file>
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" gate --edits .comb/excerpts/<run>.passing.json
 ```
 
-Show its output verbatim: per section the counts by class and bytes removed, every `duplicate` in full (`old` → `new`, owner), every `anchor` as the dropped anchor and its line, every `fixed-drift` as the line, and the rejected edits with their checks; past 200 lines of full text the duplicates collapse to one line each. Replies: `apply`; `skip <class>` or `skip <section>` (run `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" filter --edits <passing> --skip-class … --skip-section … --out .comb/excerpts/<run>.final.json`, then show the gate again for the final file); `show <section>` (run `gate … --show "<heading>"`). Nothing is applied until the user says `apply`.
+If it prints `Nothing to shave: the passing set is empty (…)`, report that line with the rejected and unusable counts and stop with `clean`; there is nothing to apply. Otherwise show its output verbatim: per section the counts by class and bytes removed, every `duplicate` in full (`old` → `new`, owner), every `anchor` as the dropped anchor and its line, every `fixed-drift` as the line, and the rejected edits with their checks; past 200 lines of full text the duplicates collapse to one line each. Replies: `apply`; `skip <class>` or `skip <section>` (run `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" filter --edits <passing> --skip-class … --skip-section … --out .comb/excerpts/<run>.final.json`, then show the gate again for the final file); `show <section>` (run `gate … --show "<heading>"`). Nothing is applied until the user says `apply`.
 
 **S6. Write.** Run:
 
@@ -317,7 +317,7 @@ Show its output verbatim: per section the counts by class and bytes removed, eve
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" apply --manifest <paths.patterns> --index <index> --edits <final or passing file> --stamp
 ```
 
-All-or-nothing: it re-verifies against the current text and refuses if anything no longer verifies. `--stamp` writes `**Shaved:** <date> (<before> → <after> bytes)` into the header (replacing an earlier one). It prints the applied count, the before/after bytes, and the token estimate; present them with the counts `verify` and `filter` printed:
+All-or-nothing: it re-verifies against the current text and refuses if anything no longer verifies, and it refuses an empty passing set (no stamp is written for zero edits). `--stamp` writes `**Shaved:** <date> (<before> → <after> bytes)` into the header (replacing an earlier one). It prints the applied count, the before/after bytes, and the token estimate; present them with the counts `verify` and `filter` printed:
 
 ```
 Manifest shaved: {applied} edits applied ({skipped by the user} skipped, {rejected} rejected, {unusable} unusable files)

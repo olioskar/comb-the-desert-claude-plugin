@@ -31,6 +31,7 @@ BASENAME_WITH_LINE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_.@~+\-]*\.[A-Za-z]{1,5
 # `React.FC`, `vi.mock`, `document.body` must not pass as anchors.
 FILE_EXT = re.compile(r"\.(tsx?|jsx?|mjs|cjs|css|scss|less|html?|md|mdx|json|ya?ml|toml|py|rb|go|rs|java|kt|kts|swift|cs|php|sql|sh|bash|ps1|xml|svg|txt|csv|ini|cfg|lock|gradle|vue|svelte|ex|exs|erl|hs|lua|pl|mm|cc|cpp|hpp|dart|scala|clj|graphql|proto|tf|ipynb|snap|prisma|plist)$", re.I)
 URL = re.compile(r"^[a-z]+://")
+RUN_STEM = re.compile(r"^[a-z][a-z-]*-[0-9]+-[0-9a-f]{4}$")  # mint_stem format
 FRAMEWORK_NAMES = {"node.js", "next.js", "vue.js", "nuxt.js", "express.js", "react.js", "ember.js",
                    "angular.js", "backbone.js", "three.js", "d3.js", "p5.js", "chart.js", "video.js"}
 HEX = re.compile(r"\b[0-9a-f]{7,40}\b")
@@ -553,6 +554,10 @@ def verify_edits(lines, index, edits):
             continue
         old = old.rstrip("\n")
         e["old"] = old
+        bad = [k for k in ("new", "owner", "dropped_anchor") if e.get(k) is not None and not isinstance(e[k], str)]
+        if bad:
+            reject(e, "%s must be a string" % bad[0])
+            continue
         if old.count("\n") >= 12:
             reject(e, "old exceeds 12 lines")
             continue
@@ -672,13 +677,6 @@ def verify_edits(lines, index, edits):
         for o in olds:
             if not any(same(o, n) for n in news):
                 removed_occ.append((o, e))  # fixed-drift removals count, but are never doomed
-    # remaining occurrences = manifest occurrences minus everything removed (multiset)
-    remaining = list(manifest_occ)
-    for o, _ in removed_occ:
-        for k, r in enumerate(remaining):
-            if same(o, r):
-                del remaining[k]
-                break
     # owner graph over duplicate edits must be acyclic
     def has_cycle():
         color = {}
@@ -704,6 +702,15 @@ def verify_edits(lines, index, edits):
                 kept.append(e)
         passing = kept
         removed_occ = [(o, e) for o, e in removed_occ if e in passing]
+
+    # remaining occurrences = manifest occurrences minus everything removed (multiset);
+    # computed after the cycle filter so a rejected duplicate's lines still count as present
+    remaining = list(manifest_occ)
+    for o, _ in removed_occ:
+        for k, r in enumerate(remaining):
+            if same(o, r):
+                del remaining[k]
+                break
 
     doomed = set()
     for o, e in removed_occ:
@@ -831,7 +838,6 @@ def cmd_apply(a):
             print("FAIL %s [%s]: %s" % (r["section"], r["class"], r["check"]))
         die("apply refused: %d edit(s) no longer verify; nothing written" % len(rejected), 1)
     before = nbytes("\n".join(lines))
-    text = "\n".join(lines)
     # apply bottom-up by line
     for e in sorted(passing, key=lambda x: x["start"], reverse=True):
         sec = section_by_heading(index, e["section"])
@@ -903,6 +909,8 @@ def cmd_apply(a):
 # -------------------------------------------------------------------- clean
 
 def cmd_clean(a):
+    if not RUN_STEM.match(a.run):
+        die("clean: %r is not a run stem (<skill>-<digits>-<hex>); nothing removed" % a.run, 2)
     ex_dir = os.path.join(os.getcwd(), ".comb", "excerpts")
     n = 0
     if os.path.isdir(ex_dir):

@@ -48,6 +48,7 @@ run_excerpt curated-test   review docs/combs/PATTERNS.md curated.test.touched
 run_excerpt curated-prefix review docs/combs/PATTERNS.md curated.prefixed.touched
 run_excerpt curated-primitive review docs/combs/PATTERNS.md curated.primitive.touched
 run_excerpt curated-rootfiles review docs/combs/PATTERNS.md curated.rootfiles.touched
+run_excerpt curated-realprefix review docs/combs/PATTERNS.md curated.realprefix.touched
 run_excerpt template-web   review docs/combs/TEMPLATE.md template.web.touched
 run_excerpt template-types plan   docs/combs/TEMPLATE.md template.types.touched
 run_excerpt template-report plan  docs/combs/TEMPLATE.md template.report.touched
@@ -75,6 +76,25 @@ done
 set +e
 python3 -I "$S" verify --manifest docs/combs/PATTERNS.md --index "$IDX" --edits "$F/edits-pass-two-dups.json" --out "$T/twodups.json" 2>&1 | norm > "$OUT/verify-two-dups.out"
 echo "exit=${PIPESTATUS[0]}" >> "$OUT/verify-two-dups.out"
+set -e
+# a cycle rejects every duplicate; an anchor edit whose other occurrences those duplicates
+# would have removed still passes (remaining is counted after the cycle filter)
+set +e
+python3 -I "$S" verify --manifest docs/combs/PATTERNS.md --index "$IDX" --edits "$F/edits-mixed-cycle-anchor.json" --out "$T/cycle-anchor.json" 2>&1 | norm > "$OUT/verify-mixed-cycle-anchor.out"
+echo "exit=${PIPESTATUS[0]}" >> "$OUT/verify-mixed-cycle-anchor.out"
+# an all-rejected run leaves an empty passing set: gate says so, apply refuses and writes nothing
+python3 -I "$S" gate --manifest docs/combs/PATTERNS.md --edits "$T/edits-fail-cycle.json" > "$OUT/gate-empty.out" 2>&1
+echo "exit=$?" >> "$OUT/gate-empty.out"
+cp docs/combs/PATTERNS.md "$T/empty-apply.md"
+python3 -I "$S" apply --manifest "$T/empty-apply.md" --index "$IDX" --edits "$T/edits-fail-cycle.json" --stamp > "$OUT/apply-empty.out" 2>&1
+echo "exit=$?" >> "$OUT/apply-empty.out"
+cmp -s docs/combs/PATTERNS.md "$T/empty-apply.md" && echo "manifest=unchanged" >> "$OUT/apply-empty.out" || echo "manifest=CHANGED" >> "$OUT/apply-empty.out"
+# the wrong file for a flag is refused by shape, not by traceback
+python3 -I "$S" gate --manifest docs/combs/PATTERNS.md --edits "$IDX" 2>&1 | norm > "$OUT/gate-wrong-file.out"
+echo "exit=${PIPESTATUS[0]}" >> "$OUT/gate-wrong-file.out"
+# clean takes a run stem only; an empty id (a failed index run) must not sweep the directory
+python3 -I "$S" clean --run "" > "$OUT/clean-bad-run.out" 2>&1
+echo "exit=$?" >> "$OUT/clean-bad-run.out"
 set -e
 # an empty touched set is refused (fallback condition), not a silent 0-area excerpt
 set +e

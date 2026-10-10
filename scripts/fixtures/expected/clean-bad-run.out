@@ -1,0 +1,2 @@
+manifest.py: clean: '' is not a run stem (<skill>-<digits>-<hex>); nothing removed
+exit=2

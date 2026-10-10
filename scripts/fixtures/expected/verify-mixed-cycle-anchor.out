@@ -1,0 +1,6 @@
+ok 9. Design system / primitives [anchor]
+FAIL 14. Testing conventions [duplicate]: duplicate owner graph has a cycle
+FAIL 9. Design system / primitives [duplicate]: duplicate owner graph has a cycle
+FAIL 1. Entity Page [duplicate]: duplicate owner graph has a cycle
+verify: 1 passing, 3 rejected, 0 unusable file(s); passing set: TMP/cycle-anchor.json
+exit=1
