@@ -1,6 +1,6 @@
 # Shared block: dispatch delivery contract
 
-Apply this contract to every subagent dispatch (Task tool call) a comb skill makes.
+Apply this contract to every subagent dispatch (Agent tool call) a comb skill makes.
 
 ## Directives and manifest go by path — to every agent
 
@@ -25,7 +25,7 @@ Compare the resolved `subagent_type` with literal string equality — a typo lik
 
 ## Model delivery
 
-Resolve the model with this priority: `agents.<role>.model` if set; otherwise the dispatching lane's `models.*` value. Pass the resolved model as the Task (Agent) tool call's `model` parameter — the per-call parameter overrides the agent definition's `model:` frontmatter. A model that is resolved but not passed does nothing.
+Resolve the model with this priority: `agents.<role>.model` if set; otherwise the dispatching lane's `models.*` value. Pass the resolved model as the Agent tool call's `model` parameter — the per-call parameter overrides the agent definition's `model:` frontmatter. A model that is resolved but not passed does nothing.
 
 ## Parallel dispatch
 

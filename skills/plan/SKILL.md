@@ -7,8 +7,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
-  - Task
-  - WebFetch
+  - Agent
 user-invocable: true
 disable-model-invocation: false
 ---
@@ -201,13 +200,13 @@ Be concise and precise. The implementer applies these revisions cold; everything
 
 ### Code-shaped report — per-finding dispatch (existing behavior)
 
-Launch all in parallel per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Task call per finding (or group), batched in a single assistant message.
+Launch all in parallel per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Agent call per finding (or group), batched in a single assistant message.
 
 **Agent config (resolved per finding):**
 
 - **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. `pattern-scanner` and `pattern-shaver` are generation-only and are never picked as a finding's lens. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
 - **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default for this step is `models.plan` (default `opus`); pass the resolved model as the Task call's `model` parameter.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default for this step is `models.plan` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
 
 **Planner dispatch prompt (5-part order):**
 

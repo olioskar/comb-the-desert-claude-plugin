@@ -7,7 +7,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
-  - Task
+  - Agent
 user-invocable: true
 disable-model-invocation: false
 ---
@@ -96,11 +96,11 @@ Default is (a). Partial updates are handled by two explicit, user-driven mechani
 
 ## Step 5: Dispatch scanners
 
-For each confirmed area, dispatch one scanner. **Launch them in parallel** per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Task call per area, batched in a single assistant message.
+For each confirmed area, dispatch one scanner. **Launch them in parallel** per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Agent call per area, batched in a single assistant message.
 
 **Resolution per scanner:**
 - **`subagent_type`** from `agents.pattern-scanner.subagent_type` (default `comb:pattern-scanner`).
-- **Model**: `agents.pattern-scanner.model` if set; otherwise `models.patterns` (default `opus`). Pass the resolved model as the Task call's `model` parameter, per the delivery contract.
+- **Model**: `agents.pattern-scanner.model` if set; otherwise `models.patterns` (default `opus`). Pass the resolved model as the Agent call's `model` parameter, per the delivery contract.
 - **Directives for this scanner = the subset mapped to its area at the gate (Step 3)** — not the full set. Send a scanner only the directives the gate mapped to its area; this keeps each scanner's lenses tight (a CSS scanner shouldn't carry an API-error directive). Any directive the user **down-weighted** at the gate that maps to this area is still sent, but marked `SUPERSEDED — treat as NON-authoritative`.
 - **Delivery**: supply the mapped directives as absolute **paths** per the delivery contract; a foreign resolved `subagent_type` additionally gets the contract's authority sentence, never embedded contents.
 
@@ -278,7 +278,7 @@ python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" index --manifest <paths.p
 
 Run every `manifest.py` command from the project root. It prints `run: <stem>`, `index: <path>`, one line per section (`<kind> <START>-<END> <bytes>B [<n>] <heading> edits=<path>`), and the totals. Record `run` and `index`. Show the per-section lines and totals to the user as the size table. Do not read the manifest or the index file.
 
-**S2. Dispatch shavers.** If no area section is 4 KB or more (after any focus-brief narrowing), report `Nothing to shave: no area section is 4 KB or more` and stop with `clean`. Otherwise one shaver per **area** section of 4 KB or more, at most five at a time, per `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. Role: `agents.pattern-shaver` (`subagent_type`, default `comb:pattern-shaver`); model: `agents.pattern-shaver.model` if set, else `models.patterns`, passed as the Task call's `model` parameter. Header and global sections are never dispatched or edited. Dispatch prompt:
+**S2. Dispatch shavers.** If no area section is 4 KB or more (after any focus-brief narrowing), report `Nothing to shave: no area section is 4 KB or more` and stop with `clean`. Otherwise one shaver per **area** section of 4 KB or more, at most five at a time, per `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. Role: `agents.pattern-shaver` (`subagent_type`, default `comb:pattern-shaver`); model: `agents.pattern-shaver.model` if set, else `models.patterns`, passed as the Agent call's `model` parameter. Header and global sections are never dispatched or edited. Dispatch prompt:
 
 ```
 You shave ONE section of a PATTERNS manifest. You edit nothing except the one edit-script file named below. Rules: read ${CLAUDE_PLUGIN_ROOT}/shared/shave-rules.md first and follow it exactly.

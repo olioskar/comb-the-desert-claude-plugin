@@ -7,8 +7,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
-  - Task
-  - WebFetch
+  - Agent
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -106,7 +105,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/SKILL.md` and execute that workflow with 
 - **Every item gets a reviewer** — no "trivial — skipped review". The reviewer role follows `/comb:fix` Step 4e: it is picked from the plan file's `**Specialty:**` header, with model coerced to `models.the_desert` unless an explicit `agents.<role>.model` user override is set.
 - **Make grouping decisions yourself** — combine same-file trivial items without asking
 - Execution order: Critical → High → Medium → Low → Test gaps → Deferred (now treated as regular items) → Discovered
-- Run parallel batches where safe (different writes), sequential otherwise — launch parallel batches per the delivery contract, one Task call per item in a single assistant message.
+- Run parallel batches where safe (different writes), sequential otherwise — launch parallel batches per the delivery contract, one Agent call per item in a single assistant message.
 
 Track progress as normal. When all items complete, present the full summary.
 

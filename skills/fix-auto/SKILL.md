@@ -7,8 +7,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
-  - Task
-  - WebFetch
+  - Agent
 user-invocable: false
 disable-model-invocation: false
 ---

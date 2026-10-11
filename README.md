@@ -184,7 +184,7 @@ The `disallowedTools` list blocks the file-editing tools; Bash stays available f
 
 Two more subagents are **generation-only** and never part of the review/plan/fix palette: `comb:pattern-scanner` (read-only), dispatched by `/comb:patterns` to map one codebase area, and `comb:pattern-shaver`, dispatched by `/comb:patterns --shave` to propose an edit script for one manifest section; it writes that one file and nothing else.
 
-You can invoke them directly via the Task tool or let the comb skills pick them automatically.
+You can invoke them directly via the Agent tool or let the comb skills pick them automatically.
 
 All five reviewers self-calibrate before publishing: each finding must reference a real cost — real failure mode, real complexity cost, real silence, real coverage gap, or real divergence with consequences. Ungrounded items get dropped. `LOOKS GOOD` on a clean diff is the expected outcome; padding the report with marginal items dilutes the signal of real findings. This keeps multi-round `/comb:the-desert` sweeps from drifting into diminishing-returns noise.
 
@@ -192,7 +192,7 @@ Each finding also carries a **Confidence** field, and `/comb:review` verifies be
 
 ### A note on skill `model` frontmatter
 
-The eight skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Task call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
+The eight skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Agent call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
 
 ### Manifest delivery
 

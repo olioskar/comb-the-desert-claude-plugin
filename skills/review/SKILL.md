@@ -7,8 +7,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
-  - Task
-  - WebFetch
+  - Agent
 user-invocable: true
 disable-model-invocation: false
 ---
@@ -140,7 +139,7 @@ For each picked role, resolve and construct the dispatch prompt:
 **Resolution (do this before assembling the prompt):**
 
 - **Resolve `subagent_type`** from `agents.<role>.subagent_type` — never hardcode any value here.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. It defines the native allowlist (literal string equality), the path-based directive delivery for native and foreign agents, and the model delivery. The lane default for this step is `models.review` (default `opus`); pass the resolved model as the Task call's `model` parameter.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. It defines the native allowlist (literal string equality), the path-based directive delivery for native and foreign agents, and the model delivery. The lane default for this step is `models.review` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
 
 **Dispatch prompt (7-part order — Step 3.5 read framing is part 2):**
 
@@ -190,7 +189,7 @@ For each picked role, resolve and construct the dispatch prompt:
    - **Confidence** on every finding: `Verified` when you opened every cited file and confirmed every particular the finding asserts — the anchor, any count, and, for a suggested fix, that you traced the fix against the code. Otherwise `Unverified — <what you could not confirm>`, naming the specific gap (an inferred line range, an estimated count, an untraced fix shape, a file you could not open). This field is not optional.
    - Read-only — no code changes
 
-Launch all dispatches in parallel per the delivery contract — one Task call per picked role, batched in a single assistant message.
+Launch all dispatches in parallel per the delivery contract — one Agent call per picked role, batched in a single assistant message.
 
 ## Step 5: Run mechanical verification checks
 

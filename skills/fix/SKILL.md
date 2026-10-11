@@ -7,8 +7,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
-  - Task
-  - WebFetch
+  - Agent
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -115,7 +114,7 @@ Two instructions overlap if their **write-sets** intersect — reads are free. A
 - Different-file writes → parallel batch.
 - **Concurrency limit:** max 3 implementer/reviewer pairs running concurrently — i.e., up to 3 items being implemented and verified at any given moment (so up to 6 in-flight subagents at peak: 3 implementers running while 3 reviewers verify previous batches, or 3 implementer+reviewer pairs interleaved).
 
-Launch a parallel batch per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Task call per item, batched in a single assistant message.
+Launch a parallel batch per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Agent call per item, batched in a single assistant message.
 
 Announce batches before launching:
 
@@ -151,7 +150,7 @@ For trivial items: announce "(trivial — sonnet implementer per `models.fix.imp
 **Agent config (resolved per item):**
 
 - **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The shipped `comb:*` review agents are read-only (`disallowedTools: Write, Edit, NotebookEdit`) and cannot serve as implementers. Users who want a project-specific writer override `agents.implementer` in their config.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items; pass the resolved model as the Task call's `model` parameter.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items; pass the resolved model as the Agent call's `model` parameter.
 - **Fresh agent per item** — no accumulated state.
 
 **Implementer dispatch prompt (5-part order):**
@@ -237,7 +236,7 @@ Do not include code in your reply — your edits are the artifact.
 
 - **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error. `pattern-scanner` and `pattern-shaver` are generation-only and are never selected as the reviewer role.
 - **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. Honor the user's config.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.reviewer` (default `opus`); pass the resolved model as the Task call's `model` parameter.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.reviewer` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
 - **Fresh agent.**
 
 **Reviewer dispatch prompt (5-part order):**
