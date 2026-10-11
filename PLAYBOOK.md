@@ -31,6 +31,16 @@ In order:
 
 CI runs 1–2 on every push and PR. Evals run on manual dispatch.
 
+### Eval cadence
+
+The eval suite answers "does the plugin still behave as expected". It costs money, so it runs when behaviour can have changed, not on every edit.
+
+- **Every commit (free):** gates 1–2 and `scripts/smoke.sh`.
+- **Once per PR, before merge (about 5 USD):** the full suite (gate 3).
+- **A change confined to one area (about 1 USD):** that area's case, `--case <name>`.
+- **A grader that looks wrong (near free):** one run of that case with `--keep-temp`, then iterate on the grader offline with `python3 -I scripts/replay-graders.py evals/<case> <kept dir>` until it reads the saved run correctly. Never re-run a paid case to test a grader edit.
+- **No eval:** prose-only edits (changelog, README, PLAYBOOK) and work that is debugging something outside the plugin.
+
 ## Design rules
 
 Each of these came out of a past review. Check them when changing the contract.

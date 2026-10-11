@@ -62,6 +62,10 @@ elif ! bash scripts/test-manifest.sh >/dev/null 2>&1; then
   echo "FAIL: scripts/test-manifest.sh failed (run it for the diff)"
   fail=1
 fi
+if ! bash scripts/test-replay.sh >/dev/null 2>&1; then
+  echo "FAIL: scripts/test-replay.sh failed (run it for the diff)"
+  fail=1
+fi
 for skill in review plan fix; do
   if ! grep -Eq 'manifest\.py"? excerpt' "skills/$skill/SKILL.md"; then
     echo "FAIL: skills/$skill does not invoke manifest.py excerpt"

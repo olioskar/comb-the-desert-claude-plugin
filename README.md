@@ -205,8 +205,8 @@ Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/
 The release gate, in order:
 
 1. `claude plugin validate .` — structural lint of the manifest, skills, and agents.
-2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, and `scripts/test-manifest.sh` (69 fixture expectations over two manifest shapes) passes.
-3. `claude plugin eval . --scaffold --ablation none --runs 1 --allow-tools Bash Write Edit` — the behavioral suite in `evals/` (eight cases covering the known regression classes; about 9 minutes and 5 USD per pass). `evals/README.md` has the flags, the grader design, and the macOS git requirement (a standalone git such as Homebrew's). `scripts/smoke.sh` is the offline structural check.
+2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, `scripts/test-manifest.sh` (69 fixture expectations over two manifest shapes) passes, and `scripts/test-replay.sh` (the grader replay tool against fixture runs) passes.
+3. `claude plugin eval . --scaffold --ablation none --runs 1 --allow-tools Bash Write Edit` — the behavioral suite in `evals/` (eight cases covering the known regression classes; about 9 minutes and 5 USD per pass). `evals/README.md` has the flags, the grader design, and the macOS git requirement (a standalone git such as Homebrew's). `scripts/smoke.sh` is the offline structural check. PLAYBOOK.md's "Eval cadence" says when to run the suite; `scripts/replay-graders.py` replays a case's deterministic graders against a kept run for free.
 
 CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workflow dispatch (it needs `ANTHROPIC_API_KEY`). `/skill-doctor` is a usage/cost report, useful for periodic monitoring — it is not a lint step and not part of the gate.
 

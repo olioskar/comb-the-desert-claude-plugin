@@ -33,6 +33,7 @@ Corrections and dedup from the family-lean review (four reports: a writing-skill
 ### Added
 
 - **Optional `effort` lanes.** Claude Code now takes an `effort` parameter on the Agent call, and the 5.5 models default to `medium`. comb passes nothing by default, so dispatched agents run at the session's effort; a project that wants more or less sets `effort.<lane>` (same keys as `models.*`) or `agents.<role>.effort`, and `effort.the_desert` coerces lanes in a sweep the way `models.the_desert` does. The accepted values are `low`, `medium`, `high`, `xhigh`, `max`; the parameter needs Claude Code 2.1.292 or later. No default was chosen because no measured run yet shows a higher setting finds more.
+- **`scripts/replay-graders.py`.** Replays an eval case's `regex`, `tool_used`, and `file_exists` graders against a run kept with `--keep-temp`, so a grader can be fixed offline instead of by paid re-runs (the first eight-case run spent more on re-running cases to test grader edits than on the run itself). Stdlib only; bounds stated in its docstring. `scripts/test-replay.sh` runs it against fixture runs inside `check-contract.sh`. PLAYBOOK gains an "Eval cadence" section: gates every commit, the suite once per PR, one case for a confined change, replay for grader debugging, no eval for prose-only edits.
 - `displayName: "Comb the Desert"` in plugin.json.
 
 ## [0.12.0] — 2026-10-10

@@ -47,6 +47,17 @@ claude plugin eval . --scaffold --allow-tools Bash Write Edit --case "help-*"
 ```
 
 Measured 2026-10-11 at eight cases, one run each: about 9 minutes and 4.70 USD.
+When and how often to run it: PLAYBOOK.md, "Eval cadence".
+
+To debug a grader without paying for a re-run, keep one run and replay the case's
+`regex`, `tool_used`, and `file_exists` graders against it (`llm` graders are skipped):
+
+```bash
+claude plugin eval . --scaffold --ablation none --runs 1 --allow-tools Bash Write Edit \
+  --no-publish --keep-temp --case <name>          # prints "kept temp: /private/tmp/e-XXXX"
+chmod 700 /private/tmp/e-XXXX /private/tmp/e-XXXX/sealed
+python3 -I scripts/replay-graders.py evals/<name> /private/tmp/e-XXXX
+```
 `scripts/smoke.sh` remains the offline structural gate. Run output lands under
 `evals/results/` (gitignored).
 
