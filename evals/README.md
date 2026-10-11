@@ -33,6 +33,10 @@ First live run on 2026-10-11 (Claude Code 2.1.296). What it established:
   not byte for byte, and the default judge is a small model that votes on wording. Graders
   on the final message match the template's fixed labels (`Plan: skipped … Fix: skipped`)
   with slack between them, and the outcome is graded from files and tool calls.
+- **Grader minimums on the fix case.** For two sequential items the fix skill mandates 5 `git rev-parse HEAD`,
+  8 `git status --porcelain`, and 3 verification runs; the graders ask for 4, 5, and 2. The one-under margin
+  is for an orchestrator that combines calls (`git rev-parse HEAD && git status --porcelain` counts once per
+  pattern); tightening to the mandated count would fail a conforming run.
 - **Pinning.** The CI job pins `--model` and `--judge-model` so a model rollout is not
   read as a plugin regression. The local command below floats on purpose.
 - **Ablation.** `claude plugin eval .` defaults to a with-without arm that runs every

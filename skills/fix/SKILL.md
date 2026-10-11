@@ -28,6 +28,7 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. Fro
 - `models.fix.implementer_standard`
 - `models.fix.implementer_trivial`
 - `models.fix.reviewer`
+- `models.plan` and `paths.base_branch` (for the X-item planner dispatch, Step 4f)
 - `directives` and `agents` (for verifier dispatch)
 - `paths.patterns` — the PATTERNS manifest, if it resolves
 
@@ -58,9 +59,9 @@ Honor the user's choice and proceed. In `/comb:the-desert`, this question is the
 
 Three facts, recorded once here and compared against by Steps 4d.1, 4f.0, and 4f.1. Record them whether or not Step 1.5 ran.
 
-- **Dirty baseline `D0`** — `git status --porcelain` as the tree stands now (after the user's Step 1.5 choice). Paths in `D0` are the user's and are never re-examined by this run's checks.
-- **`HEAD_expected`** — `git rev-parse HEAD`. Every commit this run makes (4f.1) advances it; any other movement is an implementer committing.
 - **Verification baseline** — run the project's verification once, chosen the way `/comb:review` Step 5 chooses it: commands named in `CLAUDE.md`, else the project's build or package manifest(s); pipe stderr with `2>&1`. Record the exit code and the failing lines. When neither names a command, record `verification: none configured` and 4f.0 skips. When it is red before any item runs, ask once: proceed (a 4f.0 failure whose failing lines are these is not the item's) or abort. In `/comb:the-desert` this is logged, not asked; the sweep proceeds.
+- **Dirty baseline `D0`** — `git status --porcelain` as the tree stands after that run (so artefacts the verification wrote are in it). Paths in `D0` are the user's and are never re-examined by this run's checks. An item whose write-set intersects `D0` is not dispatched: announce `{code} — not dispatched: ## Where overlaps uncommitted changes ({paths}); commit or stash them first` and move on, so the revert and the stage never touch a user's edit.
+- **`HEAD_expected`** — `git rev-parse HEAD`. Every commit this run makes (4f.1) advances it; any other movement is an implementer committing.
 
 The **run's own paths** are everything under the instruction folder: `## Attempts` appends and X-item files land there. They are never counted by a check.
 
@@ -119,7 +120,7 @@ The user decides. Grouped items share one implementation pass but each sub-item 
 **Branch on folder shape (Step 2.5):**
 
 - **Per-finding folder:** today's execution loop (Steps 4a–4f below) runs once per instruction file.
-- **Single revise-doc folder:** the loop runs **exactly once** against the single `revise-*.md`. The item is **always classified standard** (it is a multi-finding spec edit, not a single-line code fix), and the reviewer role follows the single-revise-doc override in Step 4e (`consistency-auditor`, with 4e's fallback chain). If the reviewer FAILs three times, escalate to the user. The commit message on PASS is `revise {spec-stem}: apply review revisions`.
+- **Single revise-doc folder:** the loop runs **exactly once** against the single `revise-*.md`. The item is **always classified standard** (it is a multi-finding spec edit, not a single-line code fix), its write-set is the `**Target spec:**` path, and the reviewer role follows the single-revise-doc override in Step 4e (`consistency-auditor`, with 4e's fallback chain). If the reviewer FAILs three times, escalate to the user. The commit message on PASS is `revise {spec-stem}: apply review revisions`.
 
 For both branches, Steps 4a–4f apply as written; the differences above are the only deviations.
 
@@ -127,7 +128,7 @@ For each item (or group):
 
 ### 4a. Parallel execution policy (governs Step 4b–4f)
 
-An item's **write-set** is the set of paths in its instruction's `## Where`. Two instructions overlap if their write-sets intersect — reads are free. Apply this policy to the execution loop below:
+An item's **write-set** is the set of file paths named in its instruction's `## Where`, line ranges dropped (a directory entry stands for everything under it). Two instructions overlap if their write-sets intersect — reads are free. Apply this policy to the execution loop below:
 
 - Same-file writes → sequential.
 - Different-file writes → parallel batch.
@@ -135,9 +136,9 @@ An item's **write-set** is the set of paths in its instruction's `## Where`. Two
 
 Three terms the git checks use:
 
-- An item is **in flight** from its implementer dispatch until its commit lands (4f.1) or, after a stop, until the user resolves it. Implementer stage, reviewer stage, PASS awaiting verification, and stopped all count; a committed item does not.
+- An item is **in flight** from its implementer dispatch until its commit lands (4f.1) or, after a stop, until the user resolves it. Implementer stage, reviewer stage, PASS awaiting verification, and stopped all count; a committed item does not. When the run makes no commits (`commit_per_item` off, or option (c) at Step 1.5), an item leaves flight when it is announced complete, and its reported paths join `D0` at that moment.
 - The **allowed set** is `D0` ∪ the run's own paths ∪ the write-sets of every in-flight item (Step 1.6 for the first two). It is what the working tree may contain at any moment.
-- **Stop the item** means dispatch no further stage for it and leave its edits in place; its write-set stays in the allowed set until the user resolves it. **Stop the batch** means dispatch nothing further for any item in the batch, let the implementers already running return, print the per-item status list from 4f.1 for the batch, and hand the tree to the user. The orchestrator cannot interrupt a running agent; a stop is a promise about what it will not start.
+- **Stop the item** means dispatch no further stage for it and leave its edits in place; its write-set stays in the allowed set until the user resolves it. **Stop the batch** means dispatch nothing further for any item in the batch, let the implementers already running return, print the per-item status list from 4f.1 for the batch, and hand the tree to the user. A HEAD stop (4d.1 check 1) stops the batch: `HEAD_expected` is stale for every batch-mate until the user resolves it. The orchestrator cannot interrupt a running agent; a stop is a promise about what it will not start.
 
 Launch a parallel batch per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Agent call per item, batched in a single assistant message.
 
@@ -250,7 +251,7 @@ Do not include code in your reply — your edits are the artifact.
 
 Three git checks, before any reviewer is dispatched:
 
-1. **HEAD unchanged.** `git rev-parse HEAD` equals `HEAD_expected` (Step 1.6, advanced only by this run's 4f.1 commits). If not, the implementer committed. Stop the item, do not revert (a commit is not the orchestrator's to undo), and surface: `{code} — stopped: HEAD moved during implementer ({HEAD_expected} → {new}); resolve by hand before continuing`.
+1. **HEAD unchanged.** `git rev-parse HEAD` equals `HEAD_expected` (Step 1.6, advanced only by this run's 4f.1 commits). If not, the implementer committed. Stop the batch (4a), do not revert (a commit is not the orchestrator's to undo), and surface: `{code} — stopped: HEAD moved during implementer ({HEAD_expected} → {new}); resolve by hand before continuing`.
 2. **Reported list equals the tree inside the write-set.** `git status --porcelain -- <paths in ## Where>`, read as a set of paths, must equal the reported list. A dirty path inside `## Where` that was not reported, or a reported path that is not dirty → stop the item and surface which. A reported path outside `## Where` → stop the item; if that path lies inside a batch-mate's write-set → stop the batch. The reported list is what the reviewer scopes, the revert deletes, and the commit stages, so it must be exact; write-sets are disjoint within a batch, so attribution inside `## Where` is exact too.
 3. **Tree inside the allowed set.** Every path in `git status --porcelain` must be in the allowed set (4a). A path outside → stop the batch and surface: `batch stopped: {paths} changed outside every in-flight write-set ({codes})`. Do not guess which item did it.
 
@@ -365,7 +366,7 @@ Only flag genuine issues, not style preferences. One or two max. If nothing stan
      **Plan change:** {what you changed in `## How` and why | none}
      ```
      The section is append-only. If the instruction is wrong, change `## How` and say so here; the next reviewer verifies against the changed How and can see it changed.
-  3. **Retry.** Send a new implementer (Step 4d), then review again (4e). **After three FAILs on one item, stop and ask the user** — trivial or standard alike. Three failures mean the instruction or the classification is wrong, and that is the user's call.
+  3. **Retry.** Send a new implementer (Step 4d), then review again (4e). **After three FAILs on one item, stop and ask the user** — trivial or standard alike — printing the per-item status list from 4f.1 first, so the other in-flight items are not lost in the question. Three failures mean the instruction or the classification is wrong, and that is the user's call. A 4f.0 verification FAIL counts as one of the three.
 - **DISCOVERED** — the reviewer found an issue outside this fix. The orchestrator does not write the instruction: it dispatches a planner for it, exactly as `/comb:plan` Step 6 does for one finding. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan/SKILL.md` for the planner dispatch prompt (code-shaped flow) and dispatch it with the DISCOVERED block as the finding, the next free `X{n}` as the reference code, the same output folder, and `**Verified (from the review report):** none — discovered during fix`. The planner prompt's other inputs: `Base:` is `paths.base_branch`; `Report under planning:` is `none — discovered during fix by {code}'s reviewer`; the finding's severity is Medium unless the block says otherwise; its source agent (for the plan file's `**Specialty:**`) is the reviewing role; the model is `models.plan` (`models.the_desert` in a sweep). The file it writes lands in the instruction folder, which is the run's own. The `X` prefix means "extra, found during execution" and is distinct from `D{n}` Deferred items. Add the resulting file to the end of the queue (its `Finding status` applies like any other). Announce:
   ```
   M3 — PASS (5/15 complete)
@@ -385,8 +386,9 @@ Run the verification command recorded at Step 1.6 (`2>&1`). When Step 1.6 record
 
 - Exit zero → every waiting item proceeds to 4f.1.
 - Failing lines identical to the Step 1.6 baseline → not caused by this run; proceed as if green and carry `verification: red before the run (unchanged)` on the item's progress line.
-- A new failure that names a path inside an in-flight item's write-set → that item's **FAIL**: for a PASSed item, take the 4f FAIL path with the output as the reviewer feedback (the `**Reviewer:**` line of the Attempt reads `verification: <command> exited <n>` followed by the relevant lines); for an item still under review, its verdict is a FAIL when it returns, whatever the reviewer said.
+- Otherwise the failing lines not in the baseline are the **new failure**. One that names a path inside an in-flight item's write-set → that item's **FAIL**: a PASSed item takes the 4f FAIL path now; an item still under review takes it when its reviewer returns, whatever the reviewer said. In both cases the Attempt's `**Reviewer:**` line reads `verification: <command> exited <n>` followed by the relevant lines.
 - A new failure that names no in-flight write-set (test-file paths, or none) → every PASSed item waiting at this point takes the FAIL.
+- After the attributed item's revert (4f step 1) and before its retry is dispatched, re-run this step for the items still waiting; they commit on green. The retry then starts, and later items wait for quiescence as before.
 
 No commit lands on red.
 

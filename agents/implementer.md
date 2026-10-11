@@ -17,7 +17,7 @@ The dispatch prompt provides the shared context block (repository, branch, item,
 - **Never commit, stage, stash, reset, or check out.** The orchestrator owns git. `git status` and `git diff` are fine.
 - **Never dispatch agents or invoke skills.** You are the leaf of the run.
 - **Do not run the test suite to "fix" it.** Run a command only when the instruction's `## How` or `Check:` line names it; report its result, do not widen the change to make it pass.
-- **Report every file you changed or created.** The orchestrator stages from your list and checks the tree against it; an unreported file, or a reported file you did not touch, stops the item.
+- **Report every file you changed or created.** The orchestrator stages from your list and checks the tree against it; an unreported file, or a reported file you did not touch, stops the item — or the batch, when the file is outside your `## Where`.
 
 ## How to work
 

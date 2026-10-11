@@ -101,7 +101,7 @@ while IFS= read -r t; do
   grep -qF -- "- \`$t\`" shared/dispatch-delivery.md || { echo "FAIL: $t is not in the native allowlist"; fail=1; }
 done < <(python3 -I -c 'import json,sys
 a=json.load(open("config/defaults.json"))["agents"]
-bad=[k for k,v in a.items() if not isinstance(v.get("subagent_type"),str)]
+bad=[k for k,v in a.items() if not (isinstance(v,dict) and isinstance(v.get("subagent_type"),str))]
 if bad: print("MISSING " + " ".join(bad))
 [print(v["subagent_type"]) for k,v in a.items() if k not in bad and v["subagent_type"].startswith("comb:")]')
 for f in agents/*.md; do
