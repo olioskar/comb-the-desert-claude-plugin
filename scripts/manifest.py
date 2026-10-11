@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""comb manifest tool: excerpt, index, verify, gate, filter, apply, clean.
+"""comb manifest tool: excerpt, index, anchors, verify, gate, filter, apply, clean.
 
 Deterministic text operations over a PATTERNS manifest so that no orchestrating
 model has to read the manifest or reproduce a parsing rule. Stdlib only.
@@ -427,6 +427,81 @@ def print_size_table(lines, header_end, sections, with_edits=False):
     print("total %dB ~%d tokens (bytes/4); %d area, %d global" % (total, total // 4, areas, globs))
     if total > 100 * 1024:
         print("Large manifest — consider /comb:patterns --shave")
+
+
+# ------------------------------------------------------------------ anchors
+
+LINE_NUMS = re.compile(r"\d+")
+
+
+def anchor_tokens_with_lines(text):
+    """Yield (token, kind, path, maxline) for anchors that carry a line part."""
+    for tok in tokens_of(text):
+        c = classify_anchor(tok)
+        if not c or not c[2]:
+            continue
+        nums = [int(n) for n in LINE_NUMS.findall(c[2])]
+        yield tok, c[0], c[1], max(nums)
+
+
+def file_line_count(path):
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return None
+    if not data:
+        return 0
+    return data.count(b"\n") + (0 if data.endswith(b"\n") else 1)
+
+
+def cmd_anchors(a):
+    root = repo_root()
+    lines = read_lines(a.manifest)
+    _, sections = parse_manifest(lines)
+    checked = missing = beyond = ambiguous = 0
+    areas = 0
+    for s in sections:
+        if s["kind"] != "area":
+            continue
+        areas += 1
+        text = "\n".join(lines[s["start"] - 1:s["end"]])
+        dirs = sorted(set(s["anchor_dirs"]) | {glob_root(g) for g in s["scope_globs"]})
+        seen = set()
+        for tok, kind, path, maxline in anchor_tokens_with_lines(text):
+            if tok in seen:
+                continue
+            seen.add(tok)
+            checked += 1
+            if kind == "full":
+                p = norm_path(path, root)
+                n = file_line_count(os.path.join(root, p))
+                if n is None:
+                    missing += 1
+                    print("missing    %s — %s" % (tok, s["heading"]))
+                elif maxline > n:
+                    beyond += 1
+                    print("beyond     %s — %s (file has %d lines)" % (tok, s["heading"], n))
+                continue
+            cands = []
+            for d in dirs:
+                cand = os.path.join(d, path) if d else path
+                if os.path.isfile(os.path.join(root, cand)):
+                    cands.append(cand)
+            if not cands:
+                missing += 1
+                print("missing    %s — %s (no file by that name under the section's scope roots)" % (tok, s["heading"]))
+            elif len(cands) > 1:
+                ambiguous += 1
+                print("ambiguous  %s — %s (resolves to %s)" % (tok, s["heading"], ", ".join(sorted(cands))))
+            else:
+                n = file_line_count(os.path.join(root, cands[0]))
+                if maxline > n:
+                    beyond += 1
+                    print("beyond     %s — %s (resolved to %s, %d lines)" % (tok, s["heading"], cands[0], n))
+    print("anchors: %d checked in %d area sections; %d unresolved (%d missing, %d beyond end), %d ambiguous"
+          % (checked, areas, missing + beyond, missing, beyond, ambiguous))
+    print("bound: file existence and line bounds only; the cited line is not read and the claim is not judged")
 
 
 # ------------------------------------------------------------------- verify
@@ -940,6 +1015,10 @@ def main(argv=None):
     s.add_argument("--skill", default="patterns")
     s.add_argument("--manifest", required=True)
     s.set_defaults(fn=cmd_index)
+
+    s = sub.add_parser("anchors", help="list anchors whose file is missing or whose line is past the end")
+    s.add_argument("--manifest", required=True)
+    s.set_defaults(fn=cmd_anchors)
 
     s = sub.add_parser("verify", help="check edit scripts mechanically; write the passing set")
     s.add_argument("--manifest", required=True)

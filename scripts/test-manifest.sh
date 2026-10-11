@@ -17,6 +17,9 @@ OUT="$T/out"; mkdir -p "$OUT" "$E"
 cd "$T"
 git init -q -b main . && git config user.email test@example.com && git config user.name "comb test"
 while read -r f; do mkdir -p "$(dirname "$f")"; echo "// $f" > "$f"; done < "$F/cited-files.txt"
+# anchors fixture: a 50-line file for line-bound checks and a second Button.tsx for ambiguity
+seq 1 50 | sed 's/^/\/\/ line /' > src/web/pages/HomePage.tsx
+mkdir -p src/web/legacy && cp src/web/components/Button.tsx src/web/legacy/Button.tsx
 git add -A && git commit -qm base
 SHA=$(git rev-parse --short=8 HEAD)
 # the manifest's base-commit rule needs a hex token containing a letter; an
@@ -60,6 +63,12 @@ if [ -n "$(git status --porcelain -- .comb)" ]; then echo "FAIL: .comb/ visible 
 python3 -I "$S" index --manifest docs/combs/PATTERNS.md > "$OUT/index.log" 2>&1
 IDX=$(sed -n 's/^index: //p' "$OUT/index.log")
 norm < "$OUT/index.log" | grep -v '^index: ' > "$OUT/index.out"
+# anchors: existence and line bounds of every line-carrying anchor in area sections
+sed "s/BASECOMMIT0/$SHA/" "$F/anchors.md" > docs/combs/ANCHORS.md
+set +e
+python3 -I "$S" anchors --manifest docs/combs/ANCHORS.md 2>&1 | norm > "$OUT/anchors.out"
+echo "exit=${PIPESTATUS[0]}" >> "$OUT/anchors.out"
+set -e
 
 set +e
 python3 -I "$S" verify --manifest docs/combs/PATTERNS.md --index "$IDX" --edits "$F/edits-pass.json" --out "$T/pass.json" 2>&1 | norm > "$OUT/verify-pass.out"

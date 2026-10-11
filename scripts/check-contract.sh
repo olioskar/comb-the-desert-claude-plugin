@@ -72,7 +72,7 @@ for skill in review plan fix; do
     fail=1
   fi
 done
-for cmd in index verify gate apply; do
+for cmd in index anchors verify gate apply; do
   if ! grep -Eq "manifest\.py\"? $cmd" skills/patterns/SKILL.md; then
     echo "FAIL: skills/patterns does not invoke manifest.py $cmd"
     fail=1

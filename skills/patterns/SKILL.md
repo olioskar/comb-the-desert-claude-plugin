@@ -220,22 +220,32 @@ This is the headline of the interactive flow: it resolves the stale-directive-vs
 
 ## Step 8: Pre-write review (interactive)
 
-Before writing, show a compact summary so the user can catch a mis-scoped area before it's baked in:
+**Anchor check (mechanical).** Write the in-memory manifest text to `.comb/excerpts/patterns-draft.md` (the script's working directory; the script keeps it ignored by git), then run from the project root:
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" anchors --manifest .comb/excerpts/patterns-draft.md
+```
+
+It prints one line per anchor whose file does not exist or whose line is past the end of the file, one per basename anchor that resolves to more than one file, and a summary. **Bound:** it checks existence and line bounds only; it does not read the line or judge whether it supports the claim.
+
+Before writing, show a compact summary so the user can catch a mis-scoped area or an invented anchor before it's baked in:
 
 ```
 Scan summary — review before write:
   {area} — {entry count} entries across {lens count} lenses{ · ⚠ thin: only {lens} populated | · ⚠ empty}
   ...
   {if Step 7 ran: conflicts — X recorded as new norm / Y kept (drift) / Z skipped}
+  anchors — {checked} checked, {unresolved} unresolved ({missing} missing, {beyond} beyond end), {ambiguous} ambiguous
+  {each unresolved or ambiguous line from the script, verbatim}
 
-Reply "write" to save · "rescan {area} [new scope/notes]" to re-run one area · or adjust.
+Reply "write" to save · "rescan {area} [new scope/notes]" to re-run one area (unresolved anchors in one area are the usual reason) · or adjust.
 ```
 
 **Empty or thin areas are a mis-scope signal** — e.g. an "error-handling lens nearly empty" cue usually means that area's logic lives somewhere the scope missed. Flag them explicitly; don't make the user eyeball every long return to notice.
 
-**Single-area re-scan.** If the user asks, re-dispatch exactly one scanner (Step 5 mechanics) for that area with any new scope/notes, replace that area's section in the in-memory manifest, and re-show this summary. Explicit, user-requested — not automated merging.
+**Single-area re-scan.** If the user asks, re-dispatch exactly one scanner (Step 5 mechanics) for that area with any new scope/notes, replace that area's section in the in-memory manifest, rewrite the draft, re-run the anchor check, and re-show this summary. Explicit, user-requested — not automated merging.
 
-**Regenerate diff (only when Step 4 found an existing manifest).** Once the user is satisfied, show a diff of the new manifest against the existing file and let them cherry-pick **at the section level**: per changed section, keep existing or take regenerated. Explicit selection at diff time, not automated merge. The result is what gets written.
+**Regenerate diff (only when Step 4 found an existing manifest).** Once the user is satisfied, show a diff of the draft against the existing file and let them cherry-pick **at the section level**: per changed section, keep existing or take regenerated. Explicit selection at diff time, not automated merge. The result is what gets written.
 
 ## Step 9: Write and present
 
@@ -251,7 +261,7 @@ Size: {total bytes}B ~{tokens} tokens; {area} area, {global} global sections{ ·
 Consumed automatically by /comb:review, /comb:plan, /comb:fix when present (as a per-run excerpt).
 ```
 
-Then `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>` for the index run.
+Then `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>` for the index run, and remove the draft: `rm -f .comb/excerpts/patterns-draft.md`.
 
 **Reconciliation outcomes (only when Step 7 ran).** Append whichever apply — these turn the old dead-end warning into an actionable result:
 
@@ -278,7 +288,7 @@ python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" index --manifest <paths.p
 
 Run every `manifest.py` command from the project root. It prints `run: <stem>`, `index: <path>`, one line per section (`<kind> <START>-<END> <bytes>B [<n>] <heading> edits=<path>`), and the totals. Record `run` and `index`. Show the per-section lines and totals to the user as the size table. Do not read the manifest or the index file.
 
-**S2. Dispatch shavers.** If no area section is 4 KB or more (after any focus-brief narrowing), report `Nothing to shave: no area section is 4 KB or more` and stop with `clean`. Otherwise one shaver per **area** section of 4 KB or more, at most five at a time, per `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. Role: `agents.pattern-shaver` (`subagent_type`, default `comb:pattern-shaver`); model: `agents.pattern-shaver.model` if set, else `models.patterns`, passed as the Agent call's `model` parameter. Header and global sections are never dispatched or edited. Dispatch prompt:
+**S2. Dispatch shavers.** If no area section is 4 KB or more (after any focus-brief narrowing), report `Nothing to shave: no area section is 4 KB or more` and stop with `clean`. Record the manifest's size before dispatch: `wc -c < <paths.patterns>`. Then one shaver per **area** section of 4 KB or more, at most five at a time, per `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. Role: `agents.pattern-shaver` (`subagent_type`, default `comb:pattern-shaver`); model: `agents.pattern-shaver.model` if set, else `models.patterns`, passed as the Agent call's `model` parameter. Header and global sections are never dispatched or edited. Dispatch prompt:
 
 ```
 You shave ONE section of a PATTERNS manifest. You edit nothing except the one edit-script file named below. Rules: read ${CLAUDE_PLUGIN_ROOT}/shared/shave-rules.md first and follow it exactly.
@@ -293,7 +303,9 @@ Write that file with a Bash heredoc, then reply with its path and the edit count
 
 A foreign `subagent_type` gets the same prompt; the rules file carries the full contract.
 
-**S3. Collect.** A reply that names no file, or names a file that is missing, is recorded as `section <heading>: no usable edit script, skipped`. A file that exists but is not valid JSON is reported by `verify` as `UNUSABLE` and skipped the same way. Nothing is merged or retyped by hand. If no shaver produced a file, report `Nothing to shave: no usable edit script` and stop with `clean`.
+**S3. Collect.** Before reading any reply, run `wc -c < <paths.patterns>` again. A different number means a shaver edited the manifest directly instead of writing its edit script; stop the shave with `Manifest changed during dispatch ({before}B → {after}B); nothing applied — inspect with git diff` and `clean`. Byte count is the whole check; it does not say what changed.
+
+A reply that names no file, or names a file that is missing, is recorded as `section <heading>: no usable edit script, skipped`. A file that exists but is not valid JSON is reported by `verify` as `UNUSABLE` and skipped the same way. Nothing is merged or retyped by hand. If no shaver produced a file, report `Nothing to shave: no usable edit script` and stop with `clean`.
 
 **S4. Verify.** Run, listing every edit file the shavers wrote:
 
