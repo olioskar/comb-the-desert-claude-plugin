@@ -44,7 +44,8 @@
     }
   },
   "fix": {
-    "commit_per_item": true
+    "commit_per_item": true,
+    "model_invocation": false
   },
   "models": {
     "review":     "opus",

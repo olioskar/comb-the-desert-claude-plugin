@@ -5,6 +5,16 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] — 2026-10-10
+
+### Added
+
+- **`fix.model_invocation` and the `fix-auto` skill.** `/comb:fix` is user-only by frontmatter (`disable-model-invocation: true`), and Claude Code offers no way to override a plugin skill's frontmatter from settings or config, so a project that wants Claude to start the fix workflow from "apply the fixes" had to edit the installed file. A new model-only skill, `fix-auto` (`user-invocable: false`, so it cannot be typed as a slash command), reads `fix.model_invocation` (default `false`) and either stops with a message naming the observed value, `/comb:fix`, and the flag, or reads the fix skill from the plugin root and executes it unchanged, with every question, pre-flight check, and commit rule intact. Because the fix skill is loaded by Read, its plugin-root placeholder is not substituted; `fix-auto` carries the same expansion paragraph `/comb:the-desert` uses. The default refuses rather than doing nothing: the skill's trigger is in context in every project, so an un-opted-in "apply the fixes" gets the refusal message, not a code change. Claude Code treats a blocked `disable-model-invocation` skill as "do not reproduce it another way"; this skill is the sanctioned reproduction, which is why the default stays `false` and the gate lives in the skill body, not in a prompt.
+
+### Fixed
+
+- **`fix.commit_per_item` row** added to `/comb:configure`'s key table; it was missing.
+
 ## [0.11.0] — 2026-10-09
 
 ### Added

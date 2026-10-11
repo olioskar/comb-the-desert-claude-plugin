@@ -8,7 +8,7 @@ The plugin ships configurable reviewer agents, eight domain-neutral directives, 
 
 - **`/comb:review`** — dispatches 1–5 reviewer agents over a PR / branch / file list / spec doc; right-sizes the apparatus based on what the diff is (code-shaped → full severity-ranked report with verdict and verification; non-code → condensed report with flat labelled findings)
 - **`/comb:plan`** — turns each finding into a self-contained fix instruction
-- **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe; commits each item on reviewer PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`)
+- **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe; commits each item on reviewer PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`). User-invoked only; a project can let Claude start it from a natural-language request with `fix.model_invocation: true`
 - **`/comb:the-desert`** — runs all three steps as one continuous sweep, opus everywhere, no pauses; short-circuits to review-only on non-code artifacts (findings go back to your design conversation, not an autonomous rewrite)
 - **`/comb:patterns`** — scans the codebase and writes a PATTERNS manifest of concrete conventions (structure, naming, closed token sets, abstraction level, reuse points) with real `file:line` references; `/comb:review`, `/comb:plan`, and `/comb:fix` consume it as an observed baseline (a prior, not law), delivered to agents as a per-run excerpt. `/comb:patterns --shave` trims an existing manifest without changing what it asserts
 - **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
@@ -84,10 +84,13 @@ The default is `general-purpose` (Claude's built-in writer-capable subagent), wh
 ```json
 {
   "fix": {
-    "commit_per_item": false
+    "commit_per_item": false,
+    "model_invocation": true
   }
 }
 ```
+
+`fix.model_invocation` (default `false`) lets Claude start the fix workflow when you ask in your own words ("apply the fixes") instead of typing `/comb:fix`. The slash command itself stays user-only because it edits code and commits; the opt-in routes through a model-only skill, `fix-auto`, which cannot be typed as a slash command. It checks the flag and then runs `/comb:fix` unchanged, with all of its questions and commits. It refuses by default rather than being inert: its trigger is visible to Claude in every project, so without the flag a request like "apply the fixes" gets a short message naming `/comb:fix` and the flag instead of a code change.
 
 **Add your team's specialist agents** (e.g., a project-local `react-expert` defined in `.claude/agents/react-expert.md`):
 
@@ -189,7 +192,7 @@ Each finding also carries a **Confidence** field, and `/comb:review` verifies be
 
 ### A note on skill `model` frontmatter
 
-The seven `/comb:*` skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Task call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
+The eight skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Task call's `model` parameter. Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
 
 ### Manifest delivery
 
