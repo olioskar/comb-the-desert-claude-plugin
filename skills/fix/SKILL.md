@@ -108,7 +108,7 @@ For each item (or group):
 
 ### 4a. Parallel execution policy (governs Step 4b–4f)
 
-Two instructions overlap if their **write-sets** intersect — reads are free. Apply this policy to the execution loop below:
+An item's **write-set** is the set of paths in its instruction's `## Where`. Two instructions overlap if their write-sets intersect — reads are free. The write-set is also what Step 4d.1's tree check compares the working tree against after each implementer returns. Apply this policy to the execution loop below:
 
 - Same-file writes → sequential.
 - Different-file writes → parallel batch.
@@ -149,9 +149,10 @@ For trivial items: announce "(trivial — implementer `{resolved models.fix.impl
 
 **Agent config (resolved per item):**
 
-- **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The shipped `comb:*` review agents are read-only (`disallowedTools: Write, Edit, NotebookEdit`) and cannot serve as implementers. Users who want a project-specific writer override `agents.implementer` in their config.
+- **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `comb:implementer`, the shipped writer with boundaries). The five review agents are read-only and cannot serve as implementers. A project with its own writer overrides `agents.implementer`; it is then foreign per the delivery contract and receives the role's `when_to_use` as its specialty statement, which carries the same boundaries.
 - **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items; pass the resolved model as the Agent call's `model` parameter.
 - **Fresh agent per item** — no accumulated state.
+- **Record HEAD before dispatch:** `git rev-parse HEAD`, kept per item as `HEAD0`. Step 4d.1 compares it when the implementer returns.
 
 **Implementer dispatch prompt (5-part order):**
 
@@ -171,7 +172,7 @@ The project's authoritative directives apply to this fix.
 
 {If foreign (per the delivery contract), first: "These directives are authoritative. Read every listed file before starting. Cite by `file.md §N.N`."}
 
-Read these directive files and cite as `file.md §N.N` if you depart from any rule (you should not need to depart):
+Read the directives this instruction cites in its `## Directive citations`, plus those listed under "most relevant" below. Cite as `file.md §N.N` if you depart from any rule (you should not need to depart). The full list, for reference:
 - {plugin directive paths, if include_plugin_defaults}
 - {user directive paths, if directives.user_path resolves}
 
@@ -194,10 +195,10 @@ Execute the fix instruction at the path above. The instruction is the spec — d
 
 ### Steps
 
-1. Read the instruction file, then the affected file(s) named in its "Where" section
+1. Read the instruction file, then the affected file(s) named in its "Where" section; read `## Attempts` if present — it records what failed before and what changed in the plan
 2. Apply the exact changes from the "How" section
 3. Stay strictly within the documented "Scope" — no drive-by refactors, no bonus cleanup
-4. Confirm the "Expected Outcome" is met
+4. Confirm the "Expected Outcome" is met; if its `Check:` line names a command, run it and report the result
 
 ## 5. Output format
 
@@ -219,6 +220,15 @@ If you executed the instruction as written, **omit this entire section**. The re
 
 Do not include code in your reply — your edits are the artifact.
 ```
+
+### 4d.1. When the implementer returns
+
+Two git checks, before any reviewer is dispatched:
+
+1. **HEAD unchanged.** `git rev-parse HEAD` equals the item's `HEAD0`. If not, the implementer committed. Stop the item, do not revert (a commit is not the orchestrator's to undo), and surface: `{code} — stopped: HEAD moved during implementer ({HEAD0} → {new}); resolve by hand before continuing`.
+2. **Tree inside the write-sets.** Every path in `git status --porcelain` must be in the union of the in-flight items' write-sets (`## Where`) and their reported file lists. A path outside the union → stop the batch and surface: `batch stopped: {paths} changed outside every in-flight write-set ({codes})`. Do not guess which item did it.
+
+Bound: these checks compare paths and one SHA. They do not read diffs; the reviewer does.
 
 ### 4e. Send to reviewer (always)
 
@@ -244,6 +254,7 @@ Repository: {project-root}
 Branch: {branch}
 Item: {reference_code} — {title}
 Instruction file: {instruction-path}
+Batch-mates' write-sets: {for each other in-flight item: "{code}: {paths}"; or "none — this item runs alone"}
 
 ## 2. Directives
 
@@ -278,17 +289,18 @@ Verify the implementation executed the plan. **The plan file is the contract** (
 
 ### How to verify
 
-1. Read the instruction file; its `## How` section is what the implementer was supposed to do.
+1. Read the instruction file; its `## How` section is what the implementer was supposed to do. Read its `## Attempts` section if present: it records earlier FAILs on this item and any change the orchestrator made to `## How` — verify against the current `## How`.
 2. Read the implementer's `## Divergences` section (if present). Each deviation must have a stated rationale.
 3. Read the actual diff. The item's changes are **uncommitted** at this point — the orchestrator commits only after a PASS (Step 4f.1) — so `HEAD` is the state before this item.
    - `git diff HEAD -- <files reported by implementer>` shows the item's changes, staged and unstaged, against `HEAD`. Step 4a forms a parallel batch only from items with disjoint write-sets, so the path scope isolates this item from its batch-mates.
    - `git diff` never lists an untracked file, so a file the implementer created does not appear in it. Run `git status --porcelain -- <files reported by implementer>` and read any path marked `??` in full instead of diffing it.
    - When `fix.commit_per_item` is off, `HEAD` has not moved since the run started, so this diff accumulates the earlier items too. Lean on the implementer's reported file list and the plan's `## Where` section to scope your reading.
+4. **Run the `Check:` line** under `## Expected Outcome`, from the project root. A non-zero exit, or an observable that is absent, is a FAIL regardless of how faithfully the diff matches `## How` — the plan was wrong or the fix did not land. `Check: none — <why>` means nothing to run: name that on your `Unverified:` line. A plan with no `Check:` line predates this field; treat it as `none — not stated (pre-0.14.0 plan)`.
 
 ### Decision rule
 
-- **PASS** — every step of the plan's `## How` is reflected in the diff, OR each divergence reported by the implementer has a sound rationale, AND the plan's `## Expected Outcome` is achieved, AND the diff stays within the plan's `## Scope`.
-- **FAIL** — the diff doesn't match the plan and no rationale was given; OR the rationale doesn't justify the deviation; OR the Expected Outcome isn't achieved; OR the diff includes changes outside the plan's Scope (without a divergence rationale).
+- **PASS** — every step of the plan's `## How` is reflected in the diff, OR each divergence reported by the implementer has a sound rationale, AND the plan's `## Expected Outcome` is achieved — its `Check:` ran and passed, or was `none`, AND the diff stays within the plan's `## Scope`.
+- **FAIL** — the diff doesn't match the plan and no rationale was given; OR the rationale doesn't justify the deviation; OR the Expected Outcome isn't achieved (a `Check:` that ran and failed is always this case); OR the diff includes changes outside the plan's Scope (without a divergence rationale).
 
 **A step you could not verify is not a FAIL on its own.** FAIL means you found a mismatch. When you could not confirm a step — the outcome needs a browser, the invariant needs a runtime, the artifact needs a rebuild — report the verdict your actual evidence supports and name the gap on the `Unverified:` line below. Do not convert a limit of your own into a FAIL.
 
