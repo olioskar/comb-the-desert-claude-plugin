@@ -98,7 +98,7 @@ Moving to fix →
 
 Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/SKILL.md` and execute that workflow with these overrides (same mechanism as Step 3 — read the file, do not invoke the Skill tool):
 
-- All implementers use `models.the_desert` — including trivial items (no sonnet downgrade)
+- All implementers use `models.the_desert` — including trivial items (no `implementer_trivial` downgrade)
 - All reviewers use `models.the_desert`
 - **Per-item commits per `fix.commit_per_item` (default `true`) apply during the desert sweep.** The `models.the_desert` coercion governs subagent models; commit behavior is unaffected.
 - **Execute every item** — nothing is deferred or excluded

@@ -143,7 +143,7 @@ Triviality is **judgment-based by the orchestrator** using this rubric:
 
 This is a judgment call — borderline cases lean **standard**, because the cost of a needless reviewer is small but the cost of a missed regression is high. The user can override the classification for any item.
 
-For trivial items: announce "(trivial — sonnet implementer per `models.fix.implementer_trivial`, reviewer per `models.fix.reviewer`)" and proceed. Note that the reviewer is **not** skipped for trivial items in the standard `/comb:fix` flow — that skip-trivial-review behavior only happens if the user explicitly authorises it for a given run, and is overridden in `/comb:the-desert` where every item gets a reviewer regardless.
+For trivial items: announce "(trivial — implementer `{resolved models.fix.implementer_trivial}`, reviewer `{resolved models.fix.reviewer}`)" and proceed. The reviewer runs for every item.
 
 ### 4d. Send to implementer
 

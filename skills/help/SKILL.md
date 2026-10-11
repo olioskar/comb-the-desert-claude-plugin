@@ -44,7 +44,8 @@ Commands
                      per item, parallel batching where safe.
 
   /comb:the-desert   Run review → plan → fix as one continuous sweep.
-                     Opus everywhere. No pauses, no items skipped. On
+                     One model (models.the_desert) everywhere. No pauses,
+                     no items skipped. On
                      non-code artifacts, stops after review — findings go
                      back into your design conversation, not an autonomous
                      rewrite pass.
@@ -197,8 +198,8 @@ Config knobs
 ```
 /comb:the-desert [scope] [focus brief]
 
-Run review → plan → fix as one continuous sweep, opus everywhere,
-no pauses.
+Run review → plan → fix as one continuous sweep, one model
+(models.the_desert) everywhere, no pauses.
 
 Inputs
   scope         Same as /comb:review.
