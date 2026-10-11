@@ -54,6 +54,16 @@ Pick one:
 
 Honor the user's choice and proceed. In `/comb:the-desert`, this question is the third allowed question (alongside scope-at-start and run-again-at-end), and only fires when the tree is dirty.
 
+## Step 1.6: Record the run baseline
+
+Three facts, recorded once here and compared against by Steps 4d.1, 4f.0, and 4f.1. Record them whether or not Step 1.5 ran.
+
+- **Dirty baseline `D0`** — `git status --porcelain` as the tree stands now (after the user's Step 1.5 choice). Paths in `D0` are the user's and are never re-examined by this run's checks.
+- **`HEAD_expected`** — `git rev-parse HEAD`. Every commit this run makes (4f.1) advances it; any other movement is an implementer committing.
+- **Verification baseline** — run the project's verification once, chosen the way `/comb:review` Step 5 chooses it: commands named in `CLAUDE.md`, else the project's build or package manifest(s); pipe stderr with `2>&1`. Record the exit code and the failing lines. When neither names a command, record `verification: none configured` and 4f.0 skips. When it is red before any item runs, ask once: proceed (a 4f.0 failure whose failing lines are these is not the item's) or abort. In `/comb:the-desert` this is logged, not asked; the sweep proceeds.
+
+The **run's own paths** are everything under the instruction folder: `## Attempts` appends and X-item files land there. They are never counted by a check.
+
 ## Step 2: Surface relevant directives
 
 Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
@@ -108,7 +118,7 @@ The user decides. Grouped items share one implementation pass but each sub-item 
 
 **Branch on folder shape (Step 2.5):**
 
-- **Per-finding folder:** today's execution loop (Steps 4a–4g below) runs once per instruction file.
+- **Per-finding folder:** today's execution loop (Steps 4a–4f below) runs once per instruction file.
 - **Single revise-doc folder:** the loop runs **exactly once** against the single `revise-*.md`. The item is **always classified standard** (it is a multi-finding spec edit, not a single-line code fix), and the reviewer role follows the single-revise-doc override in Step 4e (`consistency-auditor`, with 4e's fallback chain). If the reviewer FAILs three times, escalate to the user. The commit message on PASS is `revise {spec-stem}: apply review revisions`.
 
 For both branches, Steps 4a–4f apply as written; the differences above are the only deviations.
@@ -117,11 +127,17 @@ For each item (or group):
 
 ### 4a. Parallel execution policy (governs Step 4b–4f)
 
-An item's **write-set** is the set of paths in its instruction's `## Where`. Two instructions overlap if their write-sets intersect — reads are free. The write-set is also what Step 4d.1's tree check compares the working tree against after each implementer returns. Apply this policy to the execution loop below:
+An item's **write-set** is the set of paths in its instruction's `## Where`. Two instructions overlap if their write-sets intersect — reads are free. Apply this policy to the execution loop below:
 
 - Same-file writes → sequential.
 - Different-file writes → parallel batch.
-- **Concurrency limit:** max 3 items in flight (implementer or reviewer stage) at any moment.
+- **Concurrency limit:** max 3 items in flight at any moment.
+
+Three terms the git checks use:
+
+- An item is **in flight** from its implementer dispatch until its commit lands (4f.1) or, after a stop, until the user resolves it. Implementer stage, reviewer stage, PASS awaiting verification, and stopped all count; a committed item does not.
+- The **allowed set** is `D0` ∪ the run's own paths ∪ the write-sets of every in-flight item (Step 1.6 for the first two). It is what the working tree may contain at any moment.
+- **Stop the item** means dispatch no further stage for it and leave its edits in place; its write-set stays in the allowed set until the user resolves it. **Stop the batch** means dispatch nothing further for any item in the batch, let the implementers already running return, print the per-item status list from 4f.1 for the batch, and hand the tree to the user. The orchestrator cannot interrupt a running agent; a stop is a promise about what it will not start.
 
 Launch a parallel batch per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Agent call per item, batched in a single assistant message.
 
@@ -161,7 +177,7 @@ For trivial items: announce "(trivial — implementer `{resolved models.fix.impl
 - **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `comb:implementer`, the shipped writer with boundaries). The five review agents are read-only and cannot serve as implementers. A project with its own writer overrides `agents.implementer`; it is then foreign per the delivery contract and receives the role's `when_to_use` as its specialty statement, which carries the same boundaries.
 - **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items; pass the resolved model as the Agent call's `model` parameter.
 - **Fresh agent per item** — no accumulated state.
-- **Record HEAD before dispatch:** `git rev-parse HEAD`, kept per item as `HEAD0`. Step 4d.1 compares it when the implementer returns.
+- **HEAD is tracked per run, not per item:** `HEAD_expected` (Step 1.6) is what 4d.1 compares against when the implementer returns; this run's own commits advance it, so a batch-mate's commit is not mistaken for the implementer's.
 
 **Implementer dispatch prompt (5-part order):**
 
@@ -214,11 +230,11 @@ Execute the fix instruction at the path above. The instruction is the spec — d
 Report back in plain text with these sections in order:
 
 ### Files changed
-- Files you changed (paths only, one per line)
+- Every file you changed or created (paths only, one per line) — the orchestrator stages from this list and checks the tree against it, so it must be exact
 - For each file: a 1-line summary of what changed
 
 ### Expected outcome
-- Confirmation that the instruction's `## Expected Outcome` is met (yes/no with one-sentence rationale)
+- Confirmation that the instruction's `## Expected Outcome` is met (yes/no with one-sentence rationale), and the `Check:` result if you ran it
 
 ### Divergences  *(optional — include only if you deviated from the plan)*
 If you deviated from any step in the instruction's `## How` section, list each deviation with a one-line rationale. Format:
@@ -232,12 +248,13 @@ Do not include code in your reply — your edits are the artifact.
 
 ### 4d.1. When the implementer returns
 
-Two git checks, before any reviewer is dispatched:
+Three git checks, before any reviewer is dispatched:
 
-1. **HEAD unchanged.** `git rev-parse HEAD` equals the item's `HEAD0`. If not, the implementer committed. Stop the item, do not revert (a commit is not the orchestrator's to undo), and surface: `{code} — stopped: HEAD moved during implementer ({HEAD0} → {new}); resolve by hand before continuing`.
-2. **Tree inside the write-sets.** Every path in `git status --porcelain` must be in the union of the in-flight items' write-sets (`## Where`) and their reported file lists. A path outside the union → stop the batch and surface: `batch stopped: {paths} changed outside every in-flight write-set ({codes})`. Do not guess which item did it.
+1. **HEAD unchanged.** `git rev-parse HEAD` equals `HEAD_expected` (Step 1.6, advanced only by this run's 4f.1 commits). If not, the implementer committed. Stop the item, do not revert (a commit is not the orchestrator's to undo), and surface: `{code} — stopped: HEAD moved during implementer ({HEAD_expected} → {new}); resolve by hand before continuing`.
+2. **Reported list equals the tree inside the write-set.** `git status --porcelain -- <paths in ## Where>`, read as a set of paths, must equal the reported list. A dirty path inside `## Where` that was not reported, or a reported path that is not dirty → stop the item and surface which. A reported path outside `## Where` → stop the item; if that path lies inside a batch-mate's write-set → stop the batch. The reported list is what the reviewer scopes, the revert deletes, and the commit stages, so it must be exact; write-sets are disjoint within a batch, so attribution inside `## Where` is exact too.
+3. **Tree inside the allowed set.** Every path in `git status --porcelain` must be in the allowed set (4a). A path outside → stop the batch and surface: `batch stopped: {paths} changed outside every in-flight write-set ({codes})`. Do not guess which item did it.
 
-Bound: these checks compare paths and one SHA. They do not read diffs; the reviewer does.
+Bound: these checks compare paths and one SHA. They do not read diffs; the reviewer does. A write inside a batch-mate's `## Where` by the wrong implementer is indistinguishable by path from the batch-mate's own work; the batch-mate's reviewer sees it as a stray hunk, and its `Batch-mates' write-sets:` line is what lets it report a possible spill from `{code}` instead of failing on sight.
 
 ### 4e. Send to reviewer (always)
 
@@ -300,7 +317,7 @@ Verify the implementation executed the plan. **The plan file is the contract** (
 
 1. Read the instruction file; its `## How` section is what the implementer was supposed to do. Read its `## Attempts` section if present: it records earlier FAILs on this item and any change the orchestrator made to `## How` — verify against the current `## How`.
 2. Read the implementer's `## Divergences` section (if present). Each deviation must have a stated rationale.
-3. Read the actual diff. The item's changes are **uncommitted** at this point — the orchestrator commits only after a PASS (Step 4f.1) — so `HEAD` is the state before this item.
+3. Read the actual diff. The item's changes are **uncommitted** at this point — the orchestrator commits only after a PASS (Step 4f.1). `HEAD` may already include a batch-mate's commit; the path scope below is what isolates this item.
    - `git diff HEAD -- <files reported by implementer>` shows the item's changes, staged and unstaged, against `HEAD`. Step 4a forms a parallel batch only from items with disjoint write-sets, so the path scope isolates this item from its batch-mates.
    - `git diff` never lists an untracked file, so a file the implementer created does not appear in it. Run `git status --porcelain -- <files reported by implementer>` and read any path marked `??` in full instead of diffing it.
    - When `fix.commit_per_item` is off, `HEAD` has not moved since the run started, so this diff accumulates the earlier items too. Lean on the implementer's reported file list and the plan's `## Where` section to scope your reading.
@@ -338,7 +355,7 @@ Only flag genuine issues, not style preferences. One or two max. If nothing stan
 
 - **PASS** — proceed to **Step 4f.0** (verify), then **4f.1** (commit), then announce complete and move on. When the reviewer's `Unverified:` line names anything other than `nothing`, announce the item as `{code} — PASS (partial verification: {what the reviewer could not check})` and carry that note into the end-of-run summary. This is a log line, not a gate: it does not block the commit and asks the user nothing.
 - **FAIL** — in this order:
-  1. **Revert the attempt.** `git checkout -- <files reported by the implementer>`; delete every reported path that `git status --porcelain -- <files>` marks `??`; confirm `git status --porcelain -- <files>` prints nothing. A retry starts from the tree the first attempt started from — "fresh agent" is only true when the tree is fresh too.
+  1. **Revert the attempt.** The reported list equals the item's dirty footprint inside `## Where` (4d.1 check 2), so: `git checkout -- <reported files>`; delete every reported path that `git status --porcelain -- <reported files>` marks `??`; confirm `git status --porcelain -- <paths in ## Where>` prints nothing. Never touch a path inside another in-flight item's write-set. A retry starts from the tree the first attempt started from — "fresh agent" is only true when the tree is fresh too.
   2. **Record the attempt.** Append to the instruction file (create the section on the first FAIL):
      ```markdown
      ## Attempts
@@ -349,7 +366,7 @@ Only flag genuine issues, not style preferences. One or two max. If nothing stan
      ```
      The section is append-only. If the instruction is wrong, change `## How` and say so here; the next reviewer verifies against the changed How and can see it changed.
   3. **Retry.** Send a new implementer (Step 4d), then review again (4e). **After three FAILs on one item, stop and ask the user** — trivial or standard alike. Three failures mean the instruction or the classification is wrong, and that is the user's call.
-- **DISCOVERED** — the reviewer found an issue outside this fix. The orchestrator does not write the instruction: it dispatches a planner for it, exactly as `/comb:plan` Step 6 does for one finding. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan/SKILL.md` for the planner dispatch prompt (code-shaped flow) and dispatch it with the DISCOVERED block as the finding, the next free `X{n}` as the reference code, the same output folder, and `**Verified (from the review report):** none — discovered during fix`. The `X` prefix means "extra, found during execution" and is distinct from `D{n}` Deferred items. Add the resulting file to the end of the queue (its `Finding status` applies like any other). Announce:
+- **DISCOVERED** — the reviewer found an issue outside this fix. The orchestrator does not write the instruction: it dispatches a planner for it, exactly as `/comb:plan` Step 6 does for one finding. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan/SKILL.md` for the planner dispatch prompt (code-shaped flow) and dispatch it with the DISCOVERED block as the finding, the next free `X{n}` as the reference code, the same output folder, and `**Verified (from the review report):** none — discovered during fix`. The planner prompt's other inputs: `Base:` is `paths.base_branch`; `Report under planning:` is `none — discovered during fix by {code}'s reviewer`; the finding's severity is Medium unless the block says otherwise; its source agent (for the plan file's `**Specialty:**`) is the reviewing role; the model is `models.plan` (`models.the_desert` in a sweep). The file it writes lands in the instruction folder, which is the run's own. The `X` prefix means "extra, found during execution" and is distinct from `D{n}` Deferred items. Add the resulting file to the end of the queue (its `Finding status` applies like any other). Announce:
   ```
   M3 — PASS (5/15 complete)
   Discovered issue added: X1 — {title} (planned by {planner model}; queue is now 16 items)
@@ -360,14 +377,20 @@ Only flag genuine issues, not style preferences. One or two max. If nothing stan
 
 ### 4f.0. Verify before commit
 
-Run the project's verification — typecheck, tests, lint — chosen the way `/comb:review` Step 5 chooses it: commands named in `CLAUDE.md`, else the project's build or package manifest(s); when neither names one, skip with the note `verification: none configured` on the item's progress line. Pipe stderr with `2>&1`.
+Run the verification command recorded at Step 1.6 (`2>&1`). When Step 1.6 recorded `none configured`, skip with the note `verification: none configured` on the item's progress line.
 
-- Exit zero → proceed to 4f.1.
-- Non-zero → the item is a **FAIL**: take the 4f FAIL path with the command's output as the reviewer feedback (the `**Reviewer:**` line of the Attempt reads `verification: <command> exited <n>` followed by the output's relevant lines).
+**When it runs.** Only when no implementer of the batch is in flight: reviewers are read-only, so the tree is quiescent then, and the suite does not see a batch-mate's half-written file. A PASSed item waits for that point before verifying and committing; a batch whose items all PASS is verified once, which is also the cheap choice when the command is slow.
 
-When the command is slow, run it once per parallel batch after every item in the batch has a PASS and before any of them commits. Attribute a failure by the file paths in its output to the items whose write-sets contain them; when it names none, every PASSed item in the batch takes the FAIL. No commit lands on red.
+**Reading the result.**
 
-Bound: this runs the project's own commands and reads their exit codes. It does not decide what the right command is beyond review Step 5's rule, and it does not interpret output beyond path matching.
+- Exit zero → every waiting item proceeds to 4f.1.
+- Failing lines identical to the Step 1.6 baseline → not caused by this run; proceed as if green and carry `verification: red before the run (unchanged)` on the item's progress line.
+- A new failure that names a path inside an in-flight item's write-set → that item's **FAIL**: for a PASSed item, take the 4f FAIL path with the output as the reviewer feedback (the `**Reviewer:**` line of the Attempt reads `verification: <command> exited <n>` followed by the relevant lines); for an item still under review, its verdict is a FAIL when it returns, whatever the reviewer said.
+- A new failure that names no in-flight write-set (test-file paths, or none) → every PASSed item waiting at this point takes the FAIL.
+
+No commit lands on red.
+
+Bound: this runs the project's own command and reads its exit code and output. It does not decide what the right command is beyond review Step 5's rule, does not map test files to the sources they cover, and does not interpret output beyond comparing lines with the baseline and matching paths against write-sets. When a suite reports test-file paths rather than sources, the last rule can fail a whole batch for one item's breakage; sequential items avoid that at the cost of one run per item.
 
 ### 4f.1. Commit on PASS
 
@@ -380,13 +403,14 @@ git commit -m "<finding-code>: <title>"
 
 The orchestrator runs the commit, not the implementer subagent. Three rules:
 
-- **Stage from the reported list.** Step 4d.1 already confirmed the tree holds nothing outside the in-flight write-sets, so the reported list is complete for this item. (When the user chose `(c) proceed without per-item commits` at Step 1.5, `commit_per_item` is effectively off for this run.)
-- **After the commit:** `git status --porcelain` minus the paths of the other in-flight items must be empty. Anything left → stop the run and surface: `tree not clean after {code}'s commit: {paths}` (a hook that rewrites files, or an edit nobody reported).
-- **On commit failure** (pre-commit hook reject, signing failure, conflict, anything non-zero): abort the run and surface the error, then print one line per in-flight item so nothing is lost:
+- **Stage from the reported list.** Step 4d.1 check 2 confirmed it equals the item's dirty footprint inside `## Where`, so it is complete for this item. (When the user chose `(c) proceed without per-item commits` at Step 1.5, `commit_per_item` is effectively off for this run.)
+- **After the commit:** advance `HEAD_expected` to the new `git rev-parse HEAD`. Then `git status --porcelain` minus the allowed set (4a; this item is no longer in flight) must be empty. Anything left → stop the run and surface: `tree not clean after {code}'s commit: {paths}` (a hook that rewrites files, or an edit nobody reported).
+- **On commit failure** (pre-commit hook reject, signing failure, conflict, anything non-zero): abort the run and surface the error, then print the per-item status list so nothing is lost (the same list a batch stop prints, 4a):
   ```
   {code} — committed
   {code} — PASS, uncommitted ({files})
   {code} — in progress ({implementer | reviewer})
+  {code} — stopped ({why})
   ```
   Do not retry blindly. The user investigates.
 

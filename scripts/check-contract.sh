@@ -95,10 +95,15 @@ fi
 # 8. Every comb:* subagent_type in defaults.json has an agent file and sits in the native
 #    allowlist of shared/dispatch-delivery.md; every agent file is a default somewhere.
 while IFS= read -r t; do
+  case "$t" in MISSING*) echo "FAIL: defaults.json role(s) without subagent_type: ${t#MISSING }"; fail=1; continue;; esac
   n="${t#comb:}"
   [ -f "agents/$n.md" ] || { echo "FAIL: defaults.json names $t but agents/$n.md is missing"; fail=1; }
   grep -qF -- "- \`$t\`" shared/dispatch-delivery.md || { echo "FAIL: $t is not in the native allowlist"; fail=1; }
-done < <(python3 -c 'import json;[print(v["subagent_type"]) for v in json.load(open("config/defaults.json"))["agents"].values() if v["subagent_type"].startswith("comb:")]')
+done < <(python3 -I -c 'import json,sys
+a=json.load(open("config/defaults.json"))["agents"]
+bad=[k for k,v in a.items() if not isinstance(v.get("subagent_type"),str)]
+if bad: print("MISSING " + " ".join(bad))
+[print(v["subagent_type"]) for k,v in a.items() if k not in bad and v["subagent_type"].startswith("comb:")]')
 for f in agents/*.md; do
   n=$(basename "$f" .md)
   grep -qF "\"comb:$n\"" config/defaults.json || { echo "FAIL: agents/$n.md is not a default subagent_type in config/defaults.json"; fail=1; }

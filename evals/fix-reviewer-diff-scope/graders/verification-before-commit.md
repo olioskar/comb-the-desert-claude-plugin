@@ -1,6 +1,6 @@
 ---
 type: tool_used
 tool: Bash
-input_match: 'npm test|node test\.js'
-min: 1
+input_match: 'npm (run )?test|node test\.js'
+min: 2
 ---

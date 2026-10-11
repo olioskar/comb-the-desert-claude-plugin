@@ -12,7 +12,7 @@ user-invocable: true
 disable-model-invocation: true
 ---
 
-You're running the full comb pipeline as one continuous sweep. No pauses between steps, no items skipped, no confirmations requested. You comb the desert until it's clean.
+You're running the full comb pipeline as one continuous sweep. No pauses between steps, no confirmations requested, and no item skipped except one the planner could not reproduce. You comb the desert until it's clean.
 
 ## Inputs
 
@@ -36,7 +36,7 @@ These apply to every sub-step. Where a sub-skill's text conflicts with them, the
 - **Directives.** The focus-brief matcher runs once (Step 2) and its result carries through review → plan → fix.
 - **Deferral.** Every finding is planned and fixed, Deferred included. "Deferred" is not a category in this mode.
 - **Not reproduced.** An instruction whose `**Finding status:**` is `not reproduced` is skipped, not queued and not asked about; the final summary lists it under `Not reproduced (skipped)`.
-- **Confirmations.** None between steps. Groupings, ordering, trivial/standard classification, and a focus brief that contradicts shipped behavior (review's edge case) are decided, not asked: follow the shipped behavior and log the conflict. Review's report is logged, not presented. The only questions in a sweep: scope at the start (if ambiguous), fix's dirty-tree pre-flight (only when `git status --porcelain` is non-empty), and "run again?" at the end. The stop after three FAILs on one item (fix 4f) is not a question but a halt: the sweep stops there, as `/comb:fix` does.
+- **Confirmations.** None between steps. Groupings, ordering, trivial/standard classification, and a focus brief that contradicts shipped behavior (review's edge case) are decided, not asked: follow the shipped behavior and log the conflict. Review's report is logged, not presented. The only questions in a sweep: scope at the start (if ambiguous), fix's dirty-tree pre-flight (only when `git status --porcelain` is non-empty), and "run again?" at the end. Fix's Step 1.6 red-baseline question is logged, not asked; the sweep proceeds. The stop after three FAILs on one item (fix 4f) and a batch stop (fix 4a) are halts, not questions: the sweep prints fix's per-item status list and ends there, as `/comb:fix` does.
 - **Commits.** Per `fix.commit_per_item`, unchanged.
 - **Focus brief.** `$ARGUMENTS` reaches every dispatch in every step under `## User focus for this run`, without re-asking.
 

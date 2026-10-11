@@ -69,7 +69,7 @@ python3 -I scripts/replay-graders.py evals/<name> /private/tmp/e-XXXX
 | `config-null-delete` | `null`-as-delete merge semantics regressing (deleted role still dispatched) |
 | `noncode-shortcircuit` | `/comb:the-desert` running plan/fix on a prose artifact |
 | `fix-reviewer-diff-scope` | The fix reviewer reading the wrong diff (`HEAD~1` bug class, v0.9.0); a commit landing without the project's test run (0.14.0); HEAD and tree checks skipped around the implementer |
-| `dispatch-delivery` | Directive embedding returning for foreign agents (paths-only contract) |
+| `dispatch-delivery` | Directive embedding returning for foreign agents (paths-only contract); the scaffold overrides the writer with `general-purpose` because the shipped default is native since 0.14.0 |
 | `manifest-slice` | Whole-manifest delivery returning: agents must get a per-run excerpt (entity-page section in, pdf and theme out) and the orchestrator must never print the manifest body; also `Verified:` lines in the report, `.comb/excerpts` cleaned, `model` passed on dispatch |
 | `fix-auto-off` | The model-only fix entry running without `fix.model_invocation: true` (must refuse, naming the observed value and `/comb:fix`, with no edits) |
 | `fix-auto-on` | The model-only fix entry refusing or stalling when the flag is set (must run the fix workflow and apply the plan) |

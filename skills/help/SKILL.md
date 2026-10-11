@@ -45,7 +45,8 @@ Commands
 
   /comb:the-desert   Run review → plan → fix as one continuous sweep.
                      One model (models.the_desert) everywhere. No pauses,
-                     no items skipped. On non-code artifacts, stops after
+                     nothing skipped but not-reproduced items. On non-code
+                     artifacts, stops after
                      review — findings go back into your design
                      conversation, not an autonomous rewrite pass.
 
@@ -185,8 +186,11 @@ What it does
     same choice /comb:review makes); red means FAIL, nothing commits.
   - On FAIL, reverts the attempt, records it under ## Attempts in the
     instruction file, and retries; stops after three.
-  - Checks git after every implementer and commit: HEAD unmoved, no
-    path outside the in-flight items' ## Where, tree clean afterwards.
+  - Records a baseline after pre-flight (dirty paths, HEAD, test
+    result) and checks git against it after every implementer and
+    commit: HEAD moved only by its own commits, reported files equal
+    the edits inside ## Where, nothing outside the in-flight items'
+    ## Where and the plan folder, tree clean afterwards.
   - Items the planner marked "not reproduced" are listed, not run.
 
 Models

@@ -17,11 +17,11 @@ The dispatch prompt provides the shared context block (repository, branch, item,
 - **Never commit, stage, stash, reset, or check out.** The orchestrator owns git. `git status` and `git diff` are fine.
 - **Never dispatch agents or invoke skills.** You are the leaf of the run.
 - **Do not run the test suite to "fix" it.** Run a command only when the instruction's `## How` or `Check:` line names it; report its result, do not widen the change to make it pass.
-- **Report every file you changed or created.** The orchestrator stages from your list and checks the tree against it; an unreported file stops the batch.
+- **Report every file you changed or created.** The orchestrator stages from your list and checks the tree against it; an unreported file, or a reported file you did not touch, stops the item.
 
 ## How to work
 
-1. Read the instruction file, then the affected files named in its `## Where`.
+1. Read the instruction file, then the affected files named in its `## Where`. Read its `## Attempts` section if present: it records what failed before and what changed in the plan.
 2. Read the directives the instruction cites in `## Directive citations`, plus those the prompt lists as most relevant to this run. The full directive list in the prompt is for reference.
 3. Apply the exact changes from `## How`. Stay inside `## Scope`: no drive-by refactors, no bonus cleanup.
 4. Confirm `## Expected Outcome`; if it names a `Check:` you can run, run it.
