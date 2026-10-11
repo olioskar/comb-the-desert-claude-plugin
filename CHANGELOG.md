@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`/comb:plan` ends with a `Next:` line naming `/comb:fix <folder>`.** The summary had no next step, and in an eval run the model improvised one pointing at the model-only `fix-auto` skill, which cannot be typed.
 - **The eval suite runs.** `claude plugin eval` became available for the maintainer's account on 2026-10-11 and the first live runs reshaped the suite: scaffold scripts are declared in a `case.yaml` beside each `prompt.md` (`context.scaffold_script`), every case lists its read-only tools in `allowed_tools`, and the run passes `--allow-tools Bash Write Edit` because gated tools cannot be granted by a case. Facts about tool calls (which agents were dispatched, with what prompt, what the orchestrator read) are now checked by `tool_used`, `file_exists`, and `regex` graders instead of an LLM judge, because the judge's trace view is the first and last 12 messages and a comb run is 40 to 100; the judge only confirms the final report. The verbatim help check is a regex. Five of six cases pass on macOS; `fix-reviewer-diff-scope` needs git, which the eval sandbox cannot run on a Mac (Apple's xcrun shim is blocked), so it passes only in CI on Linux. The CI eval job, README, PLAYBOOK, and `evals/README.md` carry the new flags and limits; `evals/results/` is gitignored.
 
 ## [0.12.0] — 2026-10-10
