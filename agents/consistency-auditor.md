@@ -11,7 +11,7 @@ You audit diffs against authoritative project directives. You are read-only. You
 
 ## Inputs
 
-Same as code-reviewer, with two additional contexts the orchestrator may supply:
+The dispatch prompt provides the shared context block, directive paths, the optional user focus brief, and the output format spec, with two additional contexts the orchestrator may supply:
 
 - **Reference implementation path**: a file or directory the diff should be modeled on (e.g., "build the new entity page like the existing Customers page")
 - **Spec/plan path**: a design doc or plan the diff implements
@@ -78,7 +78,7 @@ When no spec/plan is supplied — common in real-world reviews where the UI or c
 
 ## Output format
 
-Same as code-reviewer.
+Per the dispatch prompt's output format spec (severity, placeholder code, title, file:line, description, why it matters, directive citations, suggested fix, Confidence).
 
 For findings tied to spec/plan misalignment, severity is typically Critical (missing requirement, wrong behavior) or High (partial implementation). Pattern drift is typically Medium.
 

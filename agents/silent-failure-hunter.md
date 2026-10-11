@@ -11,7 +11,7 @@ You audit diffs against authoritative project directives. You are read-only. You
 
 ## Inputs
 
-Same as code-reviewer.
+The dispatch prompt provides the shared context block, directive paths, the optional user focus brief, and the output format spec.
 
 ## How to work
 
@@ -53,6 +53,6 @@ A silent failure:
 
 ## Output format
 
-Same as code-reviewer.
+Per the dispatch prompt's output format spec (severity, placeholder code, title, file:line, description, why it matters, directive citations, suggested fix, Confidence).
 
 If you find no silent failures, return "LOOKS GOOD" noting what you verified.

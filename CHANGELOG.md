@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-10-11
+
+Corrections and dedup from the family-lean review (four reports: a writing-skills pass and three adversarial lenses — token economy and deterministic tooling, fan-out risk, consistency and currency against the 5.5 model family). No new capability; the contract says the same things in fewer places.
+
 ### Changed
+
+- **Dispatch prompts deliver the family's own artifacts by path, once.** The implementer prompt carried the instruction file by path and again in full; the fix-reviewer prompt carried it twice more and the implementer's reply twice; plan's non-code prompt embedded the report it also named. The delivery contract's paths-not-contents rule now applies to them, saving on the order of a thousand output tokens per fix item. Writers (planner, implementer, fix reviewer) get the focus brief verbatim, without the reviewer framing sentence that told them to "surface other issues" they have no slot for.
+- **`/comb:the-desert` states each override once.** Models, deferral, confirmations, commits, config reuse, and the focus-brief flow live in one Overrides block; the comparison table, the per-step restatements, and the ground rules that paraphrased them are gone, as are two copies that had drifted ("only question" vs three allowed questions). The sub-skills reuse the config loaded in Step 1. Step announcements are emitted in the same message as the next step's first tool call, because a text-only turn ends the sweep.
+- **The dispatch tool is `Agent`.** Every skill, shared block, and README said `Task`; Claude Code renamed it in 2.1.63 and the evals already used the new name. `WebFetch` is dropped from every `allowed-tools` list — no skill used it.
+- **Restatements removed.** The merge-rule parentheticals beside the shared reference, configure's copy of the config layer list, the 6-subagent arithmetic, the unshipped skip-trivial-review paragraph, the scanner/shaver ineligibility sentence outside review, two of three Edge-case paragraphs, and the lists of build-manifest filenames (the project rule is "trust the model"). The review template's `TypeScript (tsc --noEmit)` row is now a generic typecheck/build row. Review also excludes the `implementer` role from the palette explicitly; it was eligible by the text.
+- **User-facing text names config keys, not model aliases.** help, README, the-desert, and the fix announce line said opus/sonnet where the value is `models.*`; `opus` and `sonnet` now resolve to the 5.5 models, so the alias names were also misleading about which model runs.
+- **Agent bodies no longer say "Same as code-reviewer"** for inputs and output format; the agent never sees that file. They name what the dispatch prompt provides.
+- **`pattern-shaver`'s description carries triggers only**, per the rule applied to the skills in 0.10.0.
+
+### Fixed
+
+- **Contradictions.** Review's ground rule said round N is "computed by counting existing reports + 1" while Step 8 said parse, never count (the 0.10.0 change missed the ground rule). The palette floor was 1 in three places and 2 in three others; it is 1 everywhere. The single-revise fix reviewer rule in Step 4 said "always consistency-auditor" with no fallback while 4e kept the fallback chain; Step 4 now defers to 4e. The-desert's "This is the only question you ask" contradicted its own three allowed questions.
+- **Stale statements.** README's Status line was a release behind (now gated); `smoke.sh` still called itself an interim gate for a feature that shipped; `dispatch-delivery.md` asserted a `run_in_background` platform fact that is version-dependent (the instruction stands without it).
+- **`check-contract.sh` needles.** Two of seven re-inline needles matched no current `shared/` text, so a copy of a live block passed the gate. Needles are now derived from the opening sentence of each `shared/*.md`, plus the one historical needle. The gate also asserts README's version against plugin.json. Rules renumbered 1–7.
+- **Evals.** `fix-reviewer-diff-scope`'s only grader was an `llm` judge over the trace, which sees the first and last 12 messages and so could not observe the `HEAD~1` regression it names; `noncode-shortcircuit` had the same shape. Both now use `tool_used`/`file_exists`/`regex` graders for the middle of the run and a `last_message` judge for the summary. New graders: the plan summary ends with `Next: /comb:fix …` and never names `fix-auto`; the Agent call carries a `model`; the review report has `Verified:` lines; `.comb/excerpts` is empty at run end. Two new cases cover the `fix-auto` gate off and on (eight cases). CI pins `--model` and `--judge-model`.
+
+### Added
+
+- `displayName: "Comb the Desert"` in plugin.json.
 
 - **`/comb:plan` ends with a `Next:` line naming `/comb:fix <folder>`.** The summary had no next step, and in an eval run the model improvised one pointing at the model-only `fix-auto` skill, which cannot be typed.
 - **The eval suite runs.** `claude plugin eval` became available for the maintainer's account on 2026-10-11 and the first live runs reshaped the suite: scaffold scripts are declared in a `case.yaml` beside each `prompt.md` (`context.scaffold_script`), every case lists its read-only tools in `allowed_tools`, and the run passes `--allow-tools Bash Write Edit` because gated tools cannot be granted by a case. Facts about tool calls (which agents were dispatched, with what prompt, what the orchestrator read) are now checked by `tool_used`, `file_exists`, and `regex` graders instead of an LLM judge, because the judge's trace view is the first and last 12 messages and a comb run is 40 to 100; the judge only confirms the final report. The verbatim help check is a regex. Five of six cases pass on macOS; `fix-reviewer-diff-scope` needs git, which the eval sandbox cannot run on a Mac (Apple's xcrun shim is blocked), so it passes only in CI on Linux. The CI eval job, README, PLAYBOOK, and `evals/README.md` carry the new flags and limits; `evals/results/` is gitignored.
