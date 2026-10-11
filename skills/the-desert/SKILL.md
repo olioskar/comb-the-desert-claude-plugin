@@ -31,7 +31,7 @@ Same as `/comb:review`:
 2. **Base branch** — config or `main`
 3. **Focus brief** — `$ARGUMENTS`
 
-If scope is ambiguous, ask once. This is the only question you ask.
+If scope is ambiguous, ask once. This is the first of the three allowed questions (see Ground rules).
 
 ## Step 1: Load config
 

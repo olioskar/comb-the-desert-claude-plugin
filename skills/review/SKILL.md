@@ -115,7 +115,7 @@ Read the diff in detail. Understand what changed: hooks, CSS, types, tests, erro
 
 **Picking rule (judgment-based):** the orchestrator model itself picks the palette by reading the diff, weighing each agent's `when_to_use`, and applying the focus brief. There is no scoring algorithm — the picking is a judgment call you make explicitly and surface to the user.
 
-Pick 2–5 agents from `config.agents` based on:
+Pick 1–5 agents from `config.agents` based on:
 - Diff content (what's actually in the files)
 - Each agent's `when_to_use` (in config)
 - The focus brief (required-include any agent matching it)
@@ -391,7 +391,7 @@ Then, last of all, remove this run's excerpt working files: `python3 -I "${CLAUD
 - **The report's voice is authoritative.** Step 7's verification gate is what earns it. A particular that survived no check is marked, not stated.
 - **Project-aware.** Every agent gets the project's directives.
 - **Severity is honest.** Critical means production bugs.
-- **Round-aware.** The report filename includes round N, computed by counting existing reports + 1. v1 does not parse prior reports for fixed-findings status — agents may flag items that already shipped in a prior round; deduplication against prior rounds is future work.
+- **Round-aware.** The report filename includes round N, parsed from existing filenames per Step 8. Prior reports are not parsed for fixed-findings status — agents may flag items that already shipped in a prior round.
 
 ## Edge case: focus brief contradicts shipped behavior
 

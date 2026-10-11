@@ -108,7 +108,7 @@ Inputs
                 priority.
 
 What it does
-  - Picks 2–5 reviewer agents based on the diff and the focus brief.
+  - Picks 1–5 reviewer agents based on the diff and the focus brief.
   - Dispatches them in parallel against the project's directives.
   - Runs typecheck/tests in parallel.
   - Verifies each finding's anchors and counts, then consolidates

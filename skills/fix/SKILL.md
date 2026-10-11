@@ -101,7 +101,7 @@ The user decides. Grouped items share one implementation pass but each sub-item 
 **Branch on folder shape (Step 2.5):**
 
 - **Per-finding folder:** today's execution loop (Steps 4a–4g below) runs once per instruction file.
-- **Single revise-doc folder:** the loop runs **exactly once** against the single `revise-*.md`. The item is **always classified standard** (it is a multi-finding spec edit, not a single-line code fix), and the reviewer is **always** `agents.consistency-auditor` (the same anchor that produced the upstream review). The escape hatch (4g) does not apply — there is only one item, and if the reviewer FAILs three times, escalate to the user. The commit message on PASS is `revise {spec-stem}: apply review revisions`.
+- **Single revise-doc folder:** the loop runs **exactly once** against the single `revise-*.md`. The item is **always classified standard** (it is a multi-finding spec edit, not a single-line code fix), and the reviewer role follows the single-revise-doc override in Step 4e (`consistency-auditor`, with 4e's fallback chain). If the reviewer FAILs three times, escalate to the user. The commit message on PASS is `revise {spec-stem}: apply review revisions`.
 
 For both branches, Steps 4a–4f apply as written; the differences above are the only deviations.
 

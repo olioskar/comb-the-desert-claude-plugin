@@ -29,4 +29,4 @@ Resolve the model with this priority: `agents.<role>.model` if set; otherwise th
 
 ## Parallel dispatch
 
-Launch parallel dispatches by issuing multiple Task tool calls in a single assistant message — one call per agent. `run_in_background: true` is a Bash-tool parameter, not a Task-tool parameter; parallel agent dispatch happens via batched tool calls.
+Launch parallel dispatches by issuing multiple Agent tool calls in a single assistant message — one call per agent.
