@@ -341,6 +341,8 @@ High ({count}):
 
 Medium ({count}):
   - ...
+
+Next: /comb:fix {output_folder}
 ```
 
 **Non-code report — present the single revise-doc:**
@@ -349,7 +351,11 @@ Medium ({count}):
 Revision instructions ready: {output_folder}/revise-{spec-stem}.md
 
 {N} revisions targeting `{spec_path}`: {breakdown by label}
+
+Next: /comb:fix {output_folder}
 ```
+
+The `Next:` line names `/comb:fix`, the command the user types. Never point the user at the `fix-auto` skill; it is model-only and cannot be typed.
 
 **Manifest notes (non-blocking).** Append the excerpt log line verbatim, then any staleness note (`stale: yes` → `PATTERNS manifest may be stale — consider re-running /comb:patterns.`; `unknown` → `PATTERNS staleness unknown (<detail>).`) or semantic-refresh note recorded during this run. Then, last of all: `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>`.
 
