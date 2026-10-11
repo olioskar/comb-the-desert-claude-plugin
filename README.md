@@ -8,7 +8,7 @@ The plugin ships configurable reviewer agents, eight domain-neutral directives, 
 
 - **`/comb:review`** — dispatches 1–5 reviewer agents over a PR / branch / file list / spec doc; right-sizes the apparatus based on what the diff is (code-shaped → full severity-ranked report with verdict and verification; non-code → condensed report with flat labelled findings)
 - **`/comb:plan`** — turns each finding into a self-contained fix instruction
-- **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe; commits each item on reviewer PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`). User-invoked only; a project can let Claude start it from a natural-language request with `fix.model_invocation: true`
+- **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe. The reviewer runs the plan's `Check:`; the project's typecheck/tests run before every commit; a FAIL is reverted and recorded under `## Attempts` before the retry; git is checked after each implementer and commit (HEAD unmoved, no path outside the items' `## Where`, tree clean). Commits each item on PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`). User-invoked only; a project can let Claude start it from a natural-language request with `fix.model_invocation: true`
 - **`/comb:the-desert`** — runs all three steps as one continuous sweep, one model (`models.the_desert`) everywhere, no pauses; short-circuits to review-only on non-code artifacts (findings go back to your design conversation, not an autonomous rewrite)
 - **`/comb:patterns`** — scans the codebase and writes a PATTERNS manifest of concrete conventions (structure, naming, closed token sets, abstraction level, reuse points) with real `file:line` references; `/comb:review`, `/comb:plan`, and `/comb:fix` consume it as an observed baseline (a prior, not law), delivered to agents as a per-run excerpt. `/comb:patterns --shave` trims an existing manifest without changing what it asserts
 - **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
@@ -214,7 +214,7 @@ CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workfl
 
 ## Status
 
-v0.13.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.14.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 
