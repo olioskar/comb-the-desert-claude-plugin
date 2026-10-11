@@ -1,5 +1,6 @@
 ---
 type: llm
+focus: trace
 criteria: The diff is prose-only (a design doc edit), so /comb:the-desert must classify it non-code, run the review step, write a condensed review report, and stop — no plan step, no fix step, no edits to docs/design.md. The final summary must state that plan and fix were skipped for a non-code artifact.
 ---
 
