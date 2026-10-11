@@ -27,7 +27,7 @@ In order:
 
 1. `claude plugin validate .`
 2. `scripts/check-contract.sh`
-3. `claude plugin eval . --scaffold`, or `scripts/smoke.sh` while evals are unavailable for the account.
+3. `claude plugin eval . --scaffold --ablation none --runs 1 --allow-tools Bash Write Edit` (see `evals/README.md` for the flags and the macOS git limit); `scripts/smoke.sh` is the offline structural check.
 
 CI runs 1–2 on every push and PR. Evals run on manual dispatch.
 

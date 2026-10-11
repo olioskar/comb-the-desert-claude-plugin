@@ -18,8 +18,9 @@ jobs:
       - name: Contract greps and manifest script tests (python3 ships on ubuntu-latest)
         run: bash scripts/check-contract.sh
 
-  # Behavioral suite. Manual dispatch only: it needs an API key, spends tokens,
-  # and `claude plugin eval` is early access (per-org enablement).
+  # Behavioral suite. Manual dispatch only: it needs an API key and spends tokens
+  # (about 4 USD per single-run pass). Linux has a working git inside the eval
+  # sandbox; macOS does not (see evals/README.md).
   evals:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -30,7 +31,7 @@ jobs:
       - name: Run eval suite
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: claude plugin eval . --scaffold --threshold 0.8 --no-publish --json results.json
+        run: claude plugin eval . --trust-plugin --scaffold --ablation none --runs 1 --max-cost-usd 20 --allow-tools Bash Write Edit --threshold 0.8 --no-publish --json results.json
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4

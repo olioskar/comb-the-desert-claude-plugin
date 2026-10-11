@@ -13,3 +13,6 @@ docs/
 # Python bytecode from the manifest script and its tests
 __pycache__/
 *.pyc
+
+# Eval run output (claude plugin eval writes reports and aggregate JSON here)
+evals/results/

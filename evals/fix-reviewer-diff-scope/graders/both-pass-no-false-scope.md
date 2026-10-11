@@ -1,5 +1,6 @@
 ---
 type: llm
+focus: trace
 criteria: Two same-file items run sequentially with per-item commits. M1 must be implemented, reviewed PASS, and committed; then M2 must be implemented, reviewed PASS, and committed. The M2 reviewer must scope its diff with `git diff HEAD` (plus `git status --porcelain` for new files) and must NOT flag M1's already-committed rename as a scope violation. Any reviewer use of `git diff HEAD~1` for an item's review, or a FAIL on M2 caused by M1's changes appearing in the reviewed diff, is the regression under test.
 ---
 
