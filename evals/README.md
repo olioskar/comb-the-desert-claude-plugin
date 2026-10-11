@@ -22,10 +22,11 @@ First live run on 2026-10-11 (Claude Code 2.1.296). What it established:
   judge. Report contents are graded with `target: { source: file, path: … }`.
 - **Scaffolds commit.** Every scaffold with a git repo commits its initial state so a reviewer's `git diff HEAD` has a HEAD to diff against.
 - **git on macOS.** Inside the eval sandbox `/usr/bin/git` is Apple's xcrun shim, which
-  needs a cache file the sandbox denies, and `/Library/Developer/CommandLineTools` is
-  unreadable from the sandbox. Cases that need git for diffs or commits
-  (`fix-reviewer-diff-scope` above all) cannot pass on a Mac without a standalone git
-  on the PATH. `fix-auto-on` turns per-item commits off for this reason.
+  needs `/Library/Developer/CommandLineTools`, and the sandbox cannot read it. Install a
+  standalone git (`brew install git`) and keep `/opt/homebrew/bin` ahead of `/usr/bin` on
+  the `PATH`; the run inherits it. Confirmed 2026-10-11: `fix-reviewer-diff-scope` passes
+  on macOS with Homebrew git 2.56.0. `fix-auto-on` still turns per-item commits off so it
+  needs no commits of its own.
 - **Pinning.** The CI job pins `--model` and `--judge-model` so a model rollout is not
   read as a plugin regression. The local command below floats on purpose.
 - **Ablation.** `claude plugin eval .` defaults to a with-without arm that runs every
