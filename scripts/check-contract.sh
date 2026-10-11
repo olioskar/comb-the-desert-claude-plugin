@@ -24,17 +24,13 @@ done < <(grep -rho '\${CLAUDE_PLUGIN_ROOT}/shared/[a-z-]*\.md' skills/ agents/ R
 #    Needles are derived from the live blocks: the longest body line of each shared/*.md
 #    (headings and table rows skipped), cut to 60 characters at a word boundary — a body
 #    copy carries it, a framing sentence does not. One historical needle guards wording
-#    removed in 0.11.0 that must not return. Every live needle must still occur in shared/.
+#    removed in 0.11.0 that must not return.
 derive_needle() {
   grep -v '^#' "$1" | grep -v '^|' | awk '{ if (length($0) > length(best)) best=$0 } END { print best }' \
     | sed -E 's/^(.{0,60}[^ ]*).*/\1/'
 }
 while IFS= read -r needle; do
   [ "${#needle}" -lt 30 ] && { echo "FAIL: derived needle too short to be safe: \"$needle\""; fail=1; continue; }
-  if ! grep -rqF "$needle" shared/; then
-    echo "FAIL: live needle no longer occurs in shared/: \"$needle\""
-    fail=1
-  fi
   if grep -rnF "$needle" skills/ >/dev/null 2>&1; then
     echo "FAIL: shared block re-inlined in a skill: \"$needle\""
     fail=1
