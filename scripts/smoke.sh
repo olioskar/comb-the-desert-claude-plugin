@@ -25,7 +25,7 @@ out="$(claude -p "/comb:help fix" --plugin-dir . --allowedTools "Skill Read" 2>&
   echo "FAIL: /comb:help fix run errored"
   exit 1
 }
-echo "$out" | grep -q "Trivial-only escape hatch" || {
+echo "$out" | grep -q "Reviewer specialty is matched to the plan" || {
   echo "$out"
   echo "FAIL: /comb:help fix did not print the per-command detail"
   exit 1

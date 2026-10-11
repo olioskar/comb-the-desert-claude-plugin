@@ -1,0 +1,8 @@
+beyond     src/web/pages/HomePage.tsx:12,60-80 — 1. Web pages (file has 50 lines)
+missing    src/web/pages/Nowhere.tsx:3 — 1. Web pages
+beyond     HomePage.tsx:99 — 1. Web pages (resolved to src/web/pages/HomePage.tsx, 50 lines)
+ambiguous  Button.tsx:3 — 2. Components (resolves to src/web/components/Button.tsx, src/web/legacy/Button.tsx)
+missing    Ghost.tsx:1 — 2. Components (no file by that name under the section's scope roots)
+anchors: 7 checked in 2 area sections; 4 unresolved (2 missing, 2 beyond end), 1 ambiguous
+bound: file existence and line bounds only; the cited line is not read and the claim is not judged
+exit=0

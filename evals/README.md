@@ -33,6 +33,10 @@ First live run on 2026-10-11 (Claude Code 2.1.296). What it established:
   not byte for byte, and the default judge is a small model that votes on wording. Graders
   on the final message match the template's fixed labels (`Plan: skipped … Fix: skipped`)
   with slack between them, and the outcome is graded from files and tool calls.
+- **Grader minimums on the fix case.** For two sequential items the fix skill mandates 5 `git rev-parse HEAD`,
+  8 `git status --porcelain`, and 3 verification runs; the graders ask for 4, 5, and 2. The one-under margin
+  is for an orchestrator that combines calls (`git rev-parse HEAD && git status --porcelain` counts once per
+  pattern); tightening to the mandated count would fail a conforming run.
 - **Pinning.** The CI job pins `--model` and `--judge-model` so a model rollout is not
   read as a plugin regression. The local command below floats on purpose.
 - **Ablation.** `claude plugin eval .` defaults to a with-without arm that runs every
@@ -68,8 +72,8 @@ python3 -I scripts/replay-graders.py evals/<name> /private/tmp/e-XXXX
 | `help-overview` | Help text drift; paraphrased instead of verbatim output |
 | `config-null-delete` | `null`-as-delete merge semantics regressing (deleted role still dispatched) |
 | `noncode-shortcircuit` | `/comb:the-desert` running plan/fix on a prose artifact |
-| `fix-reviewer-diff-scope` | The fix reviewer reading the wrong diff (`HEAD~1` bug class, v0.9.0) |
-| `dispatch-delivery` | Directive embedding returning for foreign agents (paths-only contract) |
+| `fix-reviewer-diff-scope` | The fix reviewer reading the wrong diff (`HEAD~1` bug class, v0.9.0); a commit landing without the project's test run (0.14.0); HEAD and tree checks skipped around the implementer |
+| `dispatch-delivery` | Directive embedding returning for foreign agents (paths-only contract); the scaffold overrides the writer with `general-purpose` because the shipped default is native since 0.14.0 |
 | `manifest-slice` | Whole-manifest delivery returning: agents must get a per-run excerpt (entity-page section in, pdf and theme out) and the orchestrator must never print the manifest body; also `Verified:` lines in the report, `.comb/excerpts` cleaned, `model` passed on dispatch |
 | `fix-auto-off` | The model-only fix entry running without `fix.model_invocation: true` (must refuse, naming the observed value and `/comb:fix`, with no edits) |
 | `fix-auto-on` | The model-only fix entry refusing or stalling when the flag is set (must run the fix workflow and apply the plan) |
@@ -77,4 +81,5 @@ python3 -I scripts/replay-graders.py evals/<name> /private/tmp/e-XXXX
 `dispatch-delivery` also asserts the plan summary ends with `Next: /comb:fix …` and never
 names `fix-auto`. Still uncovered, by cost: a code-shaped `/comb:the-desert` run past
 review (the 0.10.0 hardcoded-reviewer class), `--shave` end to end, review round numbering
-with a deleted earlier round, and the python3-missing fallback (PATH is inherited).
+with a deleted earlier round, revert-on-FAIL and `## Attempts` (needs a FAILing reviewer on
+demand), and the python3-missing fallback (PATH is inherited).

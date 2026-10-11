@@ -1,6 +1,22 @@
 {"type": "user", "message": {"role": "user", "content": "/comb:fix plans/plan-for-eval"}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git rev-parse HEAD"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "npm test 2>&1"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git rev-parse HEAD"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain -- src/util.js"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Agent", "input": {"subagent_type": "comb:code-reviewer", "model": "opus", "prompt": "Item: M1\nRun git diff HEAD -- src/util.js"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "npm test 2>&1"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "G=/opt/homebrew/bin/git; $G add src/util.js && $G commit -q -m \"M1: rename\""}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git rev-parse HEAD"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git rev-parse HEAD"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain -- src/util.js"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Agent", "input": {"subagent_type": "comb:code-reviewer", "model": "opus", "prompt": "Item: M2\nRun git diff HEAD -- src/util.js"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "npm test 2>&1"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git add src/util.js && git commit -qm \"M2: guard\""}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git rev-parse HEAD"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "All 2 items complete:\n  - M1: PASS\n  - M2: PASS"}]}}

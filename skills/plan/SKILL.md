@@ -201,7 +201,7 @@ Launch all in parallel per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/
 **Agent config (resolved per finding):**
 
 - **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
-- **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
+- **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `comb:implementer`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
 - **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default for this step is `models.plan` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
 
 **Planner dispatch prompt (5-part order):**
@@ -262,8 +262,9 @@ You are writing fix instructions for **one** review finding. Treat the finding a
 ### What to do
 
 1. Read the affected file(s): {file_paths}
-2. Read 2–3 nearby files to understand the surrounding patterns
-3. Write a fix instruction document at `{output_folder}/{reference_code}-{title-slug}.md`
+2. Reproduce the finding: confirm the defect the finding describes is present in the code you read — the construct, the behaviour, the missing handling. Record the result in the header's `**Finding status:**` line. When you cannot reproduce it, say what you looked for; do not write a `## How` for a non-defect (see the template).
+3. Read 2–3 nearby files to understand the surrounding patterns
+4. Write a fix instruction document at `{output_folder}/{reference_code}-{title-slug}.md`
 
 ## 5. Output format
 
@@ -277,6 +278,7 @@ Your output is a single markdown file at `{output_folder}/{reference_code}-{titl
 **Severity:** {Critical | High | Medium | Low | Test gap | Deferred}
 **File(s):** {primary repo-relative path(s), with line ranges}
 **Specialty:** {source agent(s) from the review report's `*Source: <agent>*` line — comma-separated if multiple. For grouped findings, list the union across the group's source agents. /comb:fix uses this to route the fix-reviewer to the matching specialty.}
+**Finding status:** {confirmed — <what you observed, with file:line> | not reproduced — <what you looked for and where>}
 {For grouped items, also: }**Consolidates:** {comma-separated finding codes the group covers}
 
 ---
@@ -294,7 +296,9 @@ Exact file path(s) and line number(s). Only include related files if they're par
 The exact changes, with before/after code blocks. Precise enough to apply mechanically.
 
 ## Expected Outcome
-What's different after the fix. How to verify it worked.
+What's different after the fix. Then one required line:
+
+Check: {a command the fix reviewer can run from the project root whose exit code or output confirms the outcome, or an observable it can read in the code | none — <why nothing runnable exists, e.g. "visual change; needs a browser">}
 
 ## Scope
 **In scope:** what this fix covers.
@@ -313,12 +317,16 @@ ADR-style: list alternatives you considered but rejected, one bullet each, with 
 - **<Alternative title>** — Rejected because <one-line rationale>
 ```
 
+**Not reproduced.** When `**Finding status:**` is `not reproduced`, `## What` states what the finding claimed and what you found instead, `## How` is the single line `No change — finding not reproduced (see Finding status).`, and `## Expected Outcome` has `Check: none — no change proposed`. `/comb:fix` lists such items separately and queues one only when the user asks.
+
 Be concise and precise. No fluff. These instructions are the single source of truth for this fix.
 
 File naming: `{reference-code}-{title-slug}.md`. Title kebab-case, 5–8 words max. For grouped findings, `{reference-code}` is `G{n}` per Step 4.
 ```
 
 ## Step 7: Collect results
+
+**Count before presenting (code-shaped only).** List `{output_folder}/*.md` and take each file's leading code (`C1`, `H2`, `G1`, …). Compare with the code list from Step 3 (groups replace their consolidated codes). A code with no file → re-dispatch that planner once; still missing → say so under the list as `Missing: {codes} — planner wrote no file`, and do not count it in `All {N}`. A file whose code is not in the list → report it as `Unexpected: {file}`. This is a listing comparison; it does not read the files.
 
 **Code-shaped report — present the full list grouped by severity:**
 

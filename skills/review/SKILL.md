@@ -50,6 +50,7 @@ gh pr view <number> --json title,body,baseRefName,headRefName
 # From branch
 git diff --name-only origin/<base>...<branch>
 git log --oneline origin/<base>...<branch>
+git merge-base origin/<base> <branch>   # record the SHA; agents and the report diff against it, not against a branch name
 ```
 
 Read these:
@@ -148,6 +149,7 @@ For each picked role, resolve and construct the dispatch prompt:
    Repository: <path>
    Branch: <name>
    Base: <base>
+   Merge-base: <sha>
 
    Files in scope:
    <list>
@@ -213,16 +215,19 @@ Monitor agent completion. Don't consolidate until all agents report back. If one
 2. **Quantities.** Recompute every count, every ratio, and every all/none/only claim against the code — yours and the agents' alike.
 3. **Suggested fixes.** A fix shape you have not traced is a proposal, not a recommendation. Trace it, or mark it unverified. Never promote an agent's untraced fix shape into the report's voice.
 4. **Your own syntheses.** A merged description, a cross-agent count, or a combined severity rationale is new content that no agent wrote. It gets the same treatment.
+5. **Directive citations.** For each `file.md §N` or `§N.N` a finding cites, confirm the file is among the loaded directives and has a heading numbered `N`. Correct or drop a citation that does not resolve; `/comb:plan` copies these into `## Directive citations` as policy.
 
 Carry each agent's `Confidence` line forward. Where an agent reported `Unverified` and you did not close the gap yourself, the report says so. An agent that omitted the field confirmed nothing you can rely on — treat its particulars as unconfirmed until you check them.
 
-**Bound.** This gate reads the cited locations and recomputes the stated quantities. It is not a second review. Do not re-derive findings, do not re-litigate severity, and do not hunt for issues the agents missed.
+**Bound.** This gate reads the cited locations, recomputes the stated quantities, and resolves the cited directive sections. It is not a second review. Do not re-derive findings, do not re-litigate severity, and do not hunt for issues the agents missed. The verdict inherits each agent's severity unchecked: one agent's over-rating can flip APPROVE to NEEDS WORK, and the report says which agent rated what in its `Sources:` line.
 
 **Deduplication (both classifications).** When multiple agents flag the same issue:
 - Keep the most detailed description
 - Credit all agents that found it
 - Use the highest severity (code-shaped) or preserve the first label (non-code)
 - The merged finding's `Verified:` line covers the description you kept, not the ones you dropped. Re-check the particulars of the surviving text.
+
+**Sources tally.** Count each agent's findings in and out: reported, kept under their own code, merged into another code, dropped at the gate (with the reason in one word: anchor, count, duplicate, calibration). An agent that never reported (Step 6 timeout) is `no report (timed out)`. This is bookkeeping, written once per agent; it makes a vanished finding visible.
 
 **For non-code classification:** skip the C/H/M/L/T/D scale and the finding-code numbering. Preserve agent-supplied labels verbatim — typically one of *Ambiguity*, *Blind spot*, *Pattern-break*, *Reusability gap*, *Quality concern*. List findings as a flat collection; no tier grouping.
 
@@ -261,6 +266,7 @@ Carry each agent's `Confidence` line forward. Where an agent reported `Unverifie
 **Branch:** `{branch}` -> `{base}`
 **Scope:** {file_count} files, +{insertions} / -{deletions} lines
 **Reviewers:** {N} agents ({list types})
+**Sources:** {agent}: {n} reported → {k} kept, {m} merged into {codes}, {d} dropped ({reasons}) · {agent}: no report (timed out) · …
 **Date:** {date}
 
 ---
@@ -322,6 +328,7 @@ File(s): `{path}:{line}`
 **Artifact:** `{path}` (or `{branch}` → `{base}` for diff-scoped)
 **Scope:** {file_count} file(s), +{insertions} / -{deletions} lines
 **Reviewers:** {N} agents ({list})
+**Sources:** {agent}: {n} reported → {k} kept, {m} merged into {labels}, {d} dropped ({reasons}) · {agent}: no report (timed out) · …
 **Date:** {date}
 
 ---

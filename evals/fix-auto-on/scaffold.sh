@@ -22,6 +22,7 @@ cat > plans/plan-for-eval/M1-rename-sum-accumulator.md <<'EOF'
 **Severity:** Medium
 **File(s):** src/util.js:1-5
 **Specialty:** code-reviewer
+**Finding status:** confirmed — src/util.js:2 declares the accumulator as `x`
 
 ---
 
@@ -54,6 +55,8 @@ function sum(values) {
 
 ## Expected Outcome
 `sum` behaves identically; the accumulator is named `total`.
+
+Check: node -e "const {sum}=require('./src/util.js'); if (sum([1,2,3])!==6) process.exit(1)"
 
 ## Scope
 **In scope:** the accumulator variable name inside `sum`.

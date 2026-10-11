@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# Scratch repo with a finished code-shaped review report; /comb:plan dispatches
-# the default implementer (general-purpose — foreign per the delivery contract).
+# Scratch repo with a finished code-shaped review report. The project config
+# overrides the writer with general-purpose (foreign per the delivery contract);
+# the shipped default is the native comb:implementer, which gets no authority
+# sentence, and this is the one case that exercises the foreign framing.
 # Regression target: directives must reach the planner as paths, never embedded.
 set -euo pipefail
 git init -q -b main .
 git config user.email eval@example.com
 git config user.name "comb eval"
-mkdir -p src reviews
+mkdir -p src reviews .claude
+cat > .claude/comb.config.json <<'EOF'
+{ "agents": { "implementer": { "subagent_type": "general-purpose",
+  "when_to_use": "Writer-capable agent; foreign per the delivery contract." } } }
+EOF
 cat > src/util.js <<'EOF'
 function parsePort(raw) {
   return parseInt(raw);

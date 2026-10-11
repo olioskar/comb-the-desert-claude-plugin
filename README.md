@@ -8,7 +8,7 @@ The plugin ships configurable reviewer agents, eight domain-neutral directives, 
 
 - **`/comb:review`** — dispatches 1–5 reviewer agents over a PR / branch / file list / spec doc; right-sizes the apparatus based on what the diff is (code-shaped → full severity-ranked report with verdict and verification; non-code → condensed report with flat labelled findings)
 - **`/comb:plan`** — turns each finding into a self-contained fix instruction
-- **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe; commits each item on reviewer PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`). User-invoked only; a project can let Claude start it from a natural-language request with `fix.model_invocation: true`
+- **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe. The reviewer runs the plan's `Check:`; the project's typecheck/tests run before every commit; a FAIL is reverted and recorded under `## Attempts` before the retry; git is checked against a baseline taken after pre-flight (HEAD moved only by the run's own commits, reported files equal the edits inside `## Where`, nothing outside the in-flight items' `## Where` and the plan folder, tree clean after each commit). Commits each item on PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`). User-invoked only; a project can let Claude start it from a natural-language request with `fix.model_invocation: true`
 - **`/comb:the-desert`** — runs all three steps as one continuous sweep, one model (`models.the_desert`) everywhere, no pauses; short-circuits to review-only on non-code artifacts (findings go back to your design conversation, not an autonomous rewrite)
 - **`/comb:patterns`** — scans the codebase and writes a PATTERNS manifest of concrete conventions (structure, naming, closed token sets, abstraction level, reuse points) with real `file:line` references; `/comb:review`, `/comb:plan`, and `/comb:fix` consume it as an observed baseline (a prior, not law), delivered to agents as a per-run excerpt. `/comb:patterns --shave` trims an existing manifest without changing what it asserts
 - **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
@@ -77,7 +77,7 @@ If you'd rather not hand-edit JSON, run `/comb:configure` and describe the chang
 }
 ```
 
-The default is `general-purpose` (Claude's built-in writer-capable subagent), which is suitable for most projects. Override only if you have a specialist implementer for your stack.
+The default is `comb:implementer`, a shipped writer that edits only inside the instruction's `## Where`, never commits or dispatches agents, and reports every file it touched (`agents/implementer.md`). Override only if you have a specialist writer for your stack; a foreign writer gets the same boundaries as a specialty statement in its dispatch prompt and the same file-list and tree checks after it returns.
 
 **Disable per-item commits**:
 
@@ -172,7 +172,7 @@ To opt out of the plugin's directives:
 
 ## Subagents
 
-The plugin registers five `comb:*` subagents — read-only reviewers (`disallowedTools: [Write, Edit, NotebookEdit]`):
+The plugin registers five read-only reviewers (`disallowedTools: [Write, Edit, NotebookEdit]`):
 
 - `comb:code-reviewer` — bugs, logic, contracts, data flow, security
 - `comb:simplifier` — overengineering, dead code, naming, copy-paste
@@ -183,6 +183,8 @@ The plugin registers five `comb:*` subagents — read-only reviewers (`disallowe
 The `disallowedTools` list blocks the file-editing tools; Bash stays available for git and read commands, so read-only is enforced by instruction, not by sandbox.
 
 Two more subagents are **generation-only** and never part of the review/plan/fix palette: `comb:pattern-scanner` (read-only), dispatched by `/comb:patterns` to map one codebase area, and `comb:pattern-shaver`, dispatched by `/comb:patterns --shave` to propose an edit script for one manifest section; it writes that one file and nothing else.
+
+One subagent writes code: `comb:implementer` (`disallowedTools: [Agent, NotebookEdit]`), the default writer for `/comb:fix` items and `/comb:plan` files. Its boundaries — write only inside `## Where`, no git state changes, no nested agents, report every file — are checked by `/comb:fix` after each return (`git status --porcelain` against the in-flight write-sets).
 
 You can invoke them directly via the Agent tool or let the comb skills pick them automatically.
 
@@ -212,7 +214,7 @@ CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workfl
 
 ## Status
 
-v0.13.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.14.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 

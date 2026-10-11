@@ -16,9 +16,13 @@ expect() { # <want-exit> <case> <run-dir> <want-substring>...
 }
 expect 0 fix-reviewer-diff-scope fix-pass \
   "✓ two-commits: Bash called 2x" "✓ reviewer-diffs-head: Agent called 2x" \
-  "✓ reviewer-never-head-tilde: Agent called 0x" "✓ m1-applied" "✓ m2-applied" "replay: fix-reviewer-diff-scope — OK"
+  "✓ reviewer-never-head-tilde: Agent called 0x" "✓ m1-applied" "✓ m2-applied" \
+  "✓ verification-before-commit: Bash called 3x" "✓ head-recorded: Bash called 5x" "✓ tree-checked: Bash called 8x" \
+  "replay: fix-reviewer-diff-scope — OK"
 expect 1 fix-reviewer-diff-scope fix-fail \
-  "✗ two-commits: Bash called 0x" "✗ reviewer-never-head-tilde: Agent called 1x" "✗ m1-applied" "replay: fix-reviewer-diff-scope — FAIL"
+  "✗ two-commits: Bash called 0x" "✗ reviewer-never-head-tilde: Agent called 1x" "✗ m1-applied" \
+  "✗ verification-before-commit: Bash called 0x" "✗ head-recorded: Bash called 0x" "✗ tree-checked: Bash called 1x" \
+  "replay: fix-reviewer-diff-scope — FAIL"
 expect 0 noncode-shortcircuit noncode-pass \
   "✓ announces-shortcircuit" "✓ design-doc-untouched: Write called 0x" "✓ no-edits: Edit called 0x" \
   "✓ no-plan-files: docs/combs/plans/*/*.md absent as expected"

@@ -12,7 +12,7 @@ user-invocable: true
 disable-model-invocation: true
 ---
 
-You're running the full comb pipeline as one continuous sweep. No pauses between steps, no items skipped, no confirmations requested. You comb the desert until it's clean.
+You're running the full comb pipeline as one continuous sweep. No pauses between steps, no confirmations requested, and no item skipped except one the planner could not reproduce. You comb the desert until it's clean.
 
 ## Inputs
 
@@ -29,13 +29,14 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`.
 
 ## Overrides
 
-These apply to every sub-step. Where a sub-skill's text conflicts with them, these win. Everything else in `/comb:review`, `/comb:plan`, and `/comb:fix` applies unchanged — the consolidation gate, the fix reviewer rule and its fallback chain, write-set batching, the 3-failure escalation, and the per-sub-step manifest excerpt (cut, recorded, and cleaned by each sub-step from its own touched text).
+These apply to every sub-step. Where a sub-skill's text conflicts with them, these win. Everything else in `/comb:review`, `/comb:plan`, and `/comb:fix` applies unchanged — the consolidation gate, the fix reviewer rule and its fallback chain, write-set batching, the 3-failure escalation, the per-sub-step manifest excerpt (cut, recorded, and cleaned by each sub-step from its own touched text), the pre-commit verification and revert-on-FAIL, and the HEAD and tree checks.
 
 - **Models and effort.** `models.the_desert` replaces every lane default (`models.review`, `models.plan`, `models.fix.*`), including the trivial implementer; `effort.the_desert`, when set, replaces every `effort.*` lane the same way. Explicit `agents.<role>.model` / `agents.<role>.effort` overrides survive. `models.patterns` and `effort.patterns` are untouched: the scanner is never dispatched in a sweep.
 - **Config.** The sub-skills reuse the config loaded in Step 1; they do not load it again.
 - **Directives.** The focus-brief matcher runs once (Step 2) and its result carries through review → plan → fix.
 - **Deferral.** Every finding is planned and fixed, Deferred included. "Deferred" is not a category in this mode.
-- **Confirmations.** None between steps. Groupings, ordering, trivial/standard classification, and a focus brief that contradicts shipped behavior (review's edge case) are decided, not asked: follow the shipped behavior and log the conflict. Review's report is logged, not presented. The only questions in a sweep: scope at the start (if ambiguous), fix's dirty-tree pre-flight (only when `git status --porcelain` is non-empty), and "run again?" at the end.
+- **Not reproduced.** An instruction whose `**Finding status:**` is `not reproduced` is skipped, not queued and not asked about; the final summary lists it under `Not reproduced (skipped)`.
+- **Confirmations.** None between steps. Groupings, ordering, trivial/standard classification, and a focus brief that contradicts shipped behavior (review's edge case) are decided, not asked: follow the shipped behavior and log the conflict. Review's report is logged, not presented. The only questions in a sweep: scope at the start (if ambiguous), fix's dirty-tree pre-flight (only when `git status --porcelain` is non-empty), and "run again?" at the end. Fix's Step 1.6 red-baseline question is logged, not asked; the sweep proceeds. The stop after three FAILs on one item (fix 4f) and a batch stop (fix 4a) are halts, not questions: the sweep prints fix's per-item status list and ends there, as `/comb:fix` does.
 - **Commits.** Per `fix.commit_per_item`, unchanged.
 - **Focus brief.** `$ARGUMENTS` reaches every dispatch in every step under `## User focus for this run`, without re-asking.
 
@@ -102,6 +103,8 @@ All items:
   - C1: PASS
   - H1: PASS
   - ...
+
+Not reproduced (skipped): {codes, or none}
 ```
 
 Then ask **"Want to run the sequence again?"** with an explicit recommendation that quotes this round's severity counts:

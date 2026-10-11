@@ -45,7 +45,8 @@ Commands
 
   /comb:the-desert   Run review → plan → fix as one continuous sweep.
                      One model (models.the_desert) everywhere. No pauses,
-                     no items skipped. On non-code artifacts, stops after
+                     nothing skipped but not-reproduced items. On non-code
+                     artifacts, stops after
                      review — findings go back into your design
                      conversation, not an autonomous rewrite pass.
 
@@ -173,7 +174,7 @@ What it does
     to commit existing changes, stash and restore, proceed without
     per-item commits, or abort.
   - Executes each fix instruction with implementer + reviewer per item.
-  - Implementer is agents.implementer (default general-purpose).
+  - Implementer is agents.implementer (default comb:implementer).
   - Reviewer specialty is matched to the plan's **Specialty:** header.
   - Reviewer evaluates plan-compliance: did the implementer execute the
     plan, and are reported divergences justified?
@@ -181,11 +182,16 @@ What it does
     in scope.
   - Per-item commit on PASS, with the finding code + title in the
     message. Opt out via fix.commit_per_item: false.
-
-Trivial-only escape hatch
-  - After 3 implementer failures on a trivial item, the orchestrator
-    may apply the fix inline. The reviewer still runs. Standard items
-    that hit 3 failures escalate to the user.
+  - Before each commit, runs the project's typecheck/tests/lint (the
+    same choice /comb:review makes); red means FAIL, nothing commits.
+  - On FAIL, reverts the attempt, records it under ## Attempts in the
+    instruction file, and retries; stops after three.
+  - Records a baseline after pre-flight (dirty paths, HEAD, test
+    result) and checks git against it after every implementer and
+    commit: HEAD moved only by its own commits, reported files equal
+    the edits inside ## Where, nothing outside the in-flight items'
+    ## Where and the plan folder, tree clean afterwards.
+  - Items the planner marked "not reproduced" are listed, not run.
 
 Models
   Trivial fixes:    models.fix.implementer_trivial   (default: sonnet)
@@ -198,7 +204,7 @@ Config knobs
   fix.model_invocation   (default: false) let Claude start fix from a
                          natural-language request ("apply the fixes")
                          (model-only fix-auto skill; /comb:fix stays user-only)
-  agents.implementer     (default: general-purpose)  the writer agent
+  agents.implementer     (default: comb:implementer)  the writer agent
 ```
 
 ### the-desert
