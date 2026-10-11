@@ -45,10 +45,9 @@ Commands
 
   /comb:the-desert   Run review → plan → fix as one continuous sweep.
                      One model (models.the_desert) everywhere. No pauses,
-                     no items skipped. On
-                     non-code artifacts, stops after review — findings go
-                     back into your design conversation, not an autonomous
-                     rewrite pass.
+                     no items skipped. On non-code artifacts, stops after
+                     review — findings go back into your design
+                     conversation, not an autonomous rewrite pass.
 
   /comb:patterns     Scan the codebase and write a PATTERNS manifest of
                      concrete conventions (structure, naming, closed token
