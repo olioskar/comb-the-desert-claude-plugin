@@ -23,7 +23,7 @@ This is an **interactive** command. You do recon, propose scan areas, and wait f
 
 ## Step 1: Load config
 
-Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` (three layers, deep-merge; arrays replace; `null` deletes; invalid JSON is a hard error).
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`.
 
 After merging, take:
 - `paths.patterns` — where the manifest is written/read (default `docs/combs/PATTERNS.md`). If it is `null`, there is no write target (the key was deleted via merge semantics, so there is no default to fall back to): report that manifest consumption is disabled and stop. Do not generate to an undefined path.
@@ -35,7 +35,7 @@ After merging, take:
 
 Do a fast shape pass — **do not deep-read files yet**. Detect the codebase's regions from generic signals:
 
-- **Manifest/build files** anywhere in the tree (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `composer.json`, `pom.xml`, `build.gradle`, `*.csproj`, `Gemfile`, `mix.exs`, `Package.swift`, `pubspec.yaml`, etc.).
+- **Build or package manifest(s)** anywhere in the tree.
 - **Top-level and second-level directory structure.**
 - **Language/extension mix** (e.g. `git ls-files` and tally extensions).
 

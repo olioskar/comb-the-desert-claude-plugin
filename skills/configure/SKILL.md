@@ -32,13 +32,7 @@ If the file doesn't exist, you'll create it. If `.claude/` doesn't exist for pro
 
 ## Step 2: Show the user what they have now
 
-Read all three layers and show the **merged effective config** plus which keys are coming from where. This is the "before" picture.
-
-1. `${CLAUDE_PLUGIN_ROOT}/config/defaults.json` — shipped defaults
-2. `~/.claude/comb.config.json` — global override (skip if not present)
-3. `<project-root>/.claude/comb.config.json` — project override (skip if not present)
-
-**Merge rules** are defined once in `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` (objects deep-merge; arrays replace; `null` deletes; invalid JSON is a hard error naming the bad file).
+Load the three layers per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` and show the **merged effective config** plus which layer each key comes from. This is the "before" picture.
 
 Print a short summary of the effective config (not the full JSON dump unless the user asks). Highlight which layer each non-default value is coming from.
 

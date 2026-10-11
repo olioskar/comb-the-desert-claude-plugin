@@ -31,7 +31,7 @@ If scope is ambiguous, ask once. Otherwise derive it from the current branch and
 
 ## Step 1: Load config
 
-Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` (three layers, deep-merge; arrays replace; `null` deletes; invalid JSON is a hard error).
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`.
 
 After merging, you have:
 - `paths.reviews` — where to write the report
@@ -120,7 +120,7 @@ Pick 1–5 agents from `config.agents` based on:
 - The focus brief (required-include any agent matching it)
 
 **Hard cap:** 5 agents — never dispatch more than 5 in one run, even if both diff content and focus brief argue for more. If forced to choose, drop lower-priority required-includes by judgment.
-**`pattern-scanner` and `pattern-shaver` are never eligible.** They are generation-only (dispatched by `/comb:patterns`). Exclude them from the review palette regardless of diff content or focus brief.
+**`pattern-scanner`, `pattern-shaver`, and `implementer` are never eligible.** The first two are generation-only (dispatched by `/comb:patterns`); the third is the writer role, and review is read-only. Exclude them from the palette regardless of diff content or focus brief.
 **Soft floor:** 1 — the orchestrator always dispatches at least one agent for objectivity (self-review by the session that produced the artifact is biased). The anchor agent shifts with the Step 3.5 classification:
 
 - **code-shaped** → `code-reviewer` is the anchor.
@@ -195,11 +195,11 @@ Launch all dispatches in parallel per the delivery contract — one Agent call p
 
 **Conditional on classification (Step 3.5).** Skip this entire step if the classification is **non-code** — there is no executable artifact to verify. Omit the verification table from the report entirely (no "N/A" rows).
 
-If the classification is **code-shaped**, run project-appropriate verification in parallel with agent dispatch (typecheck, tests, lint). Choose commands based on `CLAUDE.md` instructions and the project's manifest files (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `composer.json`, `Gemfile`, `pom.xml`, `build.gradle`, `*.csproj`, `mix.exs`, `Package.swift`, `pubspec.yaml`, `Makefile`, `CMakeLists.txt`, etc.). Pipe stderr with `2>&1` so it lands in the verification table.
+If the classification is **code-shaped**, run project-appropriate verification in parallel with agent dispatch (typecheck, tests, lint). Choose commands from `CLAUDE.md` instructions and the project's build or package manifest(s). Pipe stderr with `2>&1` so it lands in the verification table.
 
 Project-specific prohibited-import or convention checks per `CLAUDE.md` come on top.
 
-If `CLAUDE.md` does not name a verification command and no manifest is recognised, skip the verification table row with a note rather than running unrelated tooling. Capture all results for the verification table.
+If `CLAUDE.md` does not name a verification command and the project's build or package manifest(s) name none, skip the verification table row with a note rather than running unrelated tooling. Capture all results for the verification table.
 
 ## Step 6: Wait and collect
 
@@ -269,7 +269,7 @@ Carry each agent's `Confidence` line forward. Where an agent reported `Unverifie
 
 | Check | Result |
 |---|---|
-| TypeScript (`tsc --noEmit`) | {Clean or N errors} |
+| {Typecheck / build command} | {Clean or N errors} |
 | Tests | {pass}/{total} passing |
 | {Project-specific check} | {result} |
 

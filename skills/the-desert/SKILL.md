@@ -169,4 +169,4 @@ The findings are intended to feed your next round of design conversation, not an
 
 ## Edge case: focus brief contradicts shipped behavior
 
-Same handling as `/comb:review`: surface and ask once before proceeding.
+Per `/comb:review`.

@@ -112,7 +112,7 @@ Two instructions overlap if their **write-sets** intersect — reads are free. A
 
 - Same-file writes → sequential.
 - Different-file writes → parallel batch.
-- **Concurrency limit:** max 3 implementer/reviewer pairs running concurrently — i.e., up to 3 items being implemented and verified at any given moment (so up to 6 in-flight subagents at peak: 3 implementers running while 3 reviewers verify previous batches, or 3 implementer+reviewer pairs interleaved).
+- **Concurrency limit:** max 3 items in flight (implementer or reviewer stage) at any moment.
 
 Launch a parallel batch per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Agent call per item, batched in a single assistant message.
 
@@ -186,21 +186,15 @@ Directives most relevant to this run:
 
 ## 3. User focus for this run
 
-{focus_brief if present, verbatim, with framing:}
-
-Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip.
+{focus_brief if present, verbatim; omit the section when empty.}
 
 ## 4. Your job
 
-Execute the fix instruction below. The instruction is the spec — do exactly what it says.
-
-### Fix Instruction
-
-{full instruction document content}
+Execute the fix instruction at the path above. The instruction is the spec — do exactly what it says.
 
 ### Steps
 
-1. Read the affected file(s) named in the instruction's "Where" section
+1. Read the instruction file, then the affected file(s) named in its "Where" section
 2. Apply the exact changes from the "How" section
 3. Stay strictly within the documented "Scope" — no drive-by refactors, no bonus cleanup
 4. Confirm the "Expected Outcome" is met
@@ -234,7 +228,7 @@ Do not include code in your reply — your edits are the artifact.
 
   **Single-revise-doc override:** if the instruction file is a `revise-*.md` (per Step 2.5 detection), bypass plan-file specialty parsing entirely. The reviewer role is always `consistency-auditor` (it is reviewing whether spec revisions match the spec/lens framing of the upstream review). The fallback chain still applies if `agents.consistency-auditor` isn't configured.
 
-- **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error. `pattern-scanner` and `pattern-shaver` are generation-only and are never selected as the reviewer role.
+- **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error.
 - **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. Honor the user's config.
 - **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.reviewer` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
 - **Fresh agent.**
@@ -250,7 +244,6 @@ Repository: {project-root}
 Branch: {branch}
 Item: {reference_code} — {title}
 Instruction file: {instruction-path}
-Implementer summary: {implementer's reply}
 
 ## 2. Directives
 
@@ -273,17 +266,11 @@ Directives most relevant to this run:
 
 ## 3. User focus for this run
 
-{focus_brief if present, verbatim, with framing:}
-
-Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip.
+{focus_brief if present, verbatim; omit the section when empty.}
 
 ## 4. Your job
 
-Verify the implementation executed the plan. **The plan file is the contract** — your job is plan-compliance, not general code quality.
-
-### Original Instruction
-
-{instruction document content}
+Verify the implementation executed the plan. **The plan file is the contract** (read it at the path above) — your job is plan-compliance, not general code quality.
 
 ### Implementer's report
 
@@ -291,7 +278,7 @@ Verify the implementation executed the plan. **The plan file is the contract** �
 
 ### How to verify
 
-1. Read the plan's `## How` section. This is what the implementer was supposed to do.
+1. Read the instruction file; its `## How` section is what the implementer was supposed to do.
 2. Read the implementer's `## Divergences` section (if present). Each deviation must have a stated rationale.
 3. Read the actual diff. The item's changes are **uncommitted** at this point — the orchestrator commits only after a PASS (Step 4f.1) — so `HEAD` is the state before this item.
    - `git diff HEAD -- <files reported by implementer>` shows the item's changes, staged and unstaged, against `HEAD`. Step 4a forms a parallel batch only from items with disjoint write-sets, so the path scope isolates this item from its batch-mates.

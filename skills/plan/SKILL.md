@@ -148,13 +148,9 @@ Output file: {output_folder}/revise-{spec-stem}.md
 
 You are writing ONE consolidated revision-instructions file for the spec under review. The findings in the report are the spec for your work.
 
-### Findings (full report body)
-
-{Embed the full findings section of the report verbatim.}
-
 ### What to do
 
-1. Read the spec file: {spec_path}
+1. Read the report at the path above (its `## Findings` section is your work list), then the spec file: {spec_path}
 2. For each finding, open the spec at the cited section or line. Confirm the finding's quoted text and its anchor are accurate before you write the revision. Correct any anchor that does not resolve, and state the correction in that revision's **Reason** line. The finding's `Verified:` line states what the review confirmed; re-derive anything it names as unchecked. When a finding carries no `Verified:` line, treat its anchor and its quoted text as unconfirmed.
 3. Identify the exact section or line to revise.
 4. Write a single file at `{output_folder}/revise-{spec-stem}.md` consolidating all revisions in the order findings appear in the report. Each revision is a section with the finding's original label and title.
@@ -204,7 +200,7 @@ Launch all in parallel per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/
 
 **Agent config (resolved per finding):**
 
-- **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. `pattern-scanner` and `pattern-shaver` are generation-only and are never picked as a finding's lens. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
+- **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
 - **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
 - **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default for this step is `models.plan` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
 
@@ -245,9 +241,7 @@ Directives most relevant to this run (matched against the focus brief):
 
 ## 3. User focus for this run
 
-{focus_brief if present, verbatim, with framing:}
-
-Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip.
+{focus_brief if present, verbatim; omit the section when empty.}
 
 ## 4. Your job
 
@@ -367,4 +361,4 @@ The `Next:` line names `/comb:fix`, the command the user types. Never point the 
 
 ## Edge case: focus brief contradicts shipped behavior
 
-Same as `/comb:review`: surface and ask once.
+Per `/comb:review`.
