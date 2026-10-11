@@ -22,11 +22,17 @@ First live run on 2026-10-11 (Claude Code 2.1.296). What it established:
   judge. Report contents are graded with `target: { source: file, path: … }`.
 - **Scaffolds commit.** Every scaffold with a git repo commits its initial state so a reviewer's `git diff HEAD` has a HEAD to diff against.
 - **git on macOS.** Inside the eval sandbox `/usr/bin/git` is Apple's xcrun shim, which
-  needs `/Library/Developer/CommandLineTools`, and the sandbox cannot read it. Install a
-  standalone git (`brew install git`) and keep `/opt/homebrew/bin` ahead of `/usr/bin` on
-  the `PATH`; the run inherits it. Confirmed 2026-10-11: `fix-reviewer-diff-scope` passes
-  on macOS with Homebrew git 2.56.0. `fix-auto-on` still turns per-item commits off so it
-  needs no commits of its own.
+  needs `/Library/Developer/CommandLineTools`, and the sandbox cannot read it. A standalone
+  git (`brew install git`) works, but the agent's shell still puts `/usr/bin` first
+  (macOS `path_helper` reorders `PATH`), so plain `git` fails and the agent finds
+  `/opt/homebrew/bin/git` itself. It did in every run on 2026-10-11, in varying forms: full
+  path, `export PATH=…`, or `G=…; $G commit`. Graders that look for git commands therefore
+  match the subcommand (`commit … -m`), not the word `git`. `fix-auto-on` turns per-item
+  commits off so it needs no commits of its own.
+- **Template wording varies.** The final message follows the skill's templates closely but
+  not byte for byte, and the default judge is a small model that votes on wording. Graders
+  on the final message match the template's fixed labels (`Plan: skipped … Fix: skipped`)
+  with slack between them, and the outcome is graded from files and tool calls.
 - **Pinning.** The CI job pins `--model` and `--judge-model` so a model rollout is not
   read as a plugin regression. The local command below floats on purpose.
 - **Ablation.** `claude plugin eval .` defaults to a with-without arm that runs every
@@ -40,7 +46,7 @@ claude plugin eval . --scaffold --ablation none --runs 1 --max-cost-usd 15 \
 claude plugin eval . --scaffold --allow-tools Bash Write Edit --case "help-*"
 ```
 
-Measured 2026-10-11 at six cases, one run each: about 10 minutes and 4 USD. Eight cases since 0.13.0, not yet measured.
+Measured 2026-10-11 at eight cases, one run each: about 9 minutes and 4.70 USD.
 `scripts/smoke.sh` remains the offline structural gate. Run output lands under
 `evals/results/` (gitignored).
 
