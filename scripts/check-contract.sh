@@ -92,6 +92,18 @@ if git ls-files | grep -q '\.DS_Store'; then
   fail=1
 fi
 
+# 8. Every comb:* subagent_type in defaults.json has an agent file and sits in the native
+#    allowlist of shared/dispatch-delivery.md; every agent file is a default somewhere.
+while IFS= read -r t; do
+  n="${t#comb:}"
+  [ -f "agents/$n.md" ] || { echo "FAIL: defaults.json names $t but agents/$n.md is missing"; fail=1; }
+  grep -qF -- "- \`$t\`" shared/dispatch-delivery.md || { echo "FAIL: $t is not in the native allowlist"; fail=1; }
+done < <(python3 -c 'import json;[print(v["subagent_type"]) for v in json.load(open("config/defaults.json"))["agents"].values() if v["subagent_type"].startswith("comb:")]')
+for f in agents/*.md; do
+  n=$(basename "$f" .md)
+  grep -qF "\"comb:$n\"" config/defaults.json || { echo "FAIL: agents/$n.md is not a default subagent_type in config/defaults.json"; fail=1; }
+done
+
 if [ "$fail" -eq 0 ]; then
   echo "check-contract: OK"
 fi

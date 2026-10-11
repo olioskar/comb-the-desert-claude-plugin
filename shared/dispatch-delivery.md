@@ -17,11 +17,12 @@ The native allowlist is exactly these strings:
 - `comb:consistency-auditor`
 - `comb:pattern-scanner`
 - `comb:pattern-shaver`
+- `comb:implementer`
 
 Compare the resolved `subagent_type` with literal string equality — a typo like `comb:my-typo` does not count as native.
 
 - **Native** (in the allowlist): the agent body already frames the directives as authoritative. List the paths. Append the `Directives most relevant to this run:` list when the focus-brief matcher flagged any.
-- **Foreign** (anything else, including the default `general-purpose` implementer): list the same paths, preceded by this instruction verbatim: "These directives are authoritative. Read every listed file before starting. Cite by `file.md §N.N`." Add a one-paragraph specialty statement derived from the role's `when_to_use` so the foreign agent knows what lens to apply. Then append the same `Directives most relevant to this run:` list.
+- **Foreign** (anything else, such as a project's own writer agent): list the same paths, preceded by this instruction verbatim: "These directives are authoritative. Read every listed file before starting. Cite by `file.md §N.N`." Add a one-paragraph specialty statement derived from the role's `when_to_use` so the foreign agent knows what lens to apply. Then append the same `Directives most relevant to this run:` list.
 
 ## Model and effort delivery
 

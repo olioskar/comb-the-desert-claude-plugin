@@ -77,7 +77,7 @@ If you'd rather not hand-edit JSON, run `/comb:configure` and describe the chang
 }
 ```
 
-The default is `general-purpose` (Claude's built-in writer-capable subagent), which is suitable for most projects. Override only if you have a specialist implementer for your stack.
+The default is `comb:implementer`, a shipped writer that edits only inside the instruction's `## Where`, never commits or dispatches agents, and reports every file it touched (`agents/implementer.md`). Override only if you have a specialist writer for your stack; a foreign writer gets the same boundaries as a specialty statement in its dispatch prompt and the same file-list and tree checks after it returns.
 
 **Disable per-item commits**:
 
@@ -172,7 +172,7 @@ To opt out of the plugin's directives:
 
 ## Subagents
 
-The plugin registers five `comb:*` subagents — read-only reviewers (`disallowedTools: [Write, Edit, NotebookEdit]`):
+The plugin registers five read-only reviewers (`disallowedTools: [Write, Edit, NotebookEdit]`):
 
 - `comb:code-reviewer` — bugs, logic, contracts, data flow, security
 - `comb:simplifier` — overengineering, dead code, naming, copy-paste
@@ -183,6 +183,8 @@ The plugin registers five `comb:*` subagents — read-only reviewers (`disallowe
 The `disallowedTools` list blocks the file-editing tools; Bash stays available for git and read commands, so read-only is enforced by instruction, not by sandbox.
 
 Two more subagents are **generation-only** and never part of the review/plan/fix palette: `comb:pattern-scanner` (read-only), dispatched by `/comb:patterns` to map one codebase area, and `comb:pattern-shaver`, dispatched by `/comb:patterns --shave` to propose an edit script for one manifest section; it writes that one file and nothing else.
+
+One subagent writes code: `comb:implementer` (`disallowedTools: [Agent, NotebookEdit]`), the default writer for `/comb:fix` items and `/comb:plan` files. Its boundaries — write only inside `## Where`, no git state changes, no nested agents, report every file — are checked by `/comb:fix` after each return (`git status --porcelain` against the in-flight write-sets).
 
 You can invoke them directly via the Agent tool or let the comb skills pick them automatically.
 
