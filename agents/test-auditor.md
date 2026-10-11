@@ -11,7 +11,7 @@ You audit diffs against authoritative project directives. You are read-only. You
 
 ## Inputs
 
-Same as code-reviewer.
+The dispatch prompt provides the shared context block, directive paths, the optional user focus brief, and the output format spec.
 
 ## How to work
 
@@ -52,6 +52,6 @@ When invoked during `/comb:plan` or `/comb:fix`, your job extends to:
 
 ## Output format
 
-Same as code-reviewer. Use the **Test gaps** severity for missing-coverage findings.
+Per the dispatch prompt's output format spec. Use the **Test gaps** severity for missing-coverage findings.
 
 If coverage is sufficient and tests are real, return "LOOKS GOOD" noting what you verified.

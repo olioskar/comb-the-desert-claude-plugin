@@ -7,8 +7,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
-  - Task
-  - WebFetch
+  - Agent
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -101,7 +100,7 @@ The user decides. Grouped items share one implementation pass but each sub-item 
 **Branch on folder shape (Step 2.5):**
 
 - **Per-finding folder:** today's execution loop (Steps 4a–4g below) runs once per instruction file.
-- **Single revise-doc folder:** the loop runs **exactly once** against the single `revise-*.md`. The item is **always classified standard** (it is a multi-finding spec edit, not a single-line code fix), and the reviewer is **always** `agents.consistency-auditor` (the same anchor that produced the upstream review). The escape hatch (4g) does not apply — there is only one item, and if the reviewer FAILs three times, escalate to the user. The commit message on PASS is `revise {spec-stem}: apply review revisions`.
+- **Single revise-doc folder:** the loop runs **exactly once** against the single `revise-*.md`. The item is **always classified standard** (it is a multi-finding spec edit, not a single-line code fix), and the reviewer role follows the single-revise-doc override in Step 4e (`consistency-auditor`, with 4e's fallback chain). If the reviewer FAILs three times, escalate to the user. The commit message on PASS is `revise {spec-stem}: apply review revisions`.
 
 For both branches, Steps 4a–4f apply as written; the differences above are the only deviations.
 
@@ -113,9 +112,9 @@ Two instructions overlap if their **write-sets** intersect — reads are free. A
 
 - Same-file writes → sequential.
 - Different-file writes → parallel batch.
-- **Concurrency limit:** max 3 implementer/reviewer pairs running concurrently — i.e., up to 3 items being implemented and verified at any given moment (so up to 6 in-flight subagents at peak: 3 implementers running while 3 reviewers verify previous batches, or 3 implementer+reviewer pairs interleaved).
+- **Concurrency limit:** max 3 items in flight (implementer or reviewer stage) at any moment.
 
-Launch a parallel batch per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Task call per item, batched in a single assistant message.
+Launch a parallel batch per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Agent call per item, batched in a single assistant message.
 
 Announce batches before launching:
 
@@ -144,14 +143,14 @@ Triviality is **judgment-based by the orchestrator** using this rubric:
 
 This is a judgment call — borderline cases lean **standard**, because the cost of a needless reviewer is small but the cost of a missed regression is high. The user can override the classification for any item.
 
-For trivial items: announce "(trivial — sonnet implementer per `models.fix.implementer_trivial`, reviewer per `models.fix.reviewer`)" and proceed. Note that the reviewer is **not** skipped for trivial items in the standard `/comb:fix` flow — that skip-trivial-review behavior only happens if the user explicitly authorises it for a given run, and is overridden in `/comb:the-desert` where every item gets a reviewer regardless.
+For trivial items: announce "(trivial — implementer `{resolved models.fix.implementer_trivial}`, reviewer `{resolved models.fix.reviewer}`)" and proceed. The reviewer runs for every item.
 
 ### 4d. Send to implementer
 
 **Agent config (resolved per item):**
 
 - **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `general-purpose`). The shipped `comb:*` review agents are read-only (`disallowedTools: Write, Edit, NotebookEdit`) and cannot serve as implementers. Users who want a project-specific writer override `agents.implementer` in their config.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items; pass the resolved model as the Task call's `model` parameter.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.implementer_standard` for standard items, `models.fix.implementer_trivial` for trivial items; pass the resolved model as the Agent call's `model` parameter.
 - **Fresh agent per item** — no accumulated state.
 
 **Implementer dispatch prompt (5-part order):**
@@ -187,21 +186,15 @@ Directives most relevant to this run:
 
 ## 3. User focus for this run
 
-{focus_brief if present, verbatim, with framing:}
-
-Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip.
+{focus_brief if present, verbatim; omit the section when empty.}
 
 ## 4. Your job
 
-Execute the fix instruction below. The instruction is the spec — do exactly what it says.
-
-### Fix Instruction
-
-{full instruction document content}
+Execute the fix instruction at the path above. The instruction is the spec — do exactly what it says.
 
 ### Steps
 
-1. Read the affected file(s) named in the instruction's "Where" section
+1. Read the instruction file, then the affected file(s) named in its "Where" section
 2. Apply the exact changes from the "How" section
 3. Stay strictly within the documented "Scope" — no drive-by refactors, no bonus cleanup
 4. Confirm the "Expected Outcome" is met
@@ -235,9 +228,9 @@ Do not include code in your reply — your edits are the artifact.
 
   **Single-revise-doc override:** if the instruction file is a `revise-*.md` (per Step 2.5 detection), bypass plan-file specialty parsing entirely. The reviewer role is always `consistency-auditor` (it is reviewing whether spec revisions match the spec/lens framing of the upstream review). The fallback chain still applies if `agents.consistency-auditor` isn't configured.
 
-- **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error. `pattern-scanner` and `pattern-shaver` are generation-only and are never selected as the reviewer role.
+- **Fallback chain when the header is missing or the picked role isn't in the user's `agents` config:** `agents.test-auditor` → `agents.code-reviewer`. If neither resolves, abort the run with a clear error.
 - **Resolve `subagent_type`** from the picked role's `agents.<role>.subagent_type`. Honor the user's config.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.reviewer` (default `opus`); pass the resolved model as the Task call's `model` parameter.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.reviewer` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
 - **Fresh agent.**
 
 **Reviewer dispatch prompt (5-part order):**
@@ -251,7 +244,6 @@ Repository: {project-root}
 Branch: {branch}
 Item: {reference_code} — {title}
 Instruction file: {instruction-path}
-Implementer summary: {implementer's reply}
 
 ## 2. Directives
 
@@ -274,17 +266,11 @@ Directives most relevant to this run:
 
 ## 3. User focus for this run
 
-{focus_brief if present, verbatim, with framing:}
-
-Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip.
+{focus_brief if present, verbatim; omit the section when empty.}
 
 ## 4. Your job
 
-Verify the implementation executed the plan. **The plan file is the contract** — your job is plan-compliance, not general code quality.
-
-### Original Instruction
-
-{instruction document content}
+Verify the implementation executed the plan. **The plan file is the contract** (read it at the path above) — your job is plan-compliance, not general code quality.
 
 ### Implementer's report
 
@@ -292,7 +278,7 @@ Verify the implementation executed the plan. **The plan file is the contract** �
 
 ### How to verify
 
-1. Read the plan's `## How` section. This is what the implementer was supposed to do.
+1. Read the instruction file; its `## How` section is what the implementer was supposed to do.
 2. Read the implementer's `## Divergences` section (if present). Each deviation must have a stated rationale.
 3. Read the actual diff. The item's changes are **uncommitted** at this point — the orchestrator commits only after a PASS (Step 4f.1) — so `HEAD` is the state before this item.
    - `git diff HEAD -- <files reported by implementer>` shows the item's changes, staged and unstaged, against `HEAD`. Step 4a forms a parallel batch only from items with disjoint write-sets, so the path scope isolates this item from its batch-mates.

@@ -21,24 +21,28 @@ while IFS= read -r ref; do
 done < <(grep -rho '\${CLAUDE_PLUGIN_ROOT}/shared/[a-z-]*\.md' skills/ agents/ README.md | sort -u)
 
 # 3. No skill re-inlines a shared block (drift re-entry guard).
-#    Each needle is the distinctive opener of a block that now lives in shared/.
+#    Needles are derived from the live blocks: the longest body line of each shared/*.md
+#    (headings and table rows skipped), cut to 60 characters at a word boundary — a body
+#    copy carries it, a framing sentence does not. One historical needle guards wording
+#    removed in 0.11.0 that must not return.
+derive_needle() {
+  grep -v '^#' "$1" | grep -v '^|' | awk '{ if (length($0) > length(best)) best=$0 } END { print best }' \
+    | sed -E 's/^(.{0,60}[^ ]*).*/\1/'
+}
 while IFS= read -r needle; do
-  if grep -rn "$needle" skills/ >/dev/null 2>&1; then
+  [ "${#needle}" -lt 30 ] && { echo "FAIL: derived needle too short to be safe: \"$needle\""; fail=1; continue; }
+  if grep -rnF "$needle" skills/ >/dev/null 2>&1; then
     echo "FAIL: shared block re-inlined in a skill: \"$needle\""
     fail=1
   fi
-done <<'NEEDLES'
-Lowercase the focus brief and scan it for substring matches
-This is the codebase's observed convention baseline
-Read the layered config in this order
-the shipped allowlist is exactly
-Splits the manifest into a header
-Derives each area section's scope from two sources
-read it and run the commit-based staleness heuristic
-NEEDLES
+done < <(for f in shared/*.md; do derive_needle "$f"; done)
+if grep -rnF "read it and run the commit-based staleness heuristic" skills/ >/dev/null 2>&1; then
+  echo "FAIL: pre-0.11.0 manifest-read wording returned to a skill"
+  fail=1
+fi
 
-# 3b. A skill that Reads another skill's body carries the plugin-root expansion paragraph:
-#     Read output is not variable-substituted, so the placeholder would reach the shell literally.
+# 4. A skill that Reads another skill's body carries the plugin-root expansion paragraph:
+#    Read output is not variable-substituted, so the placeholder would reach the shell literally.
 while IFS= read -r f; do
   if ! grep -q 'replace it with this literal path: `\${CLAUDE_PLUGIN_ROOT}`' "$f"; then
     echo "FAIL: $f Reads another skill but has no plugin-root expansion paragraph"
@@ -46,8 +50,8 @@ while IFS= read -r f; do
   fi
 done < <(grep -rl '\${CLAUDE_PLUGIN_ROOT}/skills/[a-z-]*/SKILL\.md' skills/ | sort -u)
 
-# 5. Manifest excerpts (see 4 below for .DS_Store): the script ships, its fixture test passes, and every
-#    consuming skill invokes it (the orchestrator never reads the manifest).
+# 5. Manifest excerpts: the script ships, its fixture test passes, and every consuming
+#    skill invokes it (the orchestrator never reads the manifest).
 if [ ! -f scripts/manifest.py ]; then
   echo "FAIL: scripts/manifest.py missing"
   fail=1
@@ -56,6 +60,10 @@ elif ! python3 -I scripts/manifest.py --help >/dev/null 2>&1; then
   fail=1
 elif ! bash scripts/test-manifest.sh >/dev/null 2>&1; then
   echo "FAIL: scripts/test-manifest.sh failed (run it for the diff)"
+  fail=1
+fi
+if ! bash scripts/test-replay.sh >/dev/null 2>&1; then
+  echo "FAIL: scripts/test-replay.sh failed (run it for the diff)"
   fail=1
 fi
 for skill in review plan fix; do
@@ -71,8 +79,14 @@ for cmd in index verify gate apply; do
   fi
 done
 
+# 6. User-facing facts that have a machine source agree with it.
+version=$(python3 -c 'import json;print(json.load(open(".claude-plugin/plugin.json"))["version"])')
+if ! grep -qF "v${version}. See [CHANGELOG.md]" README.md; then
+  echo "FAIL: README Status line does not say v${version} (plugin.json)"
+  fail=1
+fi
 
-# 4. .DS_Store is never tracked.
+# 7. .DS_Store is never tracked.
 if git ls-files | grep -q '\.DS_Store'; then
   echo "FAIL: .DS_Store is tracked"
   fail=1

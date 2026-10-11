@@ -1,0 +1,2 @@
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Write", "input": {"file_path": "/w/docs/combs/reviews/branch-feature-round1-report.md", "content": "**Artifact:** `docs/design.md`"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "[the-desert] Complete (review-only \u2014 non-code artifact)\n\nReview: 2 findings\nPlan: skipped (non-code artifact)\nFix: skipped (non-code artifact)"}]}}

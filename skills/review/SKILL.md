@@ -7,8 +7,7 @@ allowed-tools:
   - Read
   - Write
   - Edit
-  - Task
-  - WebFetch
+  - Agent
 user-invocable: true
 disable-model-invocation: false
 ---
@@ -32,7 +31,7 @@ If scope is ambiguous, ask once. Otherwise derive it from the current branch and
 
 ## Step 1: Load config
 
-Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` (three layers, deep-merge; arrays replace; `null` deletes; invalid JSON is a hard error).
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`.
 
 After merging, you have:
 - `paths.reviews` — where to write the report
@@ -115,13 +114,13 @@ Read the diff in detail. Understand what changed: hooks, CSS, types, tests, erro
 
 **Picking rule (judgment-based):** the orchestrator model itself picks the palette by reading the diff, weighing each agent's `when_to_use`, and applying the focus brief. There is no scoring algorithm — the picking is a judgment call you make explicitly and surface to the user.
 
-Pick 2–5 agents from `config.agents` based on:
+Pick 1–5 agents from `config.agents` based on:
 - Diff content (what's actually in the files)
 - Each agent's `when_to_use` (in config)
 - The focus brief (required-include any agent matching it)
 
 **Hard cap:** 5 agents — never dispatch more than 5 in one run, even if both diff content and focus brief argue for more. If forced to choose, drop lower-priority required-includes by judgment.
-**`pattern-scanner` and `pattern-shaver` are never eligible.** They are generation-only (dispatched by `/comb:patterns`). Exclude them from the review palette regardless of diff content or focus brief.
+**`pattern-scanner`, `pattern-shaver`, and `implementer` are never eligible.** The first two are generation-only (dispatched by `/comb:patterns`); the third is the writer role, and review is read-only. Exclude them from the palette regardless of diff content or focus brief.
 **Soft floor:** 1 — the orchestrator always dispatches at least one agent for objectivity (self-review by the session that produced the artifact is biased). The anchor agent shifts with the Step 3.5 classification:
 
 - **code-shaped** → `code-reviewer` is the anchor.
@@ -140,7 +139,7 @@ For each picked role, resolve and construct the dispatch prompt:
 **Resolution (do this before assembling the prompt):**
 
 - **Resolve `subagent_type`** from `agents.<role>.subagent_type` — never hardcode any value here.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. It defines the native allowlist (literal string equality), the path-based directive delivery for native and foreign agents, and the model delivery. The lane default for this step is `models.review` (default `opus`); pass the resolved model as the Task call's `model` parameter.
+- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. It defines the native allowlist (literal string equality), the path-based directive delivery for native and foreign agents, and the model delivery. The lane default for this step is `models.review` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
 
 **Dispatch prompt (7-part order — Step 3.5 read framing is part 2):**
 
@@ -190,17 +189,17 @@ For each picked role, resolve and construct the dispatch prompt:
    - **Confidence** on every finding: `Verified` when you opened every cited file and confirmed every particular the finding asserts — the anchor, any count, and, for a suggested fix, that you traced the fix against the code. Otherwise `Unverified — <what you could not confirm>`, naming the specific gap (an inferred line range, an estimated count, an untraced fix shape, a file you could not open). This field is not optional.
    - Read-only — no code changes
 
-Launch all dispatches in parallel per the delivery contract — one Task call per picked role, batched in a single assistant message.
+Launch all dispatches in parallel per the delivery contract — one Agent call per picked role, batched in a single assistant message.
 
 ## Step 5: Run mechanical verification checks
 
 **Conditional on classification (Step 3.5).** Skip this entire step if the classification is **non-code** — there is no executable artifact to verify. Omit the verification table from the report entirely (no "N/A" rows).
 
-If the classification is **code-shaped**, run project-appropriate verification in parallel with agent dispatch (typecheck, tests, lint). Choose commands based on `CLAUDE.md` instructions and the project's manifest files (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `composer.json`, `Gemfile`, `pom.xml`, `build.gradle`, `*.csproj`, `mix.exs`, `Package.swift`, `pubspec.yaml`, `Makefile`, `CMakeLists.txt`, etc.). Pipe stderr with `2>&1` so it lands in the verification table.
+If the classification is **code-shaped**, run project-appropriate verification in parallel with agent dispatch (typecheck, tests, lint). Choose commands from `CLAUDE.md` instructions and the project's build or package manifest(s). Pipe stderr with `2>&1` so it lands in the verification table.
 
 Project-specific prohibited-import or convention checks per `CLAUDE.md` come on top.
 
-If `CLAUDE.md` does not name a verification command and no manifest is recognised, skip the verification table row with a note rather than running unrelated tooling. Capture all results for the verification table.
+If `CLAUDE.md` does not name a verification command and the project's build or package manifest(s) name none, skip the verification table row with a note rather than running unrelated tooling. Capture all results for the verification table.
 
 ## Step 6: Wait and collect
 
@@ -270,7 +269,7 @@ Carry each agent's `Confidence` line forward. Where an agent reported `Unverifie
 
 | Check | Result |
 |---|---|
-| TypeScript (`tsc --noEmit`) | {Clean or N errors} |
+| {Typecheck / build command} | {Clean or N errors} |
 | Tests | {pass}/{total} passing |
 | {Project-specific check} | {result} |
 
@@ -391,7 +390,7 @@ Then, last of all, remove this run's excerpt working files: `python3 -I "${CLAUD
 - **The report's voice is authoritative.** Step 7's verification gate is what earns it. A particular that survived no check is marked, not stated.
 - **Project-aware.** Every agent gets the project's directives.
 - **Severity is honest.** Critical means production bugs.
-- **Round-aware.** The report filename includes round N, computed by counting existing reports + 1. v1 does not parse prior reports for fixed-findings status — agents may flag items that already shipped in a prior round; deduplication against prior rounds is future work.
+- **Round-aware.** The report filename includes round N, parsed from existing filenames per Step 8. Prior reports are not parsed for fixed-findings status — agents may flag items that already shipped in a prior round.
 
 ## Edge case: focus brief contradicts shipped behavior
 

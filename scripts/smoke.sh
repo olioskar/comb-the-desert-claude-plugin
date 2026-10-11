@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Interim behavioral gate while `claude plugin eval` is early-access-gated.
-# Runs the structural gates, then two non-interactive help checks.
+# Offline structural check: runs the structural gates, then two non-interactive help checks.
+# The behavioural gate is `claude plugin eval` (see evals/README.md).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -32,6 +32,5 @@ echo "$out" | grep -q "Trivial-only escape hatch" || {
 }
 
 echo "smoke: OK (structural gates + help lane)."
-echo "For a full behavioral pass, run the eval suite once enabled:"
-echo "  claude plugin eval . --scaffold"
+echo "For a full behavioral pass, run the eval suite (see evals/README.md)."
 echo "Or drive /comb:review manually in a scratch repo: claude --plugin-dir $(pwd)"

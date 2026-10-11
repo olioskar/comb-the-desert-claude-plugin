@@ -32,13 +32,7 @@ If the file doesn't exist, you'll create it. If `.claude/` doesn't exist for pro
 
 ## Step 2: Show the user what they have now
 
-Read all three layers and show the **merged effective config** plus which keys are coming from where. This is the "before" picture.
-
-1. `${CLAUDE_PLUGIN_ROOT}/config/defaults.json` — shipped defaults
-2. `~/.claude/comb.config.json` — global override (skip if not present)
-3. `<project-root>/.claude/comb.config.json` — project override (skip if not present)
-
-**Merge rules** are defined once in `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` (objects deep-merge; arrays replace; `null` deletes; invalid JSON is a hard error naming the bad file).
+Load the three layers per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` and show the **merged effective config** plus which layer each key comes from. This is the "before" picture.
 
 Print a short summary of the effective config (not the full JSON dump unless the user asks). Highlight which layer each non-default value is coming from.
 
@@ -54,7 +48,7 @@ The configurable schema is:
 | `paths.patterns` | string | Where the PATTERNS manifest is written/read. Relative to project root. `null` disables manifest consumption across review/plan/fix. |
 | `directives.include_plugin_defaults` | boolean | If `false`, plugin's shipped directives are not loaded. |
 | `directives.user_path` | string | Path (relative to project root) to user's directive `.md` files. |
-| `agents.<role>` | object | Reviewer entry. Required keys: `subagent_type` (string), `when_to_use` (string). Optional: `model` (string, per-agent override). |
+| `agents.<role>` | object | Reviewer entry. Required keys: `subagent_type` (string), `when_to_use` (string). Optional: `model` (string, per-agent override), `effort` (string, per-agent override). |
 | `agents.<role>` | `null` | **Deletes** the role from the palette via merge semantics. |
 | `models.review` | string | Model for review-step agents. |
 | `models.plan` | string | Model for plan-step agents. |
@@ -63,6 +57,7 @@ The configurable schema is:
 | `models.fix.implementer_trivial` | string | Fix-step implementer for trivial work. |
 | `models.fix.reviewer` | string | Fix-step internal reviewer. |
 | `models.the_desert` | string | Model for the desert orchestrator. |
+| `effort.<lane>` | string | Optional. Same keys as `models.*` (`review`, `plan`, `patterns`, `fix.implementer_standard`, `fix.implementer_trivial`, `fix.reviewer`, `the_desert`). One of `low`, `medium`, `high`, `xhigh`, `max`. Absent by default: dispatched agents run at the session's effort. Needs a Claude Code that takes `effort` on the Agent call (2.1.292 or later). |
 | `fix.commit_per_item` | boolean | Commit each fix item on reviewer PASS (default `true`). |
 | `fix.model_invocation` | boolean | Let Claude start the fix workflow from a natural-language request through the model-only `fix-auto` skill (default `false`; `/comb:fix` itself stays user-only). |
 
@@ -73,6 +68,7 @@ The configurable schema is:
 - **"Add a custom agent"** → write `agents.<new-role> = {subagent_type: "...", when_to_use: "..."}` and tell the user that a non-`comb:*` `subagent_type` triggers foreign-agent dispatch (directive paths plus an explicit authority instruction in the prompt).
 - **"Use model M for step S"** → set `models.<step> = "M"` (or the nested `models.fix.*` for fix sub-roles).
 - **"Use model M for agent X"** → set `agents.X.model = "M"` (per-agent override beats step-level).
+- **"Use effort E for step S / agent X"** → set `effort.<step> = "E"` or `agents.X.effort = "E"`. Removing the key returns that lane to the session default.
 - **"Change reviews/plans dir"** → set `paths.<reviews|plans>`.
 - **"Change base branch"** → set `paths.base_branch`.
 - **"Allow Claude to run fix" / "let the model apply fixes"** → set `fix.model_invocation = true` in the project override (or globally if asked). Say that `/comb:fix` is still user-only; the opt-in routes natural-language requests through the model-only `fix-auto` skill (not a slash command), which runs the same workflow with the same questions and commits.
@@ -91,18 +87,19 @@ If the user's request would have no effect (the value already matches), tell the
 
 ## Step 5: Write
 
-Write the new file. Format with 2-space indentation. Pretty-print top-level keys in this order: `paths`, `directives`, `agents`, `models`, `fix`. Within `agents`, list roles alphabetically. (Order is purely cosmetic — the plugin doesn't care.)
+Write the new file. Format with 2-space indentation. Pretty-print top-level keys in this order: `paths`, `directives`, `agents`, `models`, `effort`, `fix`. Within `agents`, list roles alphabetically. (Order is purely cosmetic — the plugin doesn't care.)
 
 ## Step 6: Verify
 
 - Re-parse the file you just wrote — fail loud on a JSON error.
 - For each `agents.<role>` that is an object (not `null`), confirm it has both `subagent_type` and `when_to_use` strings. If not, warn the user — at runtime the bad role will be skipped per the schema-violation rule, but better to flag now.
+- Every `effort.*` and `agents.<role>.effort` value is one of `low`, `medium`, `high`, `xhigh`, `max`; warn on anything else (the Agent call rejects it).
 
 ## Step 7: Tell the user how to test
 
 Suggest the most relevant smoke test based on what changed:
 
-- Changed `agents.*` or `models.*` → "Run `/comb:review` against a small dirty branch and confirm the agent palette and model assignments match what you set."
+- Changed `agents.*`, `models.*`, or `effort.*` → "Run `/comb:review` against a small dirty branch and confirm the agent palette, model, and effort assignments match what you set."
 - Changed `paths.*` → "Run `/comb:review` and confirm the report lands in the new `paths.reviews` directory."
 - Changed `directives.*` → "Run `/comb:review` with a focus brief that mentions one of your directives and confirm it's flagged primary."
 - Changed `fix.model_invocation` → "Ask Claude to apply the fixes in your own words and confirm it starts (or refuses, naming the flag) as you set."

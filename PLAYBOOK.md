@@ -27,9 +27,19 @@ In order:
 
 1. `claude plugin validate .`
 2. `scripts/check-contract.sh`
-3. `claude plugin eval . --scaffold --ablation none --runs 1 --allow-tools Bash Write Edit` (see `evals/README.md` for the flags and the macOS git limit); `scripts/smoke.sh` is the offline structural check.
+3. `claude plugin eval . --scaffold --ablation none --runs 1 --allow-tools Bash Write Edit` (see `evals/README.md` for the flags; on macOS it needs a standalone git such as Homebrew's); `scripts/smoke.sh` is the offline structural check.
 
 CI runs 1–2 on every push and PR. Evals run on manual dispatch.
+
+### Eval cadence
+
+The eval suite answers "does the plugin still behave as expected". It costs money, so it runs when behaviour can have changed, not on every edit.
+
+- **Every commit (free):** gates 1–2 and `scripts/smoke.sh`.
+- **Once per PR, before merge (about 5 USD):** the full suite (gate 3).
+- **A change confined to one area (about 1 USD):** that area's case, `--case <name>`.
+- **A grader that looks wrong (near free):** one run of that case with `--keep-temp`, then iterate on the grader offline with `python3 -I scripts/replay-graders.py evals/<case> <kept dir>` until it reads the saved run correctly. Never re-run a paid case to test a grader edit.
+- **No eval:** prose-only edits (changelog, README, PLAYBOOK) and work that is debugging something outside the plugin.
 
 ## Design rules
 
@@ -43,6 +53,7 @@ Each of these came out of a past review. Check them when changing the contract.
 - **Domain-neutral examples.** Shipped files reference no specific product, team, or codebase.
 - **No dead citations.** Shipped files cannot cite documents that do not ship.
 - **Descriptions carry triggers, not summaries.** A skill description says when to invoke it. The body says what to do.
+- **Generation-only roles say so in `when_to_use`.** Review picks its palette and plan picks a finding's lens by reading each role's `when_to_use`; that string is where a role declares itself out of the review/plan/fix palette, and the exclusion is not restated in each skill.
 
 ## Writing conventions
 

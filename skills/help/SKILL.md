@@ -44,10 +44,10 @@ Commands
                      per item, parallel batching where safe.
 
   /comb:the-desert   Run review → plan → fix as one continuous sweep.
-                     Opus everywhere. No pauses, no items skipped. On
-                     non-code artifacts, stops after review — findings go
-                     back into your design conversation, not an autonomous
-                     rewrite pass.
+                     One model (models.the_desert) everywhere. No pauses,
+                     no items skipped. On non-code artifacts, stops after
+                     review — findings go back into your design
+                     conversation, not an autonomous rewrite pass.
 
   /comb:patterns     Scan the codebase and write a PATTERNS manifest of
                      concrete conventions (structure, naming, closed token
@@ -108,12 +108,16 @@ Inputs
                 priority.
 
 What it does
-  - Picks 2–5 reviewer agents based on the diff and the focus brief.
+  - Picks 1–5 reviewer agents based on the diff and the focus brief.
   - Dispatches them in parallel against the project's directives.
   - Runs typecheck/tests in parallel.
   - Verifies each finding's anchors and counts, then consolidates
     them into a severity-ranked report. Every finding carries a
     Verified: line naming what was checked and what was not.
+
+Config knobs
+  models.review           (default: opus)   reviewer model
+  effort.review           (default: unset)  reviewer effort (session default)
 
 Output
   <paths.reviews>/{pr-N|branch-NAME}-roundN-report.md
@@ -142,6 +146,10 @@ What it does
   - Dispatches one planner agent per finding (or group) in parallel.
   - Each agent reads the actual code and writes a self-contained fix
     instruction file.
+
+Config knobs
+  models.plan             (default: opus)   planner model
+  effort.plan             (default: unset)  planner effort (session default)
 
 Output
   <paths.plans>/plan-for-<report-stem>/<code>-<title-slug>.md
@@ -183,6 +191,7 @@ Models
   Trivial fixes:    models.fix.implementer_trivial   (default: sonnet)
   Standard fixes:   models.fix.implementer_standard  (default: opus)
   Reviewer:         models.fix.reviewer              (default: opus)
+  Effort:           effort.fix.*                     (default: unset — session effort)
 
 Config knobs
   fix.commit_per_item    (default: true)  per-item commit on PASS
@@ -197,8 +206,8 @@ Config knobs
 ```
 /comb:the-desert [scope] [focus brief]
 
-Run review → plan → fix as one continuous sweep, opus everywhere,
-no pauses.
+Run review → plan → fix as one continuous sweep, one model
+(models.the_desert) everywhere, no pauses.
 
 Inputs
   scope         Same as /comb:review.
@@ -211,6 +220,10 @@ When to use
 When not to use
   - When you want a checkpoint between review and plan.
   - When you want to hand-pick which findings get instructions.
+
+Config knobs
+  models.the_desert       (default: opus)   replaces every lane model in the sweep
+  effort.the_desert       (default: unset)  replaces every lane effort in the sweep
 ```
 
 ### patterns
@@ -274,6 +287,7 @@ Consumed by
 Config knobs
   paths.patterns          (default: docs/combs/PATTERNS.md)  null disables consumption
   models.patterns         (default: opus)                    scanner and shaver model
+  effort.patterns         (default: unset)                   scanner and shaver effort
   agents.pattern-shaver   (default: comb:pattern-shaver)     shaver role
 ```
 
