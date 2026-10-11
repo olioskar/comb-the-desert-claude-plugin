@@ -68,7 +68,7 @@ python3 -I scripts/replay-graders.py evals/<name> /private/tmp/e-XXXX
 | `help-overview` | Help text drift; paraphrased instead of verbatim output |
 | `config-null-delete` | `null`-as-delete merge semantics regressing (deleted role still dispatched) |
 | `noncode-shortcircuit` | `/comb:the-desert` running plan/fix on a prose artifact |
-| `fix-reviewer-diff-scope` | The fix reviewer reading the wrong diff (`HEAD~1` bug class, v0.9.0) |
+| `fix-reviewer-diff-scope` | The fix reviewer reading the wrong diff (`HEAD~1` bug class, v0.9.0); a commit landing without the project's test run (0.14.0); HEAD and tree checks skipped around the implementer |
 | `dispatch-delivery` | Directive embedding returning for foreign agents (paths-only contract) |
 | `manifest-slice` | Whole-manifest delivery returning: agents must get a per-run excerpt (entity-page section in, pdf and theme out) and the orchestrator must never print the manifest body; also `Verified:` lines in the report, `.comb/excerpts` cleaned, `model` passed on dispatch |
 | `fix-auto-off` | The model-only fix entry running without `fix.model_invocation: true` (must refuse, naming the observed value and `/comb:fix`, with no edits) |
@@ -77,4 +77,5 @@ python3 -I scripts/replay-graders.py evals/<name> /private/tmp/e-XXXX
 `dispatch-delivery` also asserts the plan summary ends with `Next: /comb:fix …` and never
 names `fix-auto`. Still uncovered, by cost: a code-shaped `/comb:the-desert` run past
 review (the 0.10.0 hardcoded-reviewer class), `--shave` end to end, review round numbering
-with a deleted earlier round, and the python3-missing fallback (PATH is inherited).
+with a deleted earlier round, revert-on-FAIL and `## Attempts` (needs a FAILing reviewer on
+demand), and the python3-missing fallback (PATH is inherited).

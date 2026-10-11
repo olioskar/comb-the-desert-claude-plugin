@@ -27,6 +27,7 @@ cat > plans/plan-for-eval/M1-rename-sum-accumulator.md <<'EOF'
 **Severity:** Medium
 **File(s):** src/util.js:1-5
 **Specialty:** code-reviewer
+**Finding status:** confirmed — src/util.js:2 declares the accumulator as `x`
 
 ---
 
@@ -60,6 +61,8 @@ function sum(values) {
 ## Expected Outcome
 `sum` behaves identically; the accumulator is named `total`.
 
+Check: node -e "const {sum}=require('./src/util.js'); if (sum([1,2,3])!==6) process.exit(1)"
+
 ## Scope
 **In scope:** the accumulator variable name inside `sum`.
 **Out of scope:** everything else in the file — `average`, exports, formatting.
@@ -73,6 +76,7 @@ cat > plans/plan-for-eval/M2-guard-average-empty-input.md <<'EOF'
 **Severity:** Medium
 **File(s):** src/util.js:7-9
 **Specialty:** code-reviewer
+**Finding status:** confirmed — src/util.js:8 divides by values.length with no empty guard
 
 ---
 
@@ -103,12 +107,22 @@ function average(values) {
 ## Expected Outcome
 `average([])` returns `null`; non-empty input is unchanged.
 
+Check: node -e "const {average}=require('./src/util.js'); if (average([])!==null || average([2,4])!==3) process.exit(1)"
+
 ## Scope
 **In scope:** the empty-input guard inside `average`.
 **Out of scope:** everything else in the file — `sum`, exports, formatting.
 
 ## Directive citations
 None — no policy citation needed.
+EOF
+cat > package.json <<'EOF'
+{ "name": "eval-fixture", "private": true, "scripts": { "test": "node test.js" } }
+EOF
+cat > test.js <<'EOF'
+const { sum } = require('./src/util.js');
+if (sum([1, 2, 3]) !== 6) { console.error('sum broken'); process.exit(1); }
+console.log('ok');
 EOF
 git add -A
 git commit -qm "init"
