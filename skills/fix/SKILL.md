@@ -72,6 +72,15 @@ Instruction folder shape: {per-finding | single revise-doc}
 {N items to process | 1 consolidated revise-doc: revise-{spec-stem}.md}
 ```
 
+**Not-reproduced items.** Read each per-finding file's `**Finding status:**` header. Items marked `not reproduced` are listed separately and not queued:
+
+```
+{K} not reproduced by the planner (not queued): {codes with titles}
+Say "queue {code}" to run one anyway.
+```
+
+A file without the header predates this field and queues normally. In `/comb:the-desert` these items are skipped and reported in the final summary; nothing asks.
+
 **Cut the manifest excerpt** (only when `paths.patterns` resolved), per `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`, with the instruction folder as the touched text (the script reads every `.md` in it, so this covers per-finding files and the single revise doc alike):
 
 ```
@@ -327,14 +336,38 @@ Only flag genuine issues, not style preferences. One or two max. If nothing stan
 
 ### 4f. Handle the result
 
-- **PASS** — proceed to **Step 4f.1** (commit), then announce complete and move on. When the reviewer's `Unverified:` line names anything other than `nothing`, announce the item as `{code} — PASS (partial verification: {what the reviewer could not check})` and carry that item into the end-of-run summary with the same note. This is a log line, not a gate: it does not block the commit, does not trigger a retry, and asks the user nothing.
-- **FAIL** — read feedback. Adjust instructions if needed. Send a new implementer. Review again. **If 3 failures on one item:** if the item is classified trivial (per Step 4c), proceed to **Step 4g** (orchestrator escape hatch). Otherwise stop and ask the user.
-- **DISCOVERED** — write a new instruction document in the same folder using the next available code (`X1`, `X2`...). The `X` prefix means "extra, found during execution" and is distinct from `D{n}` Deferred items emitted by review. Same format as all other items. Add to the end of the queue. Announce:
+- **PASS** — proceed to **Step 4f.0** (verify), then **4f.1** (commit), then announce complete and move on. When the reviewer's `Unverified:` line names anything other than `nothing`, announce the item as `{code} — PASS (partial verification: {what the reviewer could not check})` and carry that note into the end-of-run summary. This is a log line, not a gate: it does not block the commit and asks the user nothing.
+- **FAIL** — in this order:
+  1. **Revert the attempt.** `git checkout -- <files reported by the implementer>`; delete every reported path that `git status --porcelain -- <files>` marks `??`; confirm `git status --porcelain -- <files>` prints nothing. A retry starts from the tree the first attempt started from — "fresh agent" is only true when the tree is fresh too.
+  2. **Record the attempt.** Append to the instruction file (create the section on the first FAIL):
+     ```markdown
+     ## Attempts
+
+     ### Attempt {n} — FAIL
+     **Reviewer:** {the FAIL text, verbatim or trimmed to its specifics}
+     **Plan change:** {what you changed in `## How` and why | none}
+     ```
+     The section is append-only. If the instruction is wrong, change `## How` and say so here; the next reviewer verifies against the changed How and can see it changed.
+  3. **Retry.** Send a new implementer (Step 4d), then review again (4e). **After three FAILs on one item, stop and ask the user** — trivial or standard alike. Three failures mean the instruction or the classification is wrong, and that is the user's call.
+- **DISCOVERED** — the reviewer found an issue outside this fix. The orchestrator does not write the instruction: it dispatches a planner for it, exactly as `/comb:plan` Step 6 does for one finding. Read `${CLAUDE_PLUGIN_ROOT}/skills/plan/SKILL.md` for the planner dispatch prompt (code-shaped flow) and dispatch it with the DISCOVERED block as the finding, the next free `X{n}` as the reference code, the same output folder, and `**Verified (from the review report):** none — discovered during fix`. The `X` prefix means "extra, found during execution" and is distinct from `D{n}` Deferred items. Add the resulting file to the end of the queue (its `Finding status` applies like any other). Announce:
   ```
   M3 — PASS (5/15 complete)
-  Discovered issue added: X1 — {title} (queue is now 16 items)
+  Discovered issue added: X1 — {title} (planned by {planner model}; queue is now 16 items)
   Next: M4 — {title}
   ```
+
+**Plugin root for the planner prompt.** The plan skill file you Read above is not variable-substituted, and the plugin-root placeholder is not a shell variable. In that file the placeholder is written as a dollar sign, an opening brace, the name CLAUDE_PLUGIN_ROOT, and a closing brace. Wherever you see it — in the `manifest.py` command lines, and in every Read target under `shared/`, `directives/`, and `skills/` — replace it with this literal path: `${CLAUDE_PLUGIN_ROOT}`. A `manifest.py` command run with the placeholder unexpanded fails and would silently fall back to delivering the full manifest.
+
+### 4f.0. Verify before commit
+
+Run the project's verification — typecheck, tests, lint — chosen the way `/comb:review` Step 5 chooses it: commands named in `CLAUDE.md`, else the project's build or package manifest(s); when neither names one, skip with the note `verification: none configured` on the item's progress line. Pipe stderr with `2>&1`.
+
+- Exit zero → proceed to 4f.1.
+- Non-zero → the item is a **FAIL**: take the 4f FAIL path with the command's output as the reviewer feedback (the `**Reviewer:**` line of the Attempt reads `verification: <command> exited <n>` followed by the output's relevant lines).
+
+When the command is slow, run it once per parallel batch after every item in the batch has a PASS and before any of them commits. Attribute a failure by the file paths in its output to the items whose write-sets contain them; when it names none, every PASSed item in the batch takes the FAIL. No commit lands on red.
+
+Bound: this runs the project's own commands and reads their exit codes. It does not decide what the right command is beyond review Step 5's rule, and it does not interpret output beyond path matching.
 
 ### 4f.1. Commit on PASS
 
@@ -345,28 +378,19 @@ git add <files reported by implementer>
 git commit -m "<finding-code>: <title>"
 ```
 
-The orchestrator runs the commit, not the implementer subagent. Two safety rules:
+The orchestrator runs the commit, not the implementer subagent. Three rules:
 
-- **Pre-flight already happened** at Step 1.5 — the only changes in the working tree at this point are the implementer's. (Or: the user chose `(c) proceed without per-item commits` and `commit_per_item` is effectively off for this run.)
-- **On commit failure** (pre-commit hook reject, signing failure, conflict, anything non-zero): abort the run, surface the error, name the affected item. Do not retry blindly. The user investigates.
+- **Stage from the reported list.** Step 4d.1 already confirmed the tree holds nothing outside the in-flight write-sets, so the reported list is complete for this item. (When the user chose `(c) proceed without per-item commits` at Step 1.5, `commit_per_item` is effectively off for this run.)
+- **After the commit:** `git status --porcelain` minus the paths of the other in-flight items must be empty. Anything left → stop the run and surface: `tree not clean after {code}'s commit: {paths}` (a hook that rewrites files, or an edit nobody reported).
+- **On commit failure** (pre-commit hook reject, signing failure, conflict, anything non-zero): abort the run and surface the error, then print one line per in-flight item so nothing is lost:
+  ```
+  {code} — committed
+  {code} — PASS, uncommitted ({files})
+  {code} — in progress ({implementer | reviewer})
+  ```
+  Do not retry blindly. The user investigates.
 
 If `fix.commit_per_item` is `false`, skip the commit. Implementer changes accumulate in the working tree.
-
-### 4g. Trivial escape hatch (orchestrator-applied fix after 3 failures)
-
-If an item has failed 3 times AND was classified trivial at Step 4c (single-line edits, import reorders, comment fixes, lexical renames), the orchestrator may apply the fix inline rather than re-dispatch a fourth implementer. The escape hatch is **trivial only** — standard items that hit 3 failures escalate to the user as before.
-
-When taking the escape hatch:
-
-1. **Announce:**
-   ```
-   {code} — escape: orchestrator applying inline (3 implementer failures, trivial item)
-   ```
-2. **Apply the change directly** using `Edit` / `Write` tools, exactly per the plan's `## How` section.
-3. **Run the reviewer step (4e) anyway.** The reviewer is the safety net; bypassing it because the orchestrator made the edit erodes the contract. The reviewer reads the same plan, the same diff, and applies the same plan-compliance decision rule. The implementer's report is replaced with a one-paragraph "Orchestrator applied inline. No divergences from plan."
-4. **Commit on PASS per Step 4f.1.** Failure handling is the same — abort and surface to user if the commit fails.
-
-If the reviewer FAILs on the orchestrator's inline application, escalate to the user. Do not retry inline a second time. (At that point you've burned 4 attempts on the same item; escalate.)
 
 ## Step 5: Progress tracking
 
@@ -380,9 +404,13 @@ Next: {next_code} — {title}
 With extras:
 ```
 {code} — PASS after 1 retry ({N}/{total} complete)
+{code} — PASS after 1 retry (plan adjusted) ({N}/{total} complete)
 {code} — PASS, trivial implementer ({N}/{total} complete)
+{code} — PASS, verification: none configured ({N}/{total} complete)
 {code} — PASS (partial verification: {what the reviewer could not check}) ({N}/{total} complete)
 ```
+
+`(plan adjusted)` appears when any `## Attempts` entry's **Plan change** is not `none`; the plan the commit satisfies is not the plan the planner wrote, and the summary says so.
 
 At the end:
 
@@ -401,14 +429,18 @@ All {N} items complete:
 
 {K} discovered during execution:
   - X1: {title} (found reviewing H2) — PASS
+
+{J} not reproduced by the planner (not run):
+  - M7: {title} — {planner's looked-for text, one line}
 ```
 
 **Manifest notes (non-blocking).** Append the excerpt log line verbatim, then any staleness note (`stale: yes` → `PATTERNS manifest may be stale — consider re-running /comb:patterns.`; `unknown` → `PATTERNS staleness unknown (<detail>).`) or semantic-refresh note recorded during this run. Then, last of all: `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>`.
 
 ## Ground rules
 
-- **Fresh agents.** Each implementer and reviewer is a new subagent. No accumulated state.
+- **Fresh agents, fresh tree.** Each implementer and reviewer is a new subagent, and a retry starts after the failed attempt is reverted (4f). No accumulated state in either.
+- **Git is the orchestrator's.** Implementers never commit; the HEAD check (4d.1) stops an item whose implementer did.
 - **The instruction is the spec.** Implementer follows it. Reviewer verifies against it. If the doc is wrong, fix the doc first, then re-implement.
 - **Scope is sacred.** Implementers don't make changes outside scope. Reviewers flag scope violations as FAIL.
-- **Don't loop forever.** Three failures means something's structurally wrong. Stop and ask.
+- **Don't loop forever.** Three failures on one item means the instruction or its classification is wrong. Stop and ask — there is no orchestrator-applied fix.
 - **Parallelize when safe.** Different writes = safe. Same file = sequential.
