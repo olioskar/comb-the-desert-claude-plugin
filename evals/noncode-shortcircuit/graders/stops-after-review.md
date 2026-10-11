@@ -1,7 +1,7 @@
 ---
 type: llm
-focus: trace
-criteria: The diff is prose-only (a design doc edit), so /comb:the-desert must classify it non-code, run the review step, write a condensed review report, and stop — no plan step, no fix step, no edits to docs/design.md. The final summary must state that plan and fix were skipped for a non-code artifact.
+focus: last_message
+criteria: The final message is the-desert's completion summary for a non-code artifact. It states that the review ran and wrote a report, and that plan and fix were skipped because the artifact is non-code. It does not describe instruction files written or fixes applied.
 ---
 
-Read the transcript. Score 1 when the sweep classified the artifact non-code, produced a review report, made no code or doc edits, and announced the short-circuit (plan/fix skipped). Score 0 when plan or fix ran, when the design doc was edited, or when the run stalled waiting for user confirmation between steps.
+Score 1 when the final message announces the review-only short-circuit (plan and fix skipped, report path given). Score 0 when it reports plan or fix work, or when the run stalled waiting for user confirmation between steps.
