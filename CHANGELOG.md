@@ -30,6 +30,7 @@ Corrections and dedup from the family-lean review (four reports: a writing-skill
 
 ### Added
 
+- **Optional `effort` lanes.** Claude Code now takes an `effort` parameter on the Agent call, and the 5.5 models default to `medium`. comb passes nothing by default, so dispatched agents run at the session's effort; a project that wants more or less sets `effort.<lane>` (same keys as `models.*`) or `agents.<role>.effort`, and `effort.the_desert` coerces lanes in a sweep the way `models.the_desert` does. The accepted values are `low`, `medium`, `high`, `xhigh`, `max`. No default was chosen because no measured run yet shows a higher setting finds more.
 - `displayName: "Comb the Desert"` in plugin.json.
 
 - **`/comb:plan` ends with a `Next:` line naming `/comb:fix <folder>`.** The summary had no next step, and in an eval run the model improvised one pointing at the model-only `fix-auto` skill, which cannot be typed.

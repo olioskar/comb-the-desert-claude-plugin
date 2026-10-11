@@ -183,6 +183,7 @@ Models
   Trivial fixes:    models.fix.implementer_trivial   (default: sonnet)
   Standard fixes:   models.fix.implementer_standard  (default: opus)
   Reviewer:         models.fix.reviewer              (default: opus)
+  Effort:           effort.fix.*                     (default: unset — session effort)
 
 Config knobs
   fix.commit_per_item    (default: true)  per-item commit on PASS
@@ -274,6 +275,7 @@ Consumed by
 Config knobs
   paths.patterns          (default: docs/combs/PATTERNS.md)  null disables consumption
   models.patterns         (default: opus)                    scanner and shaver model
+  effort.patterns         (default: unset)                   scanner and shaver effort
   agents.pattern-shaver   (default: comb:pattern-shaver)     shaver role
 ```
 

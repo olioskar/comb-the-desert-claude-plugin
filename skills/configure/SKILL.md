@@ -48,7 +48,7 @@ The configurable schema is:
 | `paths.patterns` | string | Where the PATTERNS manifest is written/read. Relative to project root. `null` disables manifest consumption across review/plan/fix. |
 | `directives.include_plugin_defaults` | boolean | If `false`, plugin's shipped directives are not loaded. |
 | `directives.user_path` | string | Path (relative to project root) to user's directive `.md` files. |
-| `agents.<role>` | object | Reviewer entry. Required keys: `subagent_type` (string), `when_to_use` (string). Optional: `model` (string, per-agent override). |
+| `agents.<role>` | object | Reviewer entry. Required keys: `subagent_type` (string), `when_to_use` (string). Optional: `model` (string, per-agent override), `effort` (string, per-agent override). |
 | `agents.<role>` | `null` | **Deletes** the role from the palette via merge semantics. |
 | `models.review` | string | Model for review-step agents. |
 | `models.plan` | string | Model for plan-step agents. |
@@ -57,6 +57,7 @@ The configurable schema is:
 | `models.fix.implementer_trivial` | string | Fix-step implementer for trivial work. |
 | `models.fix.reviewer` | string | Fix-step internal reviewer. |
 | `models.the_desert` | string | Model for the desert orchestrator. |
+| `effort.<lane>` | string | Optional. Same keys as `models.*` (`review`, `plan`, `patterns`, `fix.implementer_standard`, `fix.implementer_trivial`, `fix.reviewer`, `the_desert`). One of `low`, `medium`, `high`, `xhigh`, `max`. Absent by default: dispatched agents run at the session's effort. |
 | `fix.commit_per_item` | boolean | Commit each fix item on reviewer PASS (default `true`). |
 | `fix.model_invocation` | boolean | Let Claude start the fix workflow from a natural-language request through the model-only `fix-auto` skill (default `false`; `/comb:fix` itself stays user-only). |
 
@@ -67,6 +68,7 @@ The configurable schema is:
 - **"Add a custom agent"** → write `agents.<new-role> = {subagent_type: "...", when_to_use: "..."}` and tell the user that a non-`comb:*` `subagent_type` triggers foreign-agent dispatch (directive paths plus an explicit authority instruction in the prompt).
 - **"Use model M for step S"** → set `models.<step> = "M"` (or the nested `models.fix.*` for fix sub-roles).
 - **"Use model M for agent X"** → set `agents.X.model = "M"` (per-agent override beats step-level).
+- **"Use effort E for step S / agent X"** → set `effort.<step> = "E"` or `agents.X.effort = "E"`. Removing the key returns that lane to the session default.
 - **"Change reviews/plans dir"** → set `paths.<reviews|plans>`.
 - **"Change base branch"** → set `paths.base_branch`.
 - **"Allow Claude to run fix" / "let the model apply fixes"** → set `fix.model_invocation = true` in the project override (or globally if asked). Say that `/comb:fix` is still user-only; the opt-in routes natural-language requests through the model-only `fix-auto` skill (not a slash command), which runs the same workflow with the same questions and commits.

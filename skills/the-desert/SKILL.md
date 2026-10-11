@@ -31,7 +31,7 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`.
 
 These apply to every sub-step. Where a sub-skill's text conflicts with them, these win. Everything else in `/comb:review`, `/comb:plan`, and `/comb:fix` applies unchanged — the consolidation gate, the fix reviewer rule and its fallback chain, write-set batching, the 3-failure escalation, the per-sub-step manifest excerpt (cut, recorded, and cleaned by each sub-step from its own touched text), and the edge case for a focus brief that contradicts shipped behavior.
 
-- **Models.** `models.the_desert` replaces every lane default (`models.review`, `models.plan`, `models.fix.*`), including the trivial implementer. An explicit `agents.<role>.model` override survives. `models.patterns` is untouched: the scanner is never dispatched in a sweep.
+- **Models and effort.** `models.the_desert` replaces every lane default (`models.review`, `models.plan`, `models.fix.*`), including the trivial implementer; `effort.the_desert`, when set, replaces every `effort.*` lane the same way. Explicit `agents.<role>.model` / `agents.<role>.effort` overrides survive. `models.patterns` and `effort.patterns` are untouched: the scanner is never dispatched in a sweep.
 - **Config.** The sub-skills reuse the config loaded in Step 1; they do not load it again.
 - **Directives.** The focus-brief matcher runs once (Step 2) and its result carries through review → plan → fix.
 - **Deferral.** Every finding is planned and fixed, Deferred included. "Deferred" is not a category in this mode.
