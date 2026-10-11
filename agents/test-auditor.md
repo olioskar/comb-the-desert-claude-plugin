@@ -52,6 +52,6 @@ When invoked during `/comb:plan` or `/comb:fix`, your job extends to:
 
 ## Output format
 
-Per the dispatch prompt's output format spec (severity, placeholder code, title, file:line, description, why it matters, directive citations, suggested fix, Confidence). Use the **Test gaps** severity for missing-coverage findings.
+Per the dispatch prompt's output format spec. Use the **Test gaps** severity for missing-coverage findings.
 
 If coverage is sufficient and tests are real, return "LOOKS GOOD" noting what you verified.

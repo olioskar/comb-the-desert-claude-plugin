@@ -43,6 +43,6 @@ The dispatch prompt provides the shared context block, directive paths, the opti
 
 ## Output format
 
-Per the dispatch prompt's output format spec (severity, placeholder code, title, file:line, description, why it matters, directive citations, suggested fix, Confidence).
+Per the dispatch prompt's output format spec.
 
 If you find no issues in your specialty, return a single "LOOKS GOOD" entry noting what you verified.

@@ -78,7 +78,7 @@ When no spec/plan is supplied — common in real-world reviews where the UI or c
 
 ## Output format
 
-Per the dispatch prompt's output format spec (severity, placeholder code, title, file:line, description, why it matters, directive citations, suggested fix, Confidence).
+Per the dispatch prompt's output format spec.
 
 For findings tied to spec/plan misalignment, severity is typically Critical (missing requirement, wrong behavior) or High (partial implementation). Pattern drift is typically Medium.
 

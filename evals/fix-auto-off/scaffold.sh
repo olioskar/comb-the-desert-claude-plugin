@@ -2,7 +2,9 @@
 # Scratch repo with one plan item and NO fix.model_invocation flag: a natural-language
 # "apply the fixes" must be refused with the observed value and the /comb:fix command.
 set -euo pipefail
-git init -q -b main . 2>/dev/null || true
+git init -q -b main .
+git config user.email eval@example.com
+git config user.name "comb eval"
 mkdir -p src plans/plan-for-eval .claude
 cat > src/util.js <<'EOF'
 function sum(values) {
@@ -59,3 +61,5 @@ function sum(values) {
 ## Directive citations
 None — no policy citation needed.
 EOF
+git add -A
+git commit -qm "init"

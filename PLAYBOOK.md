@@ -43,6 +43,7 @@ Each of these came out of a past review. Check them when changing the contract.
 - **Domain-neutral examples.** Shipped files reference no specific product, team, or codebase.
 - **No dead citations.** Shipped files cannot cite documents that do not ship.
 - **Descriptions carry triggers, not summaries.** A skill description says when to invoke it. The body says what to do.
+- **Generation-only roles say so in `when_to_use`.** Review, plan, and fix exclude a role from their palettes by reading its `when_to_use`; the exclusion is not restated in each skill.
 
 ## Writing conventions
 

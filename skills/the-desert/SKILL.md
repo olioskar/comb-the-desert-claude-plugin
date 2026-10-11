@@ -29,13 +29,13 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`.
 
 ## Overrides
 
-These apply to every sub-step. Where a sub-skill's text conflicts with them, these win. Everything else in `/comb:review`, `/comb:plan`, and `/comb:fix` applies unchanged — the consolidation gate, the fix reviewer rule and its fallback chain, write-set batching, the 3-failure escalation, the per-sub-step manifest excerpt (cut, recorded, and cleaned by each sub-step from its own touched text), and the edge case for a focus brief that contradicts shipped behavior.
+These apply to every sub-step. Where a sub-skill's text conflicts with them, these win. Everything else in `/comb:review`, `/comb:plan`, and `/comb:fix` applies unchanged — the consolidation gate, the fix reviewer rule and its fallback chain, write-set batching, the 3-failure escalation, and the per-sub-step manifest excerpt (cut, recorded, and cleaned by each sub-step from its own touched text).
 
 - **Models and effort.** `models.the_desert` replaces every lane default (`models.review`, `models.plan`, `models.fix.*`), including the trivial implementer; `effort.the_desert`, when set, replaces every `effort.*` lane the same way. Explicit `agents.<role>.model` / `agents.<role>.effort` overrides survive. `models.patterns` and `effort.patterns` are untouched: the scanner is never dispatched in a sweep.
 - **Config.** The sub-skills reuse the config loaded in Step 1; they do not load it again.
 - **Directives.** The focus-brief matcher runs once (Step 2) and its result carries through review → plan → fix.
 - **Deferral.** Every finding is planned and fixed, Deferred included. "Deferred" is not a category in this mode.
-- **Confirmations.** None between steps. Groupings, ordering, and trivial/standard classification are decided, not asked. Review's report is logged, not presented. The only questions in a sweep: scope at the start (if ambiguous), fix's dirty-tree pre-flight (only when `git status --porcelain` is non-empty), and "run again?" at the end.
+- **Confirmations.** None between steps. Groupings, ordering, trivial/standard classification, and a focus brief that contradicts shipped behavior (review's edge case) are decided, not asked: follow the shipped behavior and log the conflict. Review's report is logged, not presented. The only questions in a sweep: scope at the start (if ambiguous), fix's dirty-tree pre-flight (only when `git status --porcelain` is non-empty), and "run again?" at the end.
 - **Commits.** Per `fix.commit_per_item`, unchanged.
 - **Focus brief.** `$ARGUMENTS` reaches every dispatch in every step under `## User focus for this run`, without re-asking.
 
@@ -51,7 +51,7 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/review/SKILL.md` and execute that workflow un
 
 Step-specific: do not present the report and wait. Log the verdict and finding count, the excerpt log line, and any staleness note, run the excerpt `clean`, then continue.
 
-Announce, in the **same message as the first tool call of the next step** (a text-only turn ends the sweep):
+Announce. For a code-shaped run the announcement goes in the **same message as the first tool call of the next step** (a text-only turn ends the sweep). For a non-code run it goes out together with the "After completion" block, and ending on text is correct there.
 
 **Code-shaped:**
 
@@ -85,7 +85,7 @@ Moving to fix →
 
 ## Step 5: Run fix
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/SKILL.md` and execute it under the Overrides (same mechanism as Step 3). Execution order: Critical → High → Medium → Low → Test gaps → Deferred → Discovered. Track progress as `/comb:fix` does; when all items complete, present the full summary.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/fix/SKILL.md` and execute it under the Overrides (same mechanism as Step 3). The reviewer for each item follows fix Step 4e (role from the plan file's `**Specialty:**` header). Execution order: Critical → High → Medium → Low → Test gaps → Deferred → Discovered. Track progress as `/comb:fix` does; when all items complete, present the full summary.
 
 ## After completion
 

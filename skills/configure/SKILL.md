@@ -57,7 +57,7 @@ The configurable schema is:
 | `models.fix.implementer_trivial` | string | Fix-step implementer for trivial work. |
 | `models.fix.reviewer` | string | Fix-step internal reviewer. |
 | `models.the_desert` | string | Model for the desert orchestrator. |
-| `effort.<lane>` | string | Optional. Same keys as `models.*` (`review`, `plan`, `patterns`, `fix.implementer_standard`, `fix.implementer_trivial`, `fix.reviewer`, `the_desert`). One of `low`, `medium`, `high`, `xhigh`, `max`. Absent by default: dispatched agents run at the session's effort. |
+| `effort.<lane>` | string | Optional. Same keys as `models.*` (`review`, `plan`, `patterns`, `fix.implementer_standard`, `fix.implementer_trivial`, `fix.reviewer`, `the_desert`). One of `low`, `medium`, `high`, `xhigh`, `max`. Absent by default: dispatched agents run at the session's effort. Needs a Claude Code that takes `effort` on the Agent call (2.1.292 or later). |
 | `fix.commit_per_item` | boolean | Commit each fix item on reviewer PASS (default `true`). |
 | `fix.model_invocation` | boolean | Let Claude start the fix workflow from a natural-language request through the model-only `fix-auto` skill (default `false`; `/comb:fix` itself stays user-only). |
 
@@ -87,18 +87,19 @@ If the user's request would have no effect (the value already matches), tell the
 
 ## Step 5: Write
 
-Write the new file. Format with 2-space indentation. Pretty-print top-level keys in this order: `paths`, `directives`, `agents`, `models`, `fix`. Within `agents`, list roles alphabetically. (Order is purely cosmetic — the plugin doesn't care.)
+Write the new file. Format with 2-space indentation. Pretty-print top-level keys in this order: `paths`, `directives`, `agents`, `models`, `effort`, `fix`. Within `agents`, list roles alphabetically. (Order is purely cosmetic — the plugin doesn't care.)
 
 ## Step 6: Verify
 
 - Re-parse the file you just wrote — fail loud on a JSON error.
 - For each `agents.<role>` that is an object (not `null`), confirm it has both `subagent_type` and `when_to_use` strings. If not, warn the user — at runtime the bad role will be skipped per the schema-violation rule, but better to flag now.
+- Every `effort.*` and `agents.<role>.effort` value is one of `low`, `medium`, `high`, `xhigh`, `max`; warn on anything else (the Agent call rejects it).
 
 ## Step 7: Tell the user how to test
 
 Suggest the most relevant smoke test based on what changed:
 
-- Changed `agents.*` or `models.*` → "Run `/comb:review` against a small dirty branch and confirm the agent palette and model assignments match what you set."
+- Changed `agents.*`, `models.*`, or `effort.*` → "Run `/comb:review` against a small dirty branch and confirm the agent palette, model, and effort assignments match what you set."
 - Changed `paths.*` → "Run `/comb:review` and confirm the report lands in the new `paths.reviews` directory."
 - Changed `directives.*` → "Run `/comb:review` with a focus brief that mentions one of your directives and confirm it's flagged primary."
 - Changed `fix.model_invocation` → "Ask Claude to apply the fixes in your own words and confirm it starts (or refuses, naming the flag) as you set."

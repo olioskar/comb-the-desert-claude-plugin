@@ -3,7 +3,9 @@
 # "apply the fixes" runs the fix workflow. Per-item commits are off so the case does not
 # need git (blocked in the macOS eval sandbox).
 set -euo pipefail
-git init -q -b main . 2>/dev/null || true
+git init -q -b main .
+git config user.email eval@example.com
+git config user.name "comb eval"
 mkdir -p src plans/plan-for-eval .claude
 cat > src/util.js <<'EOF'
 function sum(values) {
@@ -65,3 +67,5 @@ cat > .claude/comb.config.json <<'EOF2'
   "fix": { "model_invocation": true, "commit_per_item": false }
 }
 EOF2
+git add -A
+git commit -qm "init"

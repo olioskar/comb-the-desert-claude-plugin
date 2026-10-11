@@ -115,6 +115,10 @@ What it does
     them into a severity-ranked report. Every finding carries a
     Verified: line naming what was checked and what was not.
 
+Config knobs
+  models.review           (default: opus)   reviewer model
+  effort.review           (default: unset)  reviewer effort (session default)
+
 Output
   <paths.reviews>/{pr-N|branch-NAME}-roundN-report.md
 
@@ -142,6 +146,10 @@ What it does
   - Dispatches one planner agent per finding (or group) in parallel.
   - Each agent reads the actual code and writes a self-contained fix
     instruction file.
+
+Config knobs
+  models.plan             (default: opus)   planner model
+  effort.plan             (default: unset)  planner effort (session default)
 
 Output
   <paths.plans>/plan-for-<report-stem>/<code>-<title-slug>.md
@@ -212,6 +220,10 @@ When to use
 When not to use
   - When you want a checkpoint between review and plan.
   - When you want to hand-pick which findings get instructions.
+
+Config knobs
+  models.the_desert       (default: opus)   replaces every lane model in the sweep
+  effort.the_desert       (default: unset)  replaces every lane effort in the sweep
 ```
 
 ### patterns

@@ -20,6 +20,7 @@ First live run on 2026-10-11 (Claude Code 2.1.296). What it established:
   messages cannot be judged on its middle; every `llm` grader here reads `last_message`
   and confirms the final report, nothing more. Exact-text checks are `regex`, not a
   judge. Report contents are graded with `target: { source: file, path: … }`.
+- **Scaffolds commit.** Every scaffold with a git repo commits its initial state so a reviewer's `git diff HEAD` has a HEAD to diff against.
 - **git on macOS.** Inside the eval sandbox `/usr/bin/git` is Apple's xcrun shim, which
   needs a cache file the sandbox denies, and `/Library/Developer/CommandLineTools` is
   unreadable from the sandbox. Cases that need git for diffs or commits
@@ -38,7 +39,7 @@ claude plugin eval . --scaffold --ablation none --runs 1 --max-cost-usd 15 \
 claude plugin eval . --scaffold --allow-tools Bash Write Edit --case "help-*"
 ```
 
-Measured 2026-10-11: six cases, one run each, about 10 minutes and 4 USD (eight cases since 0.13.0).
+Measured 2026-10-11 at six cases, one run each: about 10 minutes and 4 USD. Eight cases since 0.13.0, not yet measured.
 `scripts/smoke.sh` remains the offline structural gate. Run output lands under
 `evals/results/` (gitignored).
 

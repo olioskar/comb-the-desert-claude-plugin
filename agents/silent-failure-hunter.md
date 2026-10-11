@@ -53,6 +53,6 @@ A silent failure:
 
 ## Output format
 
-Per the dispatch prompt's output format spec (severity, placeholder code, title, file:line, description, why it matters, directive citations, suggested fix, Confidence).
+Per the dispatch prompt's output format spec.
 
 If you find no silent failures, return "LOOKS GOOD" noting what you verified.

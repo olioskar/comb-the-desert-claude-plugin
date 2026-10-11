@@ -21,21 +21,29 @@ while IFS= read -r ref; do
 done < <(grep -rho '\${CLAUDE_PLUGIN_ROOT}/shared/[a-z-]*\.md' skills/ agents/ README.md | sort -u)
 
 # 3. No skill re-inlines a shared block (drift re-entry guard).
-#    Needles are derived from the live blocks: the first sentence of each shared/*.md body
-#    (the line after the H1), so a copy of the current text cannot pass. One historical
-#    needle guards wording that was removed in 0.11.0 and must not return.
+#    Needles are derived from the live blocks: the longest body line of each shared/*.md
+#    (headings and table rows skipped), cut to 60 characters at a word boundary — a body
+#    copy carries it, a framing sentence does not. One historical needle guards wording
+#    removed in 0.11.0 that must not return. Every live needle must still occur in shared/.
+derive_needle() {
+  grep -v '^#' "$1" | grep -v '^|' | awk '{ if (length($0) > length(best)) best=$0 } END { print best }' \
+    | sed -E 's/^(.{0,60}[^ ]*).*/\1/'
+}
 while IFS= read -r needle; do
-  [ -z "$needle" ] && continue
+  [ "${#needle}" -lt 30 ] && { echo "FAIL: derived needle too short to be safe: \"$needle\""; fail=1; continue; }
+  if ! grep -rqF "$needle" shared/; then
+    echo "FAIL: live needle no longer occurs in shared/: \"$needle\""
+    fail=1
+  fi
   if grep -rnF "$needle" skills/ >/dev/null 2>&1; then
     echo "FAIL: shared block re-inlined in a skill: \"$needle\""
     fail=1
   fi
-done < <(
-  for f in shared/*.md; do
-    awk 'NR>1 && NF {print; exit}' "$f" | sed -E 's/^(.{0,60}[^ ]*).*/\1/'
-  done
-  echo "read it and run the commit-based staleness heuristic"
-)
+done < <(for f in shared/*.md; do derive_needle "$f"; done)
+if grep -rnF "read it and run the commit-based staleness heuristic" skills/ >/dev/null 2>&1; then
+  echo "FAIL: pre-0.11.0 manifest-read wording returned to a skill"
+  fail=1
+fi
 
 # 4. A skill that Reads another skill's body carries the plugin-root expansion paragraph:
 #    Read output is not variable-substituted, so the placeholder would reach the shell literally.
@@ -73,7 +81,7 @@ done
 
 # 6. User-facing facts that have a machine source agree with it.
 version=$(python3 -c 'import json;print(json.load(open(".claude-plugin/plugin.json"))["version"])')
-if ! grep -q "^v${version}\. " README.md; then
+if ! grep -qF "v${version}. See [CHANGELOG.md]" README.md; then
   echo "FAIL: README Status line does not say v${version} (plugin.json)"
   fail=1
 fi
