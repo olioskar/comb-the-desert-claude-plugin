@@ -77,7 +77,7 @@ If you'd rather not hand-edit JSON, run `/comb:configure` and describe the chang
 }
 ```
 
-The default is `comb:implementer`, a shipped writer that edits only inside the instruction's `## Where`, never commits or dispatches agents, and reports every file it touched (`agents/implementer.md`). Override only if you have a specialist writer for your stack; a foreign writer gets the same boundaries as a specialty statement in its dispatch prompt and the same file-list and tree checks after it returns.
+The default is `comb:implementer`, a shipped writer that edits only inside the instruction's `## Where`, never commits or dispatches agents, and reports every file it touched (`agents/implementer.md`). Override only if you have a specialist writer for your stack; a foreign writer gets the same boundaries through its run brief's `Your lens:` line and the same file-list and tree checks after it returns. Native means the resolved `subagent_type` equals `comb:` plus the name of a shipped agent file, compared literally; anything else is foreign and gets the authority sentence in its brief.
 
 **Disable per-item commits**:
 
@@ -200,6 +200,11 @@ The eight skills intentionally omit the `model:` frontmatter field. The orchestr
 
 Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/comb:plan`, or `/comb:fix` cuts an excerpt with `scripts/manifest.py`: the header, the global sections (how-to-read, cross-reference map, drift register), and the area sections whose scope meets the change. Scope comes from a section's `Scope:`/`Home:` line (globs) or, for a section without one, from the directories of its `file:line` anchors; the second rule can over-include on a large manifest, and a one-line `Home:` per section is how to tighten it. The excerpt lists the omitted sections with their line ranges so an agent can read one with `sed -n` when pointed to it. The orchestrator never reads the manifest either; the script computes staleness. Excerpts live under `.comb/` in the working directory, which the script creates with a self-ignoring `.gitignore`, and are removed at the end of the run. The script needs `python3` (3.8+, stdlib only); without it the full manifest is delivered as before, with a printed notice.
 
+
+### Resolver and briefs
+
+A second stdlib script, `scripts/comb.py`, does the per-run bookkeeping every skill used to re-derive in prose: `config` merges the three config layers (objects deep-merge, arrays replace, `null` deletes, bad JSON is a named hard error); `resolve` turns a role and lane into a `subagent_type`, model, effort, and native-or-foreign form; `directives` lists the directive files and the primaries a focus brief flags; `brief` writes the per-run dispatch brief (directive paths, primaries, the observed-baseline block, the focus brief) to `.comb/excerpts/<run>.<role>.brief.md` and prints a four-line summary; `report-name` derives the review report path with the round parsed from existing filenames; `batches` reads a plan folder and prints each item's write-set, the not-reproduced items, and severity-ordered batches of at most three disjoint items; `findings` turns a review report into JSON. Dispatch prompts shrink to a shared-context block plus two paths: the role's shared brief under `shared/` (planner, implementer, fix reviewer) and the run brief. Briefs share the excerpt's run stem, so `manifest.py clean` removes both; the same `python3` requirement applies. `scripts/test-comb.sh` pins the script's output against fixtures.
+
 ## Development
 
 [PLAYBOOK.md](PLAYBOOK.md) describes the development workflow: the design-to-release loop, design rules, and conventions.
@@ -207,7 +212,7 @@ Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/
 The release gate, in order:
 
 1. `claude plugin validate .` — structural lint of the manifest, skills, and agents.
-2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, `scripts/test-manifest.sh` (69 fixture expectations over two manifest shapes) passes, and `scripts/test-replay.sh` (the grader replay tool against fixture runs) passes.
+2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, `scripts/test-manifest.sh` and `scripts/test-comb.sh` (fixture expectations for both scripts; 69 over two manifest shapes) passes, and `scripts/test-replay.sh` (the grader replay tool against fixture runs) passes.
 3. `claude plugin eval . --scaffold --ablation none --runs 1 --allow-tools Bash Write Edit` — the behavioral suite in `evals/` (eight cases covering the known regression classes; about 9 minutes and 5 USD per pass). `evals/README.md` has the flags, the grader design, and the macOS git requirement (a standalone git such as Homebrew's). `scripts/smoke.sh` is the offline structural check. PLAYBOOK.md's "Eval cadence" says when to run the suite; `scripts/replay-graders.py` replays a case's deterministic graders against a kept run for free.
 
 CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workflow dispatch (it needs `ANTHROPIC_API_KEY`). `/skill-doctor` is a usage/cost report, useful for periodic monitoring — it is not a lint step and not part of the gate.

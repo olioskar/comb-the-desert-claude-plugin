@@ -88,6 +88,18 @@ for cmd in index anchors verify gate apply; do
     fail=1
   fi
 done
+for skill in review plan fix patterns the-desert fix-auto configure; do
+  grep -Fq 'comb.py" config' "skills/$skill/SKILL.md" || { echo "FAIL: skills/$skill does not invoke comb.py config"; fail=1; }
+done
+for skill in review plan fix; do
+  grep -Fq 'comb.py" brief' "skills/$skill/SKILL.md" || { echo "FAIL: skills/$skill does not invoke comb.py brief"; fail=1; }
+done
+grep -Fq 'comb.py" batches' skills/fix/SKILL.md || { echo "FAIL: skills/fix does not invoke comb.py batches"; fail=1; }
+grep -Fq 'comb.py" report-name' skills/review/SKILL.md || { echo "FAIL: skills/review does not invoke comb.py report-name"; fail=1; }
+grep -Fq 'comb.py" findings' skills/plan/SKILL.md || { echo "FAIL: skills/plan does not invoke comb.py findings"; fail=1; }
+for f in skills/patterns/SKILL.md agents/pattern-scanner.md; do
+  grep -Fq 'shared/scan-rules.md' "$f" || { echo "FAIL: $f does not point at shared/scan-rules.md"; fail=1; }
+done
 
 # 6. User-facing facts that have a machine source agree with it.
 version=$(python3 -c 'import json;print(json.load(open(".claude-plugin/plugin.json"))["version"])')
@@ -123,6 +135,35 @@ if grep -qF -- "- \`comb:" shared/dispatch-delivery.md; then
   echo "FAIL: dispatch-delivery.md carries a native allowlist; the native rule is by agent name"
   fail=1
 fi
+
+# 9. Every "(default: X)" in help equals config/defaults.json (effort lanes are unset by design;
+#    agents.<role> compares the subagent_type).
+python3 -I - "${HELP_FILE:-skills/help/SKILL.md}" <<'PY' || fail=1
+import json, re, sys
+cfg = json.load(open("config/defaults.json"))
+def get(path):
+    cur = cfg
+    for k in path.split("."):
+        if not isinstance(cur, dict) or k not in cur: return None
+        cur = cur[k]
+    return cur
+bad = 0
+seen = 0
+for m in re.finditer(r"<?([a-z_]+(?:\.[a-z_*-]+)+)>?\s+\(default:?\s+([^)—]+?)\s*(?:—[^)]*)?\)", open(sys.argv[1]).read()):
+    key, val = m.group(1), m.group(2).strip()
+    seen += 1
+    if key.startswith("effort.") or key.endswith(".*"):
+        if val != "unset": print("FAIL: help says %s default %r; effort lanes are unset" % (key, val)); bad = 1
+        continue
+    if key.startswith("agents."): key += ".subagent_type"
+    actual = get(key)
+    actual = json.dumps(actual) if isinstance(actual, bool) else actual
+    if actual is None or str(actual) != val:
+        print("FAIL: help says %s (default: %s) but defaults.json has %r" % (key, val, actual)); bad = 1
+if seen == 0:
+    print("FAIL: help-defaults gate matched no '(default: X)' line; the help wording changed"); bad = 1
+sys.exit(bad)
+PY
 
 if [ "$fail" -eq 0 ]; then
   echo "check-contract: OK"
