@@ -38,7 +38,7 @@ Run the merge per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
 ```
 
-Its JSON is the **merged effective config**; a `warning:` line names a role the merge dropped. Read the three layer files themselves only to say which layer each non-default key comes from. This is the "before" picture.
+Run it from the project root. Its JSON is the **merged effective config**; a `warning:` line names a role the merge dropped. Read the three layer files themselves only to say which layer each non-default key comes from. This is the "before" picture.
 
 Print a short summary of the effective config (not the full JSON dump unless the user asks). Highlight which layer each non-default value is coming from.
 
@@ -71,7 +71,7 @@ The configurable schema is:
 
 - **"Disable agent X"** → set `agents.X = null` in the override file. (This relies on null-as-delete merge semantics.)
 - **"Re-enable agent X"** → remove the `null` entry, OR re-supply the full agent object (`subagent_type` + `when_to_use`) if the user wants a custom version.
-- **"Add a custom agent"** → write `agents.<new-role> = {subagent_type: "...", when_to_use: "..."}` and tell the user that a non-`comb:*` `subagent_type` triggers foreign-agent dispatch (directive paths plus an explicit authority instruction in the prompt).
+- **"Add a custom agent"** → write `agents.<new-role> = {subagent_type: "...", when_to_use: "..."}` and tell the user that a `subagent_type` other than `comb:` + a shipped agent name is foreign per the delivery contract: its run brief carries the authority sentence and a `Your lens:` line taken from `when_to_use`.
 - **"Use model M for step S"** → set `models.<step> = "M"` (or the nested `models.fix.*` for fix sub-roles).
 - **"Use model M for agent X"** → set `agents.X.model = "M"` (per-agent override beats step-level).
 - **"Use effort E for step S / agent X"** → set `effort.<step> = "E"` or `agents.X.effort = "E"`. Removing the key returns that lane to the session default.

@@ -29,7 +29,7 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
 ```
 
-Run it from the project root and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
+Run it — like every `comb.py` command line in this skill — from the project root, and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
 
 From it, take:
 - `paths.plans` — output folder root
@@ -47,7 +47,7 @@ Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matchin
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" directives --brief "<focus brief>"
 ```
 
-Record the `plugin:` and `user:` paths and the `primary:` lines; `comb.py brief` renders them into every run brief.
+Record the `plugin:` and `user:` paths and the `primary:` lines; `comb.py brief` renders them into every run brief. Quote the brief for the shell here and in every `brief` call (single quotes, or escape `"`, `$`, and backticks).
 
 ## Step 2.5: Detect report shape
 
@@ -73,7 +73,7 @@ Run the parser first:
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" findings --report <report path>
 ```
 
-Its JSON lists every finding the template carries (`code`, `title`, `source`, `files`, `verified`) and its `shape` confirms Step 2.5. When it prints `count: 0` or `shape: unknown`, the report is not in the template shape: read it and extract by hand as below.
+Its JSON lists every finding the template carries (`code`, `title`, `source`, `files`, `verified`) and its `shape` confirms Step 2.5. When its JSON has `"count": 0` or `"shape": "unknown"`, the report is not in the template shape: read it and extract by hand as below.
 
 Each finding carries:
 - **Reference code**: C1, H2, M5, T1, D1, etc. Preserve exactly as the report uses them.

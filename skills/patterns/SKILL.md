@@ -29,7 +29,7 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
 ```
 
-Run it from the project root and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
+Run it — like every `comb.py` command line in this skill — from the project root, and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
 
 From it, take:
 - `paths.patterns` — where the manifest is written/read (default `docs/combs/PATTERNS.md`). If it is `null`, there is no write target (the key was deleted via merge semantics, so there is no default to fall back to): report that manifest consumption is disabled and stop. Do not generate to an undefined path.

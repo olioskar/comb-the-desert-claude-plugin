@@ -22,7 +22,7 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
 ```
 
-Run it from the project root and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
+Run it — like every `comb.py` command line in this skill — from the project root, and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
 
 Read `fix.model_invocation` from its JSON (the value is already written as JSON). Keep the output; the fix workflow's own config step reuses it rather than running the command again.
 

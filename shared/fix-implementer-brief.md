@@ -1,6 +1,6 @@
 # Implementer brief (read first)
 
-## 4. Your job
+## Your job
 
 Execute the fix instruction at the path in your shared context. The instruction is the spec — do exactly what it says.
 
@@ -11,7 +11,7 @@ Execute the fix instruction at the path in your shared context. The instruction 
 3. Stay strictly within the documented "Scope" — no drive-by refactors, no bonus cleanup
 4. Confirm the "Expected Outcome" is met; if its `Check:` line names a command, run it and report the result
 
-## 5. Output format
+## Output format
 
 Report back in plain text with these sections in order:
 

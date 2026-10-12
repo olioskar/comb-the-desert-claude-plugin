@@ -14,6 +14,8 @@ CLI (output is fixed-format; scripts/test-comb.sh diffs it):
   comb.py config [--plugin-root P] [--home H] [--project-root R]
     stdout: merged config as JSON, keys sorted, indent 1.
     stderr: `warning: agents.<role> dropped — missing <subagent_type|when_to_use>`
+            plus a warning when `agents` is not an object, `directives.include_plugin_defaults` is not a
+            boolean, or `directives.user_path` exists but is not a directory. A config file may start with a BOM.
     exit 2: `comb.py: invalid JSON in <path>: <msg>` (first bad layer) or `comb.py: <path>: <os error>`.
     Layers: P/config/defaults.json, H/.claude/comb.config.json, R/.claude/comb.config.json;
     missing override files are skipped. Dicts deep-merge, lists replace, null deletes
@@ -70,12 +72,14 @@ CLI (output is fixed-format; scripts/test-comb.sh diffs it):
     `not reproduced` are listed and left out of the batches. A batch holds at most three items
     with pairwise-disjoint write-sets (a directory covers everything under it); an item with no
     write-set runs alone. Batches are a ceiling: the skill may split one, never merge two.
-    exit 2: missing folder; a folder mixing per-finding files and revise-*.md.
+    exit 2: missing or unreadable folder; a folder mixing per-finding files and revise-*.md; two files
+    with the same code; more than one revise-*.md.
 
   comb.py findings --report <path>
     stdout: {"count": N, "shape": "code-shaped|non-code|unknown", "findings": [{code, title,
     source, files, verified}]} from the report template (`**{code} — {title}**`, `*Source: …*`,
-    `File(s): …`, `**Verified:** …`). Code-less bullets under a Deferred heading become D1, D2, …
+    `File(s): …`, `**Verified:** …`). Code-less bullets under a Deferred heading become D<n> after the
+    highest coded D item (a bare `None.` / `n/a` bullet is skipped).
     A report whose entries carry labels instead of codes is `non-code` with empty codes. A finding
     without a `**Verified:**` line (a report that predates the field) is returned with `verified: ""`.
     Anything else is count 0, shape unknown — never a traceback.
@@ -137,7 +141,7 @@ def load_layer(path, required):
             die("%s: missing" % path)
         return None
     try:
-        with open(path, encoding="utf-8") as f:
+        with open(path, encoding="utf-8-sig") as f:
             return json.load(f)
     except json.JSONDecodeError as ex:
         die("invalid JSON in %s: %s" % (path, ex.msg))
@@ -161,8 +165,15 @@ def merged_config(a):
             cfg = deep_merge(cfg, layer)
     agents = cfg.get("agents")
     if not isinstance(agents, dict):
+        if agents is not None:
+            sys.stderr.write("warning: agents is not an object; no roles are defined\n")
         agents = {}
         cfg["agents"] = agents
+    d = cfg.get("directives")
+    if isinstance(d, dict) and "include_plugin_defaults" in d and not isinstance(d["include_plugin_defaults"], bool):
+        sys.stderr.write("warning: directives.include_plugin_defaults is %s, not a boolean; treated as %s\n"
+                         % (json.dumps(d["include_plugin_defaults"]), "true" if d["include_plugin_defaults"] else "false"))
+        d["include_plugin_defaults"] = bool(d["include_plugin_defaults"])
     for role in sorted(agents):
         v = agents[role]
         missing = [k for k in ("subagent_type", "when_to_use")
@@ -205,14 +216,24 @@ def native_names(plugin_root):
     return names
 
 
-def resolve(cfg, role, lane, coerce, plugin_root):
+def role_spec(cfg, role):
     agents = cfg.get("agents", {})
     if role not in agents:
         die("role %s is not in agents (deleted or never defined)" % role)
-    spec = agents[role]
+    return agents[role]
+
+
+def is_native(spec, plugin_root):
+    return spec["subagent_type"] in {"comb:" + n for n in native_names(plugin_root)}
+
+
+def resolve(cfg, role, lane, coerce, plugin_root):
+    spec = role_spec(cfg, role)
     lane_model = walk(cfg.get("models", {}), lane)
-    if not isinstance(lane_model, str):
+    if lane_model is None:
         die("lane %s is not in models" % lane)
+    if not isinstance(lane_model, str):
+        die("lane %s is not a model string (got %s)" % (lane, type(lane_model).__name__))
     model = spec.get("model")
     if not isinstance(model, str):
         model = None
@@ -231,10 +252,8 @@ def resolve(cfg, role, lane, coerce, plugin_root):
             effort = "unset"
     if effort not in EFFORTS and effort != "unset":
         die("effort %r for %s is not one of %s" % (effort, role, "|".join(EFFORTS)))
-    subagent_type = spec["subagent_type"]
-    native = subagent_type in {"comb:" + n for n in native_names(plugin_root)}
-    return {"subagent_type": subagent_type, "model": model, "effort": effort,
-            "native": native, "when_to_use": spec["when_to_use"]}
+    return {"subagent_type": spec["subagent_type"], "model": model, "effort": effort,
+            "native": is_native(spec, plugin_root)}
 
 
 def cmd_resolve(a):
@@ -259,6 +278,9 @@ def directive_lists(cfg, a):
         udir = os.path.join(a.project_root, up)
         if os.path.isdir(udir):
             user = sorted(os.path.abspath(p) for p in glob.glob(os.path.join(udir, "*.md")))
+        elif os.path.exists(udir):
+            sys.stderr.write("warning: directives.user_path %s is not a directory; no user directives\n" % up)
+    sys.stderr.flush()
     return plugin, user
 
 
@@ -295,7 +317,7 @@ def cmd_directives(a):
         print("plugin: %s" % p)
     for p in user:
         print("user: %s" % p)
-    prim = primaries(plugin + user, a.brief)
+    prim = primaries(plugin + user, a.brief.strip())
     if prim:
         for p in prim:
             print("primary: %s" % p)
@@ -351,7 +373,6 @@ FOCUS_HEADING = "## User focus for this run"
 REVIEW_FOCUS_FRAMING = ("Findings matching this focus are highest priority. Surface other issues "
                         "too, but do not let the user's stated concerns slip.")
 SKILLS = ("review", "plan", "fix", "patterns")
-SKILL_LANE = {"review": "review", "plan": "plan", "patterns": "patterns"}
 
 
 def comb_dir():
@@ -413,13 +434,11 @@ def render_brief(skill, role, spec, native, plugin, user, prim, excerpt, manifes
 
 def cmd_brief(a):
     cfg = merged_config(a)
-    agents = cfg.get("agents", {})
-    if a.role not in agents:
-        die("role %s is not in agents (deleted or never defined)" % a.role)
-    spec = agents[a.role]
-    native = spec["subagent_type"] in {"comb:" + n for n in native_names(a.plugin_root)}
+    spec = role_spec(cfg, a.role)
+    native = is_native(spec, a.plugin_root)
     plugin, user = directive_lists(cfg, a)
-    prim = primaries(plugin + user, a.brief)
+    brief = a.brief.strip()
+    prim = primaries(plugin + user, brief)
     excerpt = existing(a.excerpt, "--excerpt")
     manifest = existing(a.manifest, "--manifest")
     if excerpt and not manifest:
@@ -432,13 +451,13 @@ def cmd_brief(a):
         die("--run %r is not a run stem (<skill>-<digits>-<hex>)" % run)
     path = os.path.join(comb_dir(), "%s.%s.%s.brief.md" % (run, a.skill, a.role))
     with open(path, "w", encoding="utf-8") as f:
-        f.write(render_brief(a.skill, a.role, spec, native, plugin, user, prim, excerpt, manifest, a.brief))
+        f.write(render_brief(a.skill, a.role, spec, native, plugin, user, prim, excerpt, manifest, brief))
     if minted:
         print("run: %s" % run)
     print("brief: %s" % path)
     print("form: %s" % ("native" if native else "foreign"))
     print("directives: %d plugin, %d user; primary: %s"
-          % (len(plugin), len(user), ", ".join(os.path.basename(p) for p in prim) if prim else "none"))
+          % (len(plugin), len(user), ", ".join(dict.fromkeys(os.path.basename(p) for p in prim)) if prim else "none"))
     if manifest and excerpt:
         print("baseline: %s (excerpt) + %s (full manifest)" % (excerpt, manifest))
     elif manifest:
@@ -457,6 +476,8 @@ def slugify(name):
 
 
 def cmd_report_name(a):
+    if a.pr is None and not slugify(a.branch):
+        die("--branch is empty")
     prefix = "pr-%d" % a.pr if a.pr is not None else "branch-%s" % slugify(a.branch)
     pat = re.compile(r"^%s-round(\d+)-report\.md$" % re.escape(prefix))
     rounds = [0]
@@ -598,6 +619,13 @@ def cmd_batches(a):
         print("batch 1: %s" % code)
         return
 
+    by_code = {}
+    for n in items:
+        m = ITEM_FILE.match(n)
+        by_code.setdefault(m.group(1) + m.group(2), []).append(n)
+    for code, files in by_code.items():
+        if len(files) > 1:
+            die("%s: code %s appears in %s; one file per code" % (folder, code, " and ".join(files)))
     print("shape: per-finding")
     parsed, not_repro = [], []
     for n in items:
@@ -643,12 +671,13 @@ def parse_findings(text):
             in_deferred = line.lstrip("#").strip().lower() == "deferred"
             cur = None
             continue
+        if not line.strip():
+            cur = None  # a blank line ends the header fields; a later bullet is its own item
+            continue
         m = FINDING_HEAD.match(line)
         if m:
             head, title = m.group(1).strip(), m.group(2).strip()
             cur = {"code": head if CODE.match(head) else "", "title": title, "source": "", "files": [], "verified": ""}
-            if not CODE.match(head):
-                cur["_label"] = head
             findings.append(cur)
             continue
         if cur is not None:
@@ -666,20 +695,19 @@ def parse_findings(text):
                 continue
         if in_deferred and cur is None:
             m = BULLET.match(line)
-            if m:
+            if m and m.group(1).strip().rstrip(".").lower() not in ("none", "n/a", "nothing"):
                 deferred_bullets.append(m.group(1))
     coded = [f for f in findings if f["code"]]
     labelled = [f for f in findings if not f["code"]]
     if coded:
-        for i, t in enumerate(deferred_bullets, 1):
+        highest = max([int(f["code"][1:]) for f in coded if f["code"].startswith("D")] + [0])
+        for i, t in enumerate(deferred_bullets, highest + 1):
             coded.append({"code": "D%d" % i, "title": t, "source": "", "files": [], "verified": ""})
         shape, out = "code-shaped", coded
     elif labelled:
         shape, out = "non-code", labelled
     else:
         shape, out = "unknown", []
-    for f in out:
-        f.pop("_label", None)
     return {"count": len(out), "shape": shape, "findings": out}
 
 

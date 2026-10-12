@@ -10,6 +10,7 @@ S="$ROOT/scripts/comb.py"
 F="$ROOT/scripts/fixtures/comb"
 E="$F/expected"
 UPDATE=0; [ "${1:-}" = "--update" ] && UPDATE=1
+export PYTHONUNBUFFERED=1   # stderr and stdout interleave in write order, so warnings come first by construction
 T=$(mktemp -d "${TMPDIR:-/tmp}/comb-test.XXXXXX")
 trap 'rm -rf "$T"' EXIT
 OUT="$T/out"; mkdir -p "$OUT" "$E"
@@ -35,6 +36,8 @@ run resolve-coerce-plain resolve --role code-reviewer --lane plan --coerce the_d
 run resolve-deleted      resolve --role simplifier --lane review "${C[@]}"
 run resolve-badlane      resolve --role code-reviewer --lane nope "${C[@]}"
 run resolve-badeffort    resolve --role fast --lane plan "${C[@]}"
+run resolve-oddities     resolve --role code-reviewer --lane review --plugin-root "$P" --home "$H" --project-root "$F/oddities"
+run resolve-listlane     resolve --role code-reviewer --lane review --plugin-root "$P" --home "$H" --project-root "$F/oddities2"
 # directives: listing, primary matching, user directives, plugin defaults off
 run directives-none      directives "${C[@]}"
 run directives-simpl     directives --brief "keep it simpl" "${C[@]}"
@@ -42,6 +45,7 @@ run directives-two       directives --brief "Scope and TEST coverage" "${C[@]}"
 run directives-user      directives --brief "velocity" "${C[@]}"
 run directives-noplugin  directives --plugin-root "$P" --home "$H" --project-root "$F/noplugin"
 run directives-short-positive directives --brief "the api" --plugin-root "$P" --home "$H" --project-root "$F/noplugin"
+run directives-oddities  directives --plugin-root "$P" --home "$H" --project-root "$F/oddities"
 # brief: the per-run dispatch block, written under the temp cwd's .comb/excerpts
 touch ex.md PATTERNS.md
 run brief-native-review  brief --skill review --role code-reviewer --run review-1-aaaa --brief "scope and simplicity" --excerpt "$T/ex.md" --manifest "$T/PATTERNS.md" "${C[@]}"
@@ -56,12 +60,14 @@ run brief-excerpt-no-manifest brief --skill review --role code-reviewer --run re
 run brief-plan-same-run  brief --skill plan --role implementer --run fix-1-cccc "${C[@]}"
 # a foreign writer configured as the implementer role: authority sentence, lens, implementer intro
 run brief-foreign-fix-impl brief --skill fix --role implementer --run fix-1-dddd --plugin-root "$P" --home "$H" --project-root "$F/noplugin"
+run brief-blank-focus    brief --skill review --role code-reviewer --run review-1-ffff --brief "   " "${C[@]}"
 # report-name: rounds are parsed from filenames, never counted; the prefix is exact
 run report-pr            report-name --reviews "$R/reviews" --pr 7
 run report-pr70          report-name --reviews "$R/reviews" --pr 70
 run report-branch        report-name --reviews "$R/reviews" --branch "feature/foo bar"
 run report-branch-main   report-name --reviews "$R/reviews" --branch main
 run report-nodir         report-name --reviews "$R/no-such-dir" --pr 1
+run report-emptybranch   report-name --reviews "$R/reviews" --branch ""
 mkdir -p rvnoperm && chmod 000 rvnoperm
 run report-noperm        report-name --reviews "$T/rvnoperm" --pr 1
 chmod 755 rvnoperm
@@ -75,6 +81,7 @@ run batches-missing      batches --folder "$R/plans/no-such-folder"
 run batches-ceiling      batches --folder "$R/plans/ceiling"
 run batches-latin1       batches --folder "$R/plans/latin1"
 run batches-tworevise    batches --folder "$R/plans/tworevise"
+run batches-dupcode      batches --folder "$R/plans/dupcode"
 mkdir -p noperm && cp "$R/plans/code/M1-a.md" noperm/ && chmod 000 noperm/M1-a.md
 run batches-noperm       batches --folder "$T/noperm"
 chmod 644 noperm/M1-a.md
@@ -84,7 +91,8 @@ run findings-noncode     findings --report "$R/reports/noncode-report.md"
 run findings-prose       findings --report "$R/reports/prose.md"
 run findings-missing     findings --report "$R/reports/no-such-report.md"
 run findings-old         findings --report "$R/reports/old-report.md"
-for b in review-1-aaaa.review.code-reviewer plan-1-bbbb.plan.ours fix-1-cccc.fix.implementer fix-1-cccc.fix.test-auditor fix-1-cccc.plan.implementer fix-1-dddd.fix.implementer; do
+run findings-mixed-deferred findings --report "$R/reports/mixed-deferred.md"
+for b in review-1-aaaa.review.code-reviewer plan-1-bbbb.plan.ours fix-1-cccc.fix.implementer fix-1-cccc.fix.test-auditor fix-1-cccc.plan.implementer fix-1-dddd.fix.implementer review-1-ffff.review.code-reviewer; do
   if [ -f ".comb/excerpts/$b.brief.md" ]; then norm < ".comb/excerpts/$b.brief.md" > "$OUT/brief-$b.md"; else echo "MISSING .comb/excerpts/$b.brief.md" > "$OUT/brief-$b.md"; fi
 done
 [ -f .comb/.gitignore ] && cat .comb/.gitignore > "$OUT/brief-gitignore.out" || echo "MISSING .comb/.gitignore" > "$OUT/brief-gitignore.out"

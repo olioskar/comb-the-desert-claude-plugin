@@ -14,10 +14,12 @@ The project's authoritative directives apply. Read these directive files and cit
 - FIX/plugin/directives/scope-discipline.md
 - FIX/plugin/directives/simplicity.md
 - FIX/plugin/directives/testing.md
+- FIX/project/docs/directives/simplicity.md
 - FIX/project/docs/directives/velocity-rules.md
 
 Directives most relevant to this run:
 - FIX/plugin/directives/simplicity.md
+- FIX/project/docs/directives/simplicity.md
 
 ## Project conventions (observed baseline)
 

@@ -1,6 +1,6 @@
 # Planner brief (read first)
 
-## 4. Your job
+## Your job
 
 You are writing fix instructions for **one** review finding. Treat the finding as the spec for your work.
 
@@ -15,7 +15,7 @@ You are writing fix instructions for **one** review finding. Treat the finding a
 3. Read 2–3 nearby files to understand the surrounding patterns
 4. Write a fix instruction document at the output file named in your shared context
 
-## 5. Output format
+## Output format
 
 Your output is a single markdown file at the output file named in your shared context (the output folder and reference code named there).
 
@@ -70,4 +70,4 @@ ADR-style: list alternatives you considered but rejected, one bullet each, with 
 
 Be concise and precise. No fluff. These instructions are the single source of truth for this fix.
 
-File naming: `{reference-code}-{title-slug}.md`. Title kebab-case, 5–8 words max. For grouped findings, `{reference-code}` is `G{n}` per Step 4.
+File naming: `{reference-code}-{title-slug}.md`. Title kebab-case, 5–8 words max. For grouped findings, `{reference-code}` is the `G{n}` code named in your shared context.

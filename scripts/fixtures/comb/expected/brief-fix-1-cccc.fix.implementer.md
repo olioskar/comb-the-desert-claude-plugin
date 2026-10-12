@@ -11,4 +11,5 @@ The project's authoritative directives apply to this fix. Read the directives th
 - FIX/plugin/directives/scope-discipline.md
 - FIX/plugin/directives/simplicity.md
 - FIX/plugin/directives/testing.md
+- FIX/project/docs/directives/simplicity.md
 - FIX/project/docs/directives/velocity-rules.md

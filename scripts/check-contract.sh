@@ -129,7 +129,7 @@ if bad: print("MISSING " + " ".join(bad))
 [print(v["subagent_type"]) for k,v in a.items() if k not in bad and v["subagent_type"].startswith("comb:")]')
 for f in agents/*.md; do
   n=$(basename "$f" .md)
-  [ "$(sed -n 's/^name:[[:space:]]*//p' "$f" | head -n 1)" = "$n" ] || { echo "FAIL: agents/$n.md frontmatter name does not equal its filename"; fail=1; }
+  [ "$(sed -n 's/^name:[[:space:]]*//p' "$f" | head -n 1 | sed 's/[[:space:]]*$//')" = "$n" ] || { echo "FAIL: agents/$n.md frontmatter name does not equal its filename"; fail=1; }
   grep -qF "\"comb:$n\"" config/defaults.json || { echo "FAIL: agents/$n.md is not a default subagent_type in config/defaults.json"; fail=1; }
 done
 for n in code-reviewer simplifier silent-failure-hunter test-auditor consistency-auditor; do
@@ -153,9 +153,12 @@ def get(path):
     return cur
 bad = 0
 seen = 0
-for m in re.finditer(r"<?([a-z_]+(?:\.[a-z_*-]+)+)>?\s+\(default:?\s+([^)—]+?)\s*(?:—[^)]*)?\)", open(sys.argv[1]).read()):
+for m in re.finditer(r"<?([a-z_]+(?:\.(?:[a-z_*-]+|<[a-z-]+>))+)>?\s+\(default:?\s+([^)—]+?)\s*(?:—[^)]*)?\)", open(sys.argv[1]).read()):
     key, val = m.group(1), m.group(2).strip()
     seen += 1
+    if "<" in key:
+        print("FAIL: help states a default on the placeholder key %s; name a concrete key" % key); bad = 1
+        continue
     if key.startswith("effort.") or key.endswith(".*"):
         if val != "unset": print("FAIL: help says %s default %r; effort lanes are unset" % (key, val)); bad = 1
         continue

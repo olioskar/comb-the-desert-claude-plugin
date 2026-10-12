@@ -37,7 +37,7 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
 ```
 
-Run it from the project root and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
+Run it — like every `comb.py` command line in this skill — from the project root, and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
 
 From it, you have:
 - `paths.reviews` — where to write the report
@@ -83,7 +83,7 @@ Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matchin
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" directives --brief "<focus brief>"
 ```
 
-Record the `plugin:` and `user:` paths and the `primary:` lines; `comb.py brief` renders them into every run brief.
+Record the `plugin:` and `user:` paths and the `primary:` lines; `comb.py brief` renders them into every run brief. Quote the brief for the shell here and in every `brief` call (single quotes, or escape `"`, `$`, and backticks).
 
 ## Step 3.5: Read the work
 

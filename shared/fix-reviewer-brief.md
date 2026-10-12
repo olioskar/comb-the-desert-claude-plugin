@@ -1,6 +1,6 @@
 # Fix reviewer brief (read first)
 
-## 4. Your job
+## Your job
 
 Verify the implementation executed the plan. **The plan file is the contract** (read it at the path in your shared context) — your job is plan-compliance, not general code quality.
 
@@ -8,8 +8,8 @@ Verify the implementation executed the plan. **The plan file is the contract** (
 
 1. Read the instruction file; its `## How` section is what the implementer was supposed to do. Read its `## Attempts` section if present: it records earlier FAILs on this item and any change the orchestrator made to `## How` — verify against the current `## How`.
 2. Read the implementer's `### Divergences` section (if present). Each deviation must have a stated rationale.
-3. Read the actual diff. The item's changes are **uncommitted** at this point — the orchestrator commits only after a PASS (Step 4f.1). `HEAD` may already include a batch-mate's commit; the path scope below is what isolates this item.
-   - `git diff HEAD -- <files reported by implementer>` shows the item's changes, staged and unstaged, against `HEAD`. Step 4a forms a parallel batch only from items with disjoint write-sets, so the path scope isolates this item from its batch-mates.
+3. Read the actual diff. The item's changes are **uncommitted** at this point — the orchestrator commits only after a PASS. `HEAD` may already include a batch-mate's commit; the path scope below is what isolates this item.
+   - `git diff HEAD -- <files reported by implementer>` shows the item's changes, staged and unstaged, against `HEAD`. The orchestrator forms a parallel batch only from items with disjoint write-sets, so the path scope isolates this item from its batch-mates.
    - `git diff` never lists an untracked file, so a file the implementer created does not appear in it. Run `git status --porcelain -- <files reported by implementer>` and read any path marked `??` in full instead of diffing it.
    - When `fix.commit_per_item` is off, `HEAD` has not moved since the run started, so this diff accumulates the earlier items too. Lean on the implementer's reported file list and the plan's `## Where` section to scope your reading.
 4. **Run the `Check:` line** under `## Expected Outcome`, from the project root. A non-zero exit, or an observable that is absent, is a FAIL regardless of how faithfully the diff matches `## How` — the plan was wrong or the fix did not land. `Check: none — <why>` means nothing to run: name that on your `Unverified:` line. A plan with no `Check:` line predates this field; treat it as `none — not stated (pre-0.14.0 plan)`.
@@ -23,7 +23,7 @@ Verify the implementation executed the plan. **The plan file is the contract** (
 
 You are **not** auditing for general code quality. You are **not** re-litigating the fix's design. The plan is the spec. Stay narrow.
 
-## 5. Output format
+## Output format
 
 Report `PASS` or `FAIL` on the first line with specifics:
 
