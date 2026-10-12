@@ -44,44 +44,29 @@ Print a short summary of the effective config (not the full JSON dump unless the
 
 ## Step 3: Map the user's request to JSON
 
-The configurable schema is:
+**Keys and types** are `${CLAUDE_PLUGIN_ROOT}/config/defaults.json`: every configurable key appears there with its default, and the default's JSON type is the key's type. Three things it cannot show, because they are absent by default:
 
-| Path | Type | Notes |
-|---|---|---|
-| `paths.reviews` | string | Where review reports are written. Relative to project root. |
-| `paths.plans` | string | Where plan docs are written. Relative to project root. |
-| `paths.base_branch` | string | Default base branch for diffs (e.g. `main`, `develop`). |
-| `paths.patterns` | string | Where the PATTERNS manifest is written/read. Relative to project root. `null` disables manifest consumption across review/plan/fix. |
-| `directives.include_plugin_defaults` | boolean | If `false`, plugin's shipped directives are not loaded. |
-| `directives.user_path` | string | Path (relative to project root) to user's directive `.md` files. |
-| `agents.<role>` | object | Reviewer entry. Required keys: `subagent_type` (string), `when_to_use` (string). Optional: `model` (string, per-agent override), `effort` (string, per-agent override). |
-| `agents.<role>` | `null` | **Deletes** the role from the palette via merge semantics. |
-| `models.review` | string | Model for review-step agents. |
-| `models.plan` | string | Model for plan-step agents. |
-| `models.patterns` | string | Model for the pattern-scanner and pattern-shaver agents (`/comb:patterns`, `/comb:patterns --shave`). |
-| `models.fix.implementer_standard` | string | Fix-step implementer for non-trivial work. |
-| `models.fix.implementer_trivial` | string | Fix-step implementer for trivial work. |
-| `models.fix.reviewer` | string | Fix-step internal reviewer. |
-| `models.the_desert` | string | Model for the desert orchestrator. |
-| `effort.<lane>` | string | Optional. Same keys as `models.*` (`review`, `plan`, `patterns`, `fix.implementer_standard`, `fix.implementer_trivial`, `fix.reviewer`, `the_desert`). One of `low`, `medium`, `high`, `xhigh`, `max`. Absent by default: dispatched agents run at the session's effort. Needs a Claude Code that takes `effort` on the Agent call (2.1.292 or later). |
-| `fix.commit_per_item` | boolean | Commit each fix item on reviewer PASS (default `true`). |
-| `fix.model_invocation` | boolean | Let Claude start the fix workflow from a natural-language request through the model-only `fix-auto` skill (default `false`; `/comb:fix` itself stays user-only). |
+- `agents.<role>` set to `null` **deletes** the role from the palette via merge semantics.
+- `agents.<role>.model` and `agents.<role>.effort` are optional per-role overrides (strings) that beat the lane values.
+- `effort.<lane>` mirrors `models.*` key for key (`review`, `plan`, `patterns`, `fix.implementer_standard`, `fix.implementer_trivial`, `fix.reviewer`, `the_desert`), one of `low | medium | high | xhigh | max`. Absent by default: dispatched agents run at the session's effort. Needs a Claude Code that takes `effort` on the Agent call (2.1.292 or later).
 
-**Translation rules:**
+**Notes** (what the keys mean; paths are relative to the project root):
 
-- **"Disable agent X"** → set `agents.X = null` in the override file. (This relies on null-as-delete merge semantics.)
-- **"Re-enable agent X"** → remove the `null` entry, OR re-supply the full agent object (`subagent_type` + `when_to_use`) if the user wants a custom version.
+- `paths.reviews`, `paths.plans`: where review reports and plan folders are written. `paths.base_branch`: the default base for diffs. `paths.patterns`: where the PATTERNS manifest is written and read; `null` disables manifest consumption across review/plan/fix.
+- `directives.include_plugin_defaults: false` stops loading the shipped directives; `directives.user_path` is the directory of the user's directive `.md` files.
+- `agents.<role>`: a reviewer or writer entry with required `subagent_type` and `when_to_use` strings; a role missing either is dropped at load with a warning.
+- `models.review`, `models.plan`, `models.patterns` (scanner and shaver), `models.fix.implementer_standard`, `models.fix.implementer_trivial`, `models.fix.reviewer`, `models.the_desert` (replaces every lane in a sweep).
+- `fix.commit_per_item`: commit each item on reviewer PASS. `fix.model_invocation`: let Claude start the fix workflow from a natural-language request through the model-only `fix-auto` skill (`/comb:fix` itself stays user-only).
+
+**Model values:** `sonnet`, `opus`, `haiku`, `fable`, or a full model id. `best`, `inherit`, and `opusplan` are `/model` session aliases, not values the Agent call accepts: refuse them and say so.
+
+**Translation rules** that are not a direct key write:
+
+- **"Disable agent X"** → set `agents.X = null` in the override file (null-as-delete merge semantics). **"Re-enable"** → remove the `null` entry, or re-supply the full agent object for a custom version.
 - **"Add a custom agent"** → write `agents.<new-role> = {subagent_type: "...", when_to_use: "..."}` and tell the user that a `subagent_type` other than `comb:` + a shipped agent name is foreign per the delivery contract: its run brief carries the authority sentence and a `Your lens:` line taken from `when_to_use`.
-- **"Use model M for step S"** → set `models.<step> = "M"` (or the nested `models.fix.*` for fix sub-roles).
-- **"Use model M for agent X"** → set `agents.X.model = "M"` (per-agent override beats step-level).
-- **"Use effort E for step S / agent X"** → set `effort.<step> = "E"` or `agents.X.effort = "E"`. Removing the key returns that lane to the session default.
-- **"Change reviews/plans dir"** → set `paths.<reviews|plans>`.
-- **"Change base branch"** → set `paths.base_branch`.
 - **"Allow Claude to run fix" / "let the model apply fixes"** → set `fix.model_invocation = true` in the project override (or globally if asked). Say that `/comb:fix` is still user-only; the opt-in routes natural-language requests through the model-only `fix-auto` skill (not a slash command), which runs the same workflow with the same questions and commits.
-- **"Change patterns manifest path"** → set `paths.patterns`. Setting it to `null` disables manifest consumption in review/plan/fix.
-- **"Use model M for patterns/scanning"** → set `models.patterns = "M"`.
-- **"Stop loading plugin directives"** → set `directives.include_plugin_defaults = false`.
-- **"Look for my directives in <dir>"** → set `directives.user_path = "<dir>"`.
+
+Everything else is a direct key write: name the key from `defaults.json` (or the three absent-by-default keys above), set the value, and show the diff. Removing an `effort` key returns that lane to the session default.
 
 If the user asks for something outside this schema, say so plainly and stop. Don't invent fields.
 
