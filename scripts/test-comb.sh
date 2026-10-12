@@ -48,6 +48,24 @@ run brief-fix-impl       brief --skill fix --role implementer --run fix-1-cccc "
 run brief-fix-reviewer   brief --skill fix --role test-auditor --run fix-1-cccc --brief "tests" "${C[@]}"
 run brief-mint           brief --skill review --role code-reviewer "${C[@]}"
 run brief-missing-manifest brief --skill review --role code-reviewer --run review-1-dddd --manifest "$T/nope.md" "${C[@]}"
+# report-name: rounds are parsed from filenames, never counted; the prefix is exact
+run report-pr            report-name --reviews "$R/reviews" --pr 7
+run report-pr70          report-name --reviews "$R/reviews" --pr 70
+run report-branch        report-name --reviews "$R/reviews" --branch "feature/foo bar"
+run report-branch-main   report-name --reviews "$R/reviews" --branch main
+run report-nodir         report-name --reviews "$R/no-such-dir" --pr 1
+# batches: folder shape, write-sets, not-reproduced, disjoint batches of at most three
+run batches-code         batches --folder "$R/plans/code"
+run batches-revise       batches --folder "$R/plans/revise"
+mkdir -p empty-folder
+run batches-empty        batches --folder "$T/empty-folder"
+run batches-mixed        batches --folder "$R/plans/mixed"
+run batches-missing      batches --folder "$R/plans/no-such-folder"
+# findings: the fixed report template as JSON; anything else is count 0, never a traceback
+run findings-code        findings --report "$R/reports/code-report.md"
+run findings-noncode     findings --report "$R/reports/noncode-report.md"
+run findings-prose       findings --report "$R/reports/prose.md"
+run findings-missing     findings --report "$R/reports/no-such-report.md"
 for b in review-1-aaaa.code-reviewer plan-1-bbbb.ours fix-1-cccc.implementer fix-1-cccc.test-auditor; do
   if [ -f ".comb/excerpts/$b.brief.md" ]; then norm < ".comb/excerpts/$b.brief.md" > "$OUT/brief-$b.md"; else echo "MISSING .comb/excerpts/$b.brief.md" > "$OUT/brief-$b.md"; fi
 done

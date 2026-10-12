@@ -1,0 +1,12 @@
+shape: per-finding
+write-set H1: src/d.ts
+write-set L1: src/c.ts
+write-set M1: src/a.ts
+write-set M2: src/a.ts src/b.ts
+write-set M3: src/f.ts
+write-set T1: (none)
+not-reproduced: M3
+batch 1: H1 M1 L1
+batch 2: M2
+batch 3: T1
+exit=0

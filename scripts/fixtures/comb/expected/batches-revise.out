@@ -1,0 +1,5 @@
+shape: single-revise-doc
+write-set revise-spec: docs/spec.md
+not-reproduced: none
+batch 1: revise-spec
+exit=0

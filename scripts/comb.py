@@ -51,6 +51,32 @@ CLI (output is fixed-format; scripts/test-comb.sh diffs it):
     the baseline paragraph, the excerpt sentences when --excerpt is given, the skill's role
     note), and `## User focus for this run` when --brief is given (framed for review, verbatim
     for the other skills).
+
+  comb.py report-name --reviews <dir> (--pr N | --branch <name>)
+    stdout: report: <dir>/<pr-N|branch-<slug>>-round<R>-report.md / round: <R>
+    slug: `/`, whitespace, and `: ? * < > | "` and backslash become `-`; runs collapse; trailing `-` trimmed.
+    R = 1 + the highest round parsed from files named <prefix>-round<digits>-report.md in
+    <dir>; 1 when none match or the directory is missing. Files are never counted.
+
+  comb.py batches --folder <plan folder>
+    stdout: shape: per-finding | single-revise-doc | empty
+            write-set <code>: <path> … | (none)       one per item, folder (filename) order
+            not-reproduced: <codes> | none
+            batch <n>: <codes>                         severity order C H M L T D X G, then number
+    A write-set is the file paths named in `## Where` (backticked spans, or bare tokens with a
+    `/` or a 2-5 letter extension; `:lines` dropped), else those in `**File(s):**`; a revise
+    doc's is its `**Target spec:**`. Items whose `**Finding status:**` starts with
+    `not reproduced` are listed and left out of the batches. A batch holds at most three items
+    with pairwise-disjoint write-sets (a directory covers everything under it); an item with no
+    write-set runs alone. Batches are a ceiling: the skill may split one, never merge two.
+    exit 2: missing folder; a folder mixing per-finding files and revise-*.md.
+
+  comb.py findings --report <path>
+    stdout: {"count": N, "shape": "code-shaped|non-code|unknown", "findings": [{code, title,
+    source, files, verified}]} from the report template (`**{code} — {title}**`, `*Source: …*`,
+    `File(s): …`, `**Verified:** …`). Code-less bullets under a Deferred heading become D1, D2, …
+    A report whose entries carry labels instead of codes is `non-code` with empty codes.
+    Anything else is count 0, shape unknown — never a traceback.
 """
 import argparse
 import glob
@@ -418,6 +444,241 @@ def cmd_brief(a):
         print("baseline: none")
 
 
+# -------------------------------------------------------------- report-name
+
+UNSAFE = re.compile(r'[/\\:?*<>|"\s]+')
+
+
+def slugify(name):
+    return re.sub(r"-{2,}", "-", UNSAFE.sub("-", name)).strip("-")
+
+
+def cmd_report_name(a):
+    prefix = "pr-%d" % a.pr if a.pr is not None else "branch-%s" % slugify(a.branch)
+    pat = re.compile(r"^%s-round(\d+)-report\.md$" % re.escape(prefix))
+    rounds = [0]
+    if os.path.isdir(a.reviews):
+        for name in os.listdir(a.reviews):
+            m = pat.match(name)
+            if m:
+                rounds.append(int(m.group(1)))
+    n = max(rounds) + 1
+    print("report: %s" % os.path.join(a.reviews, "%s-round%d-report.md" % (prefix, n)))
+    print("round: %d" % n)
+
+
+# ------------------------------------------------------------------ batches
+
+SEVERITY_ORDER = "CHMLTDXG"
+ITEM_FILE = re.compile(r"^([CHMLTDXG])(\d+)-.*\.md$")
+REVISE_FILE = re.compile(r"^revise-.*\.md$")
+BATCH_MAX = 3
+LINE_SUFFIX = re.compile(r":L?\d+(?:[-–,]\d+)*$")
+EXT = re.compile(r"\.[A-Za-z]{2,5}$")
+
+
+def section(text, heading):
+    """Body of `## <heading>` up to the next `## ` heading, or ''."""
+    m = re.search(r"^## %s[ \t]*\n(.*?)(?=^## |\Z)" % re.escape(heading), text, re.M | re.S)
+    return m.group(1) if m else ""
+
+
+def header_value(text, label):
+    m = re.search(r"^\*\*%s:\*\*[ \t]*(.*)$" % re.escape(label), text, re.M)
+    return m.group(1).strip() if m else ""
+
+
+def paths_in(text):
+    """File paths named in a span: backticked spans and bare tokens with a `/` or an
+    extension, `:lines` dropped, order kept, duplicates removed."""
+    out = []
+    for tok in re.findall(r"`([^`\n]+)`", text) + re.sub(r"`[^`\n]*`", " ", text).split():
+        tok = tok.strip().strip(",.;:)(\"'")
+        tok = LINE_SUFFIX.sub("", tok)
+        if not tok or " " in tok or "§" in tok:
+            continue
+        if "/" in tok or EXT.search(tok):
+            if tok not in out:
+                out.append(tok)
+    return out
+
+
+def write_set_of(text):
+    ws = paths_in(section(text, "Where"))
+    if not ws:
+        ws = paths_in(header_value(text, "File(s)"))
+    return ws
+
+
+def overlap(a, b):
+    for x in a:
+        for y in b:
+            if x == y or x.startswith(y.rstrip("/") + "/") or y.startswith(x.rstrip("/") + "/"):
+                return True
+    return False
+
+
+def severity_key(code):
+    m = re.match(r"^([A-Z])(\d+)$", code)
+    if not m:
+        return (len(SEVERITY_ORDER), 0, code)
+    return (SEVERITY_ORDER.find(m.group(1)), int(m.group(2)), code)
+
+
+def make_batches(items):
+    """items: [(code, write_set)] in severity order → [[code, …], …]; ≤ BATCH_MAX per batch,
+    pairwise-disjoint write-sets, an item with no write-set alone."""
+    pending = list(items)
+    batches = []
+    while pending:
+        code, ws = pending.pop(0)
+        if not ws:
+            batches.append([code])
+            continue
+        batch, taken = [(code, ws)], []
+        for i, (c2, ws2) in enumerate(pending):
+            if len(batch) >= BATCH_MAX:
+                break
+            if ws2 and not any(overlap(ws2, w) for _, w in batch):
+                batch.append((c2, ws2))
+                taken.append(i)
+        for i in reversed(taken):
+            pending.pop(i)
+        batches.append([c for c, _ in batch])
+    return batches
+
+
+def cmd_batches(a):
+    folder = os.path.abspath(a.folder)
+    if not os.path.isdir(folder):
+        die("--folder %s: no such directory" % folder)
+    names = sorted(os.listdir(folder))
+    items = [n for n in names if ITEM_FILE.match(n)]
+    revises = [n for n in names if REVISE_FILE.match(n)]
+    if items and revises:
+        die("%s mixes per-finding files and revise-*.md; one folder holds one shape" % folder)
+    if not items and not revises:
+        print("shape: empty")
+        print("not-reproduced: none")
+        return
+
+    def read(n):
+        with open(os.path.join(folder, n), encoding="utf-8") as f:
+            return f.read()
+
+    if revises:
+        if len(revises) > 1:
+            die("%s holds %d revise-*.md files; a single-revise-doc folder holds one" % (folder, len(revises)))
+        n = revises[0]
+        code = n[:-3]
+        ws = paths_in(header_value(read(n), "Target spec"))
+        print("shape: single-revise-doc")
+        print("write-set %s: %s" % (code, " ".join(ws) if ws else "(none)"))
+        print("not-reproduced: none")
+        print("batch 1: %s" % code)
+        return
+
+    print("shape: per-finding")
+    parsed, not_repro = [], []
+    for n in items:
+        m = ITEM_FILE.match(n)
+        code = m.group(1) + m.group(2)
+        text = read(n)
+        ws = write_set_of(text)
+        print("write-set %s: %s" % (code, " ".join(ws) if ws else "(none)"))
+        if header_value(text, "Finding status").lower().startswith("not reproduced"):
+            not_repro.append(code)
+        else:
+            parsed.append((code, ws))
+    print("not-reproduced: %s" % (" ".join(not_repro) if not_repro else "none"))
+    parsed.sort(key=lambda it: severity_key(it[0]))
+    for i, b in enumerate(make_batches(parsed), 1):
+        print("batch %d: %s" % (i, " ".join(b)))
+
+
+# ----------------------------------------------------------------- findings
+
+FINDING_HEAD = re.compile(r"^\*\*(.+?) — (.+?)\*\*\s*$")
+CODE = re.compile(r"^[CHMLTDXG]\d+$")
+SOURCE = re.compile(r"^\*Source:\s*(.*?)\*\s*$")
+FILES = re.compile(r"^File\(s\):\s*(.*)$")
+VERIFIED = re.compile(r"^\*\*Verified:\*\*\s*(.*)$")
+BULLET = re.compile(r"^[-*]\s+(.*\S)\s*$")
+
+
+def split_files(value):
+    items = [x.strip() for x in re.split(r",\s*(?=`)", value) if x.strip()]
+    if len(items) == 1 and "`" not in value:
+        items = [x.strip() for x in value.split(",") if x.strip()]
+    return [x.strip("`").replace("` § ", " § ").replace("`", "") for x in items]
+
+
+def parse_findings(text):
+    findings, deferred_bullets = [], []
+    in_deferred = False
+    cur = None
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        if line.startswith("#"):
+            in_deferred = line.lstrip("#").strip().lower() == "deferred"
+            cur = None
+            continue
+        m = FINDING_HEAD.match(line)
+        if m:
+            head, title = m.group(1).strip(), m.group(2).strip()
+            cur = {"code": head if CODE.match(head) else "", "title": title, "source": "", "files": [], "verified": ""}
+            if not CODE.match(head):
+                cur["_label"] = head
+            findings.append(cur)
+            continue
+        if cur is not None:
+            m = SOURCE.match(line)
+            if m:
+                cur["source"] = m.group(1).strip()
+                continue
+            m = FILES.match(line)
+            if m:
+                cur["files"] = split_files(m.group(1))
+                continue
+            m = VERIFIED.match(line)
+            if m:
+                cur["verified"] = m.group(1).strip()
+                continue
+        if in_deferred and cur is None:
+            m = BULLET.match(line)
+            if m:
+                deferred_bullets.append(m.group(1))
+    coded = [f for f in findings if f["code"]]
+    labelled = [f for f in findings if not f["code"]]
+    if coded:
+        for i, t in enumerate(deferred_bullets, 1):
+            coded.append({"code": "D%d" % i, "title": t, "source": "", "files": [], "verified": ""})
+        shape, out = "code-shaped", coded
+    elif labelled:
+        shape, out = "non-code", labelled
+    else:
+        shape, out = "unknown", []
+    for f in out:
+        f.pop("_label", None)
+    return {"count": len(out), "shape": shape, "findings": out}
+
+
+def cmd_findings(a):
+    path = os.path.abspath(a.report)
+    if not os.path.isfile(path):
+        die("--report %s: no such file" % path)
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError as ex:
+        die("%s: %s" % (path, ex.strerror))
+    try:
+        result = parse_findings(text)
+    except Exception:  # any parse surprise is "unknown", never a traceback
+        result = {"count": 0, "shape": "unknown", "findings": []}
+    print(json.dumps(result, indent=1, ensure_ascii=False))
+
+
 # --------------------------------------------------------------------- main
 
 def main(argv=None):
@@ -451,8 +712,23 @@ def main(argv=None):
     s.add_argument("--brief", default="")
     s.set_defaults(fn=cmd_brief)
 
+    s = sub.add_parser("report-name", help="derive the review report path; the round is parsed from existing filenames")
+    s.add_argument("--reviews", required=True)
+    g = s.add_mutually_exclusive_group(required=True)
+    g.add_argument("--pr", type=int)
+    g.add_argument("--branch")
+    s.set_defaults(fn=cmd_report_name)
+
+    s = sub.add_parser("batches", help="folder shape, per-item write-sets, not-reproduced items, and disjoint batches")
+    s.add_argument("--folder", required=True)
+    s.set_defaults(fn=cmd_batches)
+
+    s = sub.add_parser("findings", help="findings of a review report as JSON (count 0 when the template is absent)")
+    s.add_argument("--report", required=True)
+    s.set_defaults(fn=cmd_findings)
+
     a = p.parse_args(argv)
-    if a.project_root is None:
+    if getattr(a, "project_root", "") is None:
         a.project_root = project_root_default()
     a.fn(a)
 
