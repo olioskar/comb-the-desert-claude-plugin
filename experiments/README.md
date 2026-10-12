@@ -32,3 +32,16 @@ This is the 0.8.0 scenario. A directive requires BEM `--` modifiers; five compon
 | treatment | none | named in the BEM entry as "a minority across the area" | $0.48 |
 
 **Decision:** the rule stated once is enough for this scenario, so the restatements are removed. The orchestrator's Step 6 backstops in `/comb:patterns`, which drop self-identified minorities and gerrymandered denominators, are a separate tier and stay. Each arm's dispatch prompt named its own `scan-rules.md`, which confirms the treatment text was the one under test.
+
+### E3: effort `medium` vs `high` (`effort-medium`, `effort-high`)
+
+A branch with three seeded bugs in separate files: an off-by-one loop bound, a swallowed parse error that returns `[]`, and a missing `await`. The arms differ only in `effort.review`. Both ran the branch with E1 and E2 applied.
+
+| Arm | Agents (effort passed) | Seeded bugs cited | Findings | Verdict | Cost | Time |
+|---|---|---|---|---|---|---|
+| medium | code-reviewer, silent-failure-hunter, test-auditor (`medium` ×3) | 3 of 3 | 6 | NEEDS WORK | $1.10 | 118 s |
+| high | the same (`high` ×3) | 3 of 3 | 9 | NEEDS WORK | $1.19 | 127 s |
+
+**Outcome:** no recall difference on this fixture. `high` cost about 8% more and split the test gaps per file (four T items against one). The shipped default stays unset, as the user decided (D1): the session's effort applies, and `effort.review: medium` is a safe way to save a little on reviews of this size. The run also confirms the 0.15.0 effort path end to end: `comb.py resolve` printed the configured effort and every Agent call carried it.
+
+Total spend for the three experiments: $4.88 (six runs).
