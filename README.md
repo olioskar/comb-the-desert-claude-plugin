@@ -198,8 +198,7 @@ The eight skills intentionally omit the `model:` frontmatter field. The orchestr
 
 ### Manifest delivery
 
-Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/comb:plan`, or `/comb:fix` cuts an excerpt with `scripts/manifest.py`: the header, the global sections (how-to-read, cross-reference map, drift register), and the area sections whose scope meets the change. Scope comes from a section's `Scope:`/`Home:` line (globs) or, for a section without one, from the directories of its `file:line` anchors; the second rule can over-include on a large manifest, and a one-line `Home:` per section is how to tighten it. The excerpt lists the omitted sections with their line ranges so an agent can read one with `sed -n` when pointed to it. The orchestrator never reads the manifest either; the script computes staleness. Excerpts live under `.comb/` in the working directory, which the script creates with a self-ignoring `.gitignore`, and are removed at the end of the run. The script needs `python3` (3.8+, stdlib only); without it the full manifest is delivered as before, with a printed notice.
-
+Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/comb:plan`, or `/comb:fix` cuts an excerpt with `scripts/manifest.py`: the header, the global sections (how-to-read, cross-reference map, drift register), and the area sections whose scope meets the change. The excerpt lists the omitted sections with their line ranges so an agent can read one with `sed -n` when pointed to it. How a section's scope is derived and when it travels is the contract in `shared/manifest-slicing.md`, implemented by `scripts/manifest.py`; a one-line `Home:` per section is how to tighten an over-inclusive scope. The orchestrator never reads the manifest either; the script computes staleness. Excerpts live under `.comb/` in the working directory, which the script creates with a self-ignoring `.gitignore`, and are removed at the end of the run. `python3` (3.8+, stdlib only) is required since 0.15.0.
 
 ### Resolver and briefs
 
@@ -219,7 +218,7 @@ CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workfl
 
 ## Status
 
-v0.15.0. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.15.1. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 

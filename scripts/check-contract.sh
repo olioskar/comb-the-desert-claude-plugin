@@ -22,11 +22,12 @@ done < <(grep -rho '\${CLAUDE_PLUGIN_ROOT}/shared/[a-z-]*\.md' skills/ agents/ R
 
 # 3. No skill re-inlines a shared block (drift re-entry guard).
 #    Needles are derived from the live blocks: the longest body line of each shared/*.md
-#    (headings and table rows skipped), cut to 60 characters at a word boundary — a body
-#    copy carries it, a framing sentence does not. One historical needle guards wording
+#    (the intro before the first `## ` heading when the file has one, headings, and table rows
+#    skipped), cut to 60
+#    characters at a word boundary — a body copy carries it, a framing sentence does not. One historical needle guards wording
 #    removed in 0.11.0 that must not return.
 derive_needle() {
-  grep -v '^#' "$1" | grep -v '^|' | awk '{ if (length($0) > length(best)) best=$0 } END { print best }' \
+  { if grep -q '^## ' "$1"; then awk '/^## /{body=1} body' "$1"; else cat "$1"; fi; } | grep -v '^#' | grep -v '^|' | awk '{ if (length($0) > length(best)) best=$0 } END { print best }' \
     | sed -E 's/^(.{0,60}[^ ]*).*/\1/'
 }
 while IFS= read -r needle; do
@@ -60,6 +61,9 @@ elif ! python3 -I scripts/manifest.py --help >/dev/null 2>&1; then
   fail=1
 elif ! bash scripts/test-manifest.sh >/dev/null 2>&1; then
   echo "FAIL: scripts/test-manifest.sh failed (run it for the diff)"
+  fail=1
+elif ! grep -qF 'Excerpt grammar' scripts/manifest.py; then
+  echo "FAIL: scripts/manifest.py docstring lost the excerpt grammar that shared/manifest-slicing.md points at"
   fail=1
 fi
 if [ ! -f scripts/comb.py ]; then
