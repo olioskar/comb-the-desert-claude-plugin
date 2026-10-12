@@ -1,0 +1,6 @@
+warning: agents.broken dropped — missing subagent_type
+brief: TMP/.comb/excerpts/review-1-aaaa.code-reviewer.brief.md
+form: native
+directives: 8 plugin, 1 user; primary: scope-discipline.md, simplicity.md
+baseline: TMP/ex.md (excerpt) + TMP/PATTERNS.md (full manifest)
+exit=0

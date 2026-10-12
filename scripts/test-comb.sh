@@ -14,9 +14,10 @@ T=$(mktemp -d "${TMPDIR:-/tmp}/comb-test.XXXXXX")
 trap 'rm -rf "$T"' EXIT
 OUT="$T/out"; mkdir -p "$OUT" "$E"
 TR=$(cd "$T" && pwd -P)   # macOS: $TMPDIR is a symlink into /private
+TL=$(cd "$T" && pwd)      # logical path (no doubled slashes from $TMPDIR)
 cd "$T"
 
-norm() { sed -E -e 's/[a-z]+-[0-9]{9,}-[0-9a-f]{4}/RUN/g' -e "s#$TR#TMP#g" -e "s#$T#TMP#g" -e "s#$F#FIX#g" -e "s#$ROOT#PLUGIN#g" ; }
+norm() { sed -E -e 's/[a-z]+-[0-9]{9,}-[0-9a-f]{4}/RUN/g' -e "s#$TR#TMP#g" -e "s#$TL#TMP#g" -e "s#$T#TMP#g" -e "s#$F#FIX#g" -e "s#$ROOT#PLUGIN#g" ; }
 
 P="$F/plugin"; H="$F/home"; R="$F/project"
 C=(--plugin-root "$P" --home "$H" --project-root "$R")
@@ -39,6 +40,21 @@ run directives-simpl     directives --brief "keep it simpl" "${C[@]}"
 run directives-two       directives --brief "Scope and TEST coverage" "${C[@]}"
 run directives-user      directives --brief "velocity" "${C[@]}"
 run directives-noplugin  directives --plugin-root "$P" --home "$H" --project-root "$F/noplugin"
+# brief: the per-run dispatch block, written under the temp cwd's .comb/excerpts
+touch ex.md PATTERNS.md
+run brief-native-review  brief --skill review --role code-reviewer --run review-1-aaaa --brief "scope and simplicity" --excerpt "$T/ex.md" --manifest "$T/PATTERNS.md" "${C[@]}"
+run brief-foreign-plan   brief --skill plan --role ours --run plan-1-bbbb --brief "keep it simpl" --manifest "$T/PATTERNS.md" "${C[@]}"
+run brief-fix-impl       brief --skill fix --role implementer --run fix-1-cccc "${C[@]}"
+run brief-fix-reviewer   brief --skill fix --role test-auditor --run fix-1-cccc --brief "tests" "${C[@]}"
+run brief-mint           brief --skill review --role code-reviewer "${C[@]}"
+run brief-missing-manifest brief --skill review --role code-reviewer --run review-1-dddd --manifest "$T/nope.md" "${C[@]}"
+for b in review-1-aaaa.code-reviewer plan-1-bbbb.ours fix-1-cccc.implementer fix-1-cccc.test-auditor; do
+  if [ -f ".comb/excerpts/$b.brief.md" ]; then norm < ".comb/excerpts/$b.brief.md" > "$OUT/brief-$b.md"; else echo "MISSING .comb/excerpts/$b.brief.md" > "$OUT/brief-$b.md"; fi
+done
+[ -f .comb/.gitignore ] && cat .comb/.gitignore > "$OUT/brief-gitignore.out" || echo "MISSING .comb/.gitignore" > "$OUT/brief-gitignore.out"
+# manifest.py clean removes a run's briefs (same stem)
+python3 -I "$ROOT/scripts/manifest.py" clean --run fix-1-cccc > "$OUT/brief-clean.out" 2>&1
+{ ls .comb/excerpts 2>/dev/null | grep -c fix-1-cccc || true; } >> "$OUT/brief-clean.out"
 
 fail=0
 for o in "$OUT"/*; do

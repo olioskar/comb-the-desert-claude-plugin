@@ -1,0 +1,6 @@
+warning: agents.broken dropped — missing subagent_type
+brief: TMP/.comb/excerpts/plan-1-bbbb.ours.brief.md
+form: foreign
+directives: 8 plugin, 1 user; primary: simplicity.md
+baseline: TMP/PATTERNS.md (full manifest, no excerpt)
+exit=0

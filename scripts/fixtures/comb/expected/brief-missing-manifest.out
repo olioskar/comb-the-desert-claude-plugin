@@ -1,0 +1,3 @@
+warning: agents.broken dropped — missing subagent_type
+comb.py: --manifest TMP/nope.md: no such file
+exit=2
