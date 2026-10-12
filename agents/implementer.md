@@ -28,6 +28,8 @@ The dispatch prompt provides the shared context block (repository, branch, item,
 
 ## Output format
 
+When `/comb:plan` dispatches you, the planner brief's output format replaces this section.
+
 Plain text, these sections in order:
 
 ### Files changed

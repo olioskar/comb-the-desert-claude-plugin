@@ -102,13 +102,13 @@ if git ls-files | grep -q '\.DS_Store'; then
   fail=1
 fi
 
-# 8. Every comb:* subagent_type in defaults.json has an agent file and sits in the native
-#    allowlist of shared/dispatch-delivery.md; every agent file is a default somewhere.
+# 8. Every comb:* subagent_type in defaults.json has an agent file; every agent file's
+#    frontmatter name equals its filename (the native rule in dispatch-delivery.md compares
+#    `comb:` + name) and is a default subagent_type somewhere.
 while IFS= read -r t; do
   case "$t" in MISSING*) echo "FAIL: defaults.json role(s) without subagent_type: ${t#MISSING }"; fail=1; continue;; esac
   n="${t#comb:}"
   [ -f "agents/$n.md" ] || { echo "FAIL: defaults.json names $t but agents/$n.md is missing"; fail=1; }
-  grep -qF -- "- \`$t\`" shared/dispatch-delivery.md || { echo "FAIL: $t is not in the native allowlist"; fail=1; }
 done < <(python3 -I -c 'import json,sys
 a=json.load(open("config/defaults.json"))["agents"]
 bad=[k for k,v in a.items() if not (isinstance(v,dict) and isinstance(v.get("subagent_type"),str))]
@@ -116,8 +116,13 @@ if bad: print("MISSING " + " ".join(bad))
 [print(v["subagent_type"]) for k,v in a.items() if k not in bad and v["subagent_type"].startswith("comb:")]')
 for f in agents/*.md; do
   n=$(basename "$f" .md)
+  [ "$(sed -n 's/^name:[[:space:]]*//p' "$f" | head -n 1)" = "$n" ] || { echo "FAIL: agents/$n.md frontmatter name does not equal its filename"; fail=1; }
   grep -qF "\"comb:$n\"" config/defaults.json || { echo "FAIL: agents/$n.md is not a default subagent_type in config/defaults.json"; fail=1; }
 done
+if grep -qF -- "- \`comb:" shared/dispatch-delivery.md; then
+  echo "FAIL: dispatch-delivery.md carries a native allowlist; the native rule is by agent name"
+  fail=1
+fi
 
 if [ "$fail" -eq 0 ]; then
   echo "check-contract: OK"

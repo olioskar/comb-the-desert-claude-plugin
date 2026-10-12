@@ -4,4 +4,8 @@ Lowercase the focus brief and scan it for substring matches against the loaded d
 
 Record the matched directive paths. They will be flagged as **primary** in agent dispatch prompts under the heading "Directives most relevant to this run" so agents weight them first.
 
+A brief word shorter than four characters (`it`, `a`, `and`) matches only when it equals a whole hyphen-separated segment of the base name, so `api` flags `api.md` and `it` flags nothing.
+
 If the focus brief is empty, no directives are flagged primary; all directives still load normally.
+
+`scripts/comb.py directives --brief "<text>"` performs the match and prints the `plugin:`, `user:`, and `primary:` lists; `comb.py brief` renders them into the run brief.

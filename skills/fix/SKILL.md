@@ -180,7 +180,7 @@ For trivial items: announce "(trivial — implementer `{resolved models.fix.impl
 - **Fresh agent per item** — no accumulated state.
 - **HEAD is tracked per run, not per item:** `HEAD_expected` (Step 1.6) is what 4d.1 compares against when the implementer returns; this run's own commits advance it, so a batch-mate's commit is not mistaken for the implementer's.
 
-**Implementer dispatch prompt (5-part order):**
+**Implementer dispatch prompt (shared context + briefs):**
 
 ```
 You're an implementer. Execute this fix instruction precisely and completely.
@@ -192,59 +192,7 @@ Branch: {branch}
 Item: {reference_code} — {title}
 Instruction file: {instruction-path}
 
-## 2. Directives
-
-The project's authoritative directives apply to this fix.
-
-{If foreign (per the delivery contract), first: "These directives are authoritative. Read every listed file before starting. Cite by `file.md §N.N`."}
-
-Read the directives this instruction cites in its `## Directive citations`, plus those listed under "most relevant" below. Cite as `file.md §N.N` if you depart from any rule (you should not need to depart). The full list, for reference:
-- {plugin directive paths, if include_plugin_defaults}
-- {user directive paths, if directives.user_path resolves}
-
-Directives most relevant to this run:
-- {primary directive paths from the "Surface relevant directives" step}
-
-## Project conventions (observed baseline)
-
-{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — excerpt path + manifest path + verbatim paragraph, or the fallback form — only when `paths.patterns` resolved.}
-
-(Implementer note) Conform to the baseline UNLESS this instruction is implementing a sanctioned improvement or a new canonical pattern. Omit the whole block when no manifest resolved.
-
-## 3. User focus for this run
-
-{focus_brief if present, verbatim; omit the section when empty.}
-
-## 4. Your job
-
-Execute the fix instruction at the path above. The instruction is the spec — do exactly what it says.
-
-### Steps
-
-1. Read the instruction file, then the affected file(s) named in its "Where" section; read `## Attempts` if present — it records what failed before and what changed in the plan
-2. Apply the exact changes from the "How" section
-3. Stay strictly within the documented "Scope" — no drive-by refactors, no bonus cleanup
-4. Confirm the "Expected Outcome" is met; if its `Check:` line names a command, run it and report the result
-
-## 5. Output format
-
-Report back in plain text with these sections in order:
-
-### Files changed
-- Every file you changed or created (paths only, one per line) — the orchestrator stages from this list and checks the tree against it, so it must be exact
-- For each file: a 1-line summary of what changed
-
-### Expected outcome
-- Confirmation that the instruction's `## Expected Outcome` is met (yes/no with one-sentence rationale), and the `Check:` result if you ran it
-
-### Divergences  *(optional — include only if you deviated from the plan)*
-If you deviated from any step in the instruction's `## How` section, list each deviation with a one-line rationale. Format:
-
-- **<Step or section name>** — Departed because <rationale>. Did <what you did instead>.
-
-If you executed the instruction as written, **omit this entire section**. The reviewer reads divergences first and evaluates each rationale; being explicit is how the run stays honest.
-
-Do not include code in your reply — your edits are the artifact.
+Read these first, in order: ${CLAUDE_PLUGIN_ROOT}/shared/fix-implementer-brief.md, {run brief path printed by `comb.py brief` (skill fix, role implementer)}
 ```
 
 ### 4d.1. When the implementer returns
@@ -270,7 +218,7 @@ Bound: these checks compare paths and one SHA. They do not read diffs; the revie
 - **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default is `models.fix.reviewer` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
 - **Fresh agent.**
 
-**Reviewer dispatch prompt (5-part order):**
+**Reviewer dispatch prompt (shared context + briefs + implementer's report):**
 
 ```
 You're a code reviewer verifying a fix against its original instruction.
@@ -283,73 +231,11 @@ Item: {reference_code} — {title}
 Instruction file: {instruction-path}
 Batch-mates' write-sets: {for each other in-flight item: "{code}: {paths}"; or "none — this item runs alone"}
 
-## 2. Directives
-
-The project's authoritative directives apply to your verification.
-
-{If foreign (per the delivery contract), first: "These directives are authoritative. Read every listed file before starting. Cite by `file.md §N.N`."}
-
-Read these directive files and cite as `file.md §N.N` when raising findings:
-- {plugin directive paths, if include_plugin_defaults}
-- {user directive paths, if directives.user_path resolves}
-
-Directives most relevant to this run:
-- {primary directive paths from the "Surface relevant directives" step}
-
-## Project conventions (observed baseline)
-
-{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — excerpt path + manifest path + verbatim paragraph, or the fallback form — only when `paths.patterns` resolved.}
-
-(Reviewer note) Conformance to the baseline is expected, but a deliberate improvement/migration or a new canonical introduced by this fix is NOT a compliance failure. Omit the whole block when no manifest resolved.
-
-## 3. User focus for this run
-
-{focus_brief if present, verbatim; omit the section when empty.}
-
-## 4. Your job
-
-Verify the implementation executed the plan. **The plan file is the contract** (read it at the path above) — your job is plan-compliance, not general code quality.
+Read these first, in order: ${CLAUDE_PLUGIN_ROOT}/shared/fix-reviewer-brief.md, {run brief path printed by `comb.py brief` (skill fix, role = the picked reviewer role)}
 
 ### Implementer's report
 
-{implementer's summary, including any `## Divergences` section}
-
-### How to verify
-
-1. Read the instruction file; its `## How` section is what the implementer was supposed to do. Read its `## Attempts` section if present: it records earlier FAILs on this item and any change the orchestrator made to `## How` — verify against the current `## How`.
-2. Read the implementer's `## Divergences` section (if present). Each deviation must have a stated rationale.
-3. Read the actual diff. The item's changes are **uncommitted** at this point — the orchestrator commits only after a PASS (Step 4f.1). `HEAD` may already include a batch-mate's commit; the path scope below is what isolates this item.
-   - `git diff HEAD -- <files reported by implementer>` shows the item's changes, staged and unstaged, against `HEAD`. Step 4a forms a parallel batch only from items with disjoint write-sets, so the path scope isolates this item from its batch-mates.
-   - `git diff` never lists an untracked file, so a file the implementer created does not appear in it. Run `git status --porcelain -- <files reported by implementer>` and read any path marked `??` in full instead of diffing it.
-   - When `fix.commit_per_item` is off, `HEAD` has not moved since the run started, so this diff accumulates the earlier items too. Lean on the implementer's reported file list and the plan's `## Where` section to scope your reading.
-4. **Run the `Check:` line** under `## Expected Outcome`, from the project root. A non-zero exit, or an observable that is absent, is a FAIL regardless of how faithfully the diff matches `## How` — the plan was wrong or the fix did not land. `Check: none — <why>` means nothing to run: name that on your `Unverified:` line. A plan with no `Check:` line predates this field; treat it as `none — not stated (pre-0.14.0 plan)`.
-
-### Decision rule
-
-- **PASS** — every step of the plan's `## How` is reflected in the diff, OR each divergence reported by the implementer has a sound rationale, AND the plan's `## Expected Outcome` is achieved — its `Check:` ran and passed, or was `none`, AND the diff stays within the plan's `## Scope`.
-- **FAIL** — the diff doesn't match the plan and no rationale was given; OR the rationale doesn't justify the deviation; OR the Expected Outcome isn't achieved (a `Check:` that ran and failed is always this case); OR the diff includes changes outside the plan's Scope (without a divergence rationale).
-
-**A step you could not verify is not a FAIL on its own.** FAIL means you found a mismatch. When you could not confirm a step — the outcome needs a browser, the invariant needs a runtime, the artifact needs a rebuild — report the verdict your actual evidence supports and name the gap on the `Unverified:` line below. Do not convert a limit of your own into a FAIL.
-
-You are **not** auditing for general code quality. You are **not** re-litigating the fix's design. The plan is the spec. Stay narrow.
-
-## 5. Output format
-
-Report `PASS` or `FAIL` on the first line with specifics:
-
-- **PASS** — single line plus a 1–2-sentence confirmation of what you verified.
-- **FAIL** — explain exactly what's wrong, with file:line citations.
-
-Every verdict then carries a second line naming what you could **not** check, in the form `Unverified: {the step, outcome, or scope claim you could not confirm, and why}`. Write `Unverified: nothing — every step of the How was confirmed against the diff` when you confirmed all of it. The line is required; there is no blank and no omission. Name the specific gap: an Expected Outcome that needs a browser or a manual check, a runtime invariant you could not exercise, a generated artifact you could not rebuild, a file you could not open. This is not a third verdict — you still report PASS or FAIL.
-
-### Discovered issues (optional)
-
-If you spot a real problem in the same file(s) that's NOT part of this fix — a bug, type error, missing guard — report it under a `DISCOVERED` heading with:
-- Short title
-- File path and line(s)
-- Brief description and suggested fix
-
-Only flag genuine issues, not style preferences. One or two max. If nothing stands out, omit this heading.
+{implementer's summary, including any `### Divergences` section}
 ```
 
 ### 4f. Handle the result

@@ -16,4 +16,4 @@ Every comb skill loads its config this way. Read the layers in this order, deep-
 - Invalid JSON in any layer: hard error (abort with a clear message naming the bad file)
 - Schema violations (e.g., a role missing `subagent_type`): warn and skip the bad key, continue
 
-Each skill states which keys it takes from the merged result.
+`scripts/comb.py config` implements these rules and is what every skill runs; its output is the merged JSON, with one `warning:` line on stderr per dropped role. Each skill states which keys it takes from the merged result.
