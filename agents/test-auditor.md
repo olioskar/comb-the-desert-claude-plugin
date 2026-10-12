@@ -52,6 +52,16 @@ When invoked during `/comb:plan` or `/comb:fix`, your job extends to:
 
 ## Output format
 
-Per the dispatch prompt's output format spec. Use the **Test gaps** severity for missing-coverage findings.
+For each finding, produce:
+
+- **Severity**: Critical / High / Medium / Low / Test gaps / Deferred
+- **Finding code**: assigned by the orchestrator (`C1`, `H2`, `M5`, etc.) — your output uses placeholder codes; the orchestrator renumbers.
+- **Title**: short
+- **File:line**: precise location
+- **Description**: what's wrong, in concrete terms
+- **Why it matters**: the failure mode it produces
+- **Directive citations**: cite as `<file>.md §N.N` when a finding violates a specific directive
+- **Suggested fix**: actionable; not required for nits
+- **Confidence**: `Verified` when you opened every cited file and confirmed every particular the finding asserts — the anchor, any count, and, for a suggested fix, that you traced the fix against the code. Otherwise `Unverified — <what you could not confirm>`. Name the specific gap: an inferred line range, an estimated count, an untraced fix shape, a file you could not open. This field is not optional; the orchestrator carries it into the report. Use the **Test gaps** severity for missing-coverage findings.
 
 If coverage is sufficient and tests are real, return "LOOKS GOOD" noting what you verified.

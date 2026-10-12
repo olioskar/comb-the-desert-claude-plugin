@@ -38,7 +38,7 @@ CLI (output is fixed-format; scripts/test-comb.sh diffs it):
     hyphen-separated segment of the basename instead (so "it" flags nothing, "api" flags api.md).
 
   comb.py brief --skill S --role R [--run <stem>] [--excerpt <path>] [--manifest <path>] [--brief "<text>"] [config flags]
-    S in review|plan|fix|patterns. Writes .comb/excerpts/<run>.<R>.brief.md under the cwd
+    S in review|plan|fix|patterns. Writes .comb/excerpts/<run>.<S>.<R>.brief.md under the cwd
     (minting `<S>-<epoch>-<4 hex>` and printing `run: <stem>` first when --run is omitted;
     manifest.py clean --run removes it) and prints:
       brief: <abs path>
@@ -63,8 +63,9 @@ CLI (output is fixed-format; scripts/test-comb.sh diffs it):
             write-set <code>: <path> … | (none)       one per item, folder (filename) order
             not-reproduced: <codes> | none
             batch <n>: <codes>                         severity order C H M L T D X G, then number
-    A write-set is the file paths named in `## Where` (backticked spans, or bare tokens with a
-    `/` or a 2-5 letter extension; `:lines` dropped), else those in `**File(s):**`; a revise
+    A write-set is the file paths named in `## Where` (backticked spans split on whitespace, or
+    bare tokens, with a `/` or a 2-5 letter extension; `:12`/`:L12`/`#L12` dropped; `./a` and
+    trailing `/` normalised), else those in `**File(s):**`; a revise
     doc's is its `**Target spec:**`. Items whose `**Finding status:**` starts with
     `not reproduced` are listed and left out of the batches. A batch holds at most three items
     with pairwise-disjoint write-sets (a directory covers everything under it); an item with no
@@ -75,7 +76,8 @@ CLI (output is fixed-format; scripts/test-comb.sh diffs it):
     stdout: {"count": N, "shape": "code-shaped|non-code|unknown", "findings": [{code, title,
     source, files, verified}]} from the report template (`**{code} — {title}**`, `*Source: …*`,
     `File(s): …`, `**Verified:** …`). Code-less bullets under a Deferred heading become D1, D2, …
-    A report whose entries carry labels instead of codes is `non-code` with empty codes.
+    A report whose entries carry labels instead of codes is `non-code` with empty codes. A finding
+    without a `**Verified:**` line (a report that predates the field) is returned with `verified: ""`.
     Anything else is count 0, shape unknown — never a traceback.
 """
 import argparse
@@ -95,6 +97,7 @@ SHORT_WORD = 4
 # ---------------------------------------------------------------- utilities
 
 def die(msg, code=2):
+    sys.stdout.flush()
     sys.stderr.write("comb.py: %s\n" % msg)
     sys.exit(code)
 
@@ -427,7 +430,7 @@ def cmd_brief(a):
         run = mint_stem(a.skill)
     elif not re.match(r"^[a-z][a-z-]*-[0-9]+-[0-9a-f]{4}$", run):
         die("--run %r is not a run stem (<skill>-<digits>-<hex>)" % run)
-    path = os.path.join(comb_dir(), "%s.%s.brief.md" % (run, a.role))
+    path = os.path.join(comb_dir(), "%s.%s.%s.brief.md" % (run, a.skill, a.role))
     with open(path, "w", encoding="utf-8") as f:
         f.write(render_brief(a.skill, a.role, spec, native, plugin, user, prim, excerpt, manifest, a.brief))
     if minted:
@@ -458,7 +461,11 @@ def cmd_report_name(a):
     pat = re.compile(r"^%s-round(\d+)-report\.md$" % re.escape(prefix))
     rounds = [0]
     if os.path.isdir(a.reviews):
-        for name in os.listdir(a.reviews):
+        try:
+            names = os.listdir(a.reviews)
+        except OSError as ex:
+            die("%s: %s" % (a.reviews, ex.strerror))
+        for name in names:
             m = pat.match(name)
             if m:
                 rounds.append(int(m.group(1)))
@@ -473,8 +480,9 @@ SEVERITY_ORDER = "CHMLTDXG"
 ITEM_FILE = re.compile(r"^([CHMLTDXG])(\d+)-.*\.md$")
 REVISE_FILE = re.compile(r"^revise-.*\.md$")
 BATCH_MAX = 3
-LINE_SUFFIX = re.compile(r":L?\d+(?:[-–,]\d+)*$")
+LINE_SUFFIX = re.compile(r"[:#]L?\d+(?:[-–,]\d+)*$")
 EXT = re.compile(r"\.[A-Za-z]{2,5}$")
+URL_LIKE = re.compile(r"^[a-z]+://")
 
 
 def section(text, heading):
@@ -489,15 +497,20 @@ def header_value(text, label):
 
 
 def paths_in(text):
-    """File paths named in a span: backticked spans and bare tokens with a `/` or an
-    extension, `:lines` dropped, order kept, duplicates removed."""
+    """File paths named in a span: backticked spans (split on whitespace, so a span that
+    holds a sentence still yields its paths) and bare tokens, kept when they carry a `/` or
+    a 2-5 letter extension; `:12`, `:L12`, `#L12` line parts dropped; `./a/b` normalised to
+    `a/b` and `src/x/` to `src/x`; order kept, duplicates removed."""
     out = []
-    for tok in re.findall(r"`([^`\n]+)`", text) + re.sub(r"`[^`\n]*`", " ", text).split():
-        tok = tok.strip().strip(",.;:)(\"'")
+    spans = re.findall(r"`([^`\n]+)`", text)
+    bare = re.sub(r"`[^`\n]*`", " ", text)
+    for tok in " ".join(spans).split() + bare.split():
+        tok = tok.lstrip("(\"'").rstrip(",.;:)(\"'")
         tok = LINE_SUFFIX.sub("", tok)
-        if not tok or " " in tok or "§" in tok:
+        if not tok or "§" in tok or URL_LIKE.match(tok):
             continue
         if "/" in tok or EXT.search(tok):
+            tok = os.path.normpath(tok)
             if tok not in out:
                 out.append(tok)
     return out
@@ -552,7 +565,10 @@ def cmd_batches(a):
     folder = os.path.abspath(a.folder)
     if not os.path.isdir(folder):
         die("--folder %s: no such directory" % folder)
-    names = sorted(os.listdir(folder))
+    try:
+        names = sorted(os.listdir(folder))
+    except OSError as ex:
+        die("%s: %s" % (folder, ex.strerror))
     items = [n for n in names if ITEM_FILE.match(n)]
     revises = [n for n in names if REVISE_FILE.match(n)]
     if items and revises:
@@ -563,8 +579,12 @@ def cmd_batches(a):
         return
 
     def read(n):
-        with open(os.path.join(folder, n), encoding="utf-8") as f:
-            return f.read()
+        path = os.path.join(folder, n)
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except OSError as ex:
+            die("%s: %s" % (path, ex.strerror))
 
     if revises:
         if len(revises) > 1:

@@ -1,1 +1,1 @@
-{ "models": { "plan": "sonnet" }, "effort": { "review": "high" } }
+{ "models": { "plan": "sonnet" }, "effort": { "review": "high", "the_desert": "max" }, "extra": { "tags": ["a", "b"] } }

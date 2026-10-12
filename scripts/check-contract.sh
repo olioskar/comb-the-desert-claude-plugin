@@ -131,6 +131,9 @@ for f in agents/*.md; do
   [ "$(sed -n 's/^name:[[:space:]]*//p' "$f" | head -n 1)" = "$n" ] || { echo "FAIL: agents/$n.md frontmatter name does not equal its filename"; fail=1; }
   grep -qF "\"comb:$n\"" config/defaults.json || { echo "FAIL: agents/$n.md is not a default subagent_type in config/defaults.json"; fail=1; }
 done
+for n in code-reviewer simplifier silent-failure-hunter test-auditor consistency-auditor; do
+  grep -qF "**Confidence**" "agents/$n.md" || { echo "FAIL: agents/$n.md has no Confidence line; review Step 7 treats an omitted field as unverified"; fail=1; }
+done
 if grep -qF -- "- \`comb:" shared/dispatch-delivery.md; then
   echo "FAIL: dispatch-delivery.md carries a native allowlist; the native rule is by agent name"
   fail=1

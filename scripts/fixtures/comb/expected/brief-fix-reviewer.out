@@ -1,5 +1,6 @@
 warning: agents.broken dropped — missing subagent_type
-brief: TMP/.comb/excerpts/fix-1-cccc.test-auditor.brief.md
+warning: agents.nondict dropped — missing subagent_type, when_to_use
+brief: TMP/.comb/excerpts/fix-1-cccc.fix.test-auditor.brief.md
 form: native
 directives: 8 plugin, 1 user; primary: none
 baseline: none

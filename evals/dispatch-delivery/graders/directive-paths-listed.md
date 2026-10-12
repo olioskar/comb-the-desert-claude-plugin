@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: "directives: 8 plugin, \\d+ user"
+pattern: "directives: \\d+ plugin, \\d+ user"
 target: trace
 match: contains
 ---

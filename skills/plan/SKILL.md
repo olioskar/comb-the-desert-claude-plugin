@@ -41,7 +41,7 @@ From it, take:
 
 ## Step 2: Surface relevant directives
 
-Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
+Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in the run brief under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
 
 ```
 python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" directives --brief "<focus brief>"

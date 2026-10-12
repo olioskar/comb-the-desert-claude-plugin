@@ -1,4 +1,5 @@
 warning: agents.broken dropped — missing subagent_type
+warning: agents.nondict dropped — missing subagent_type, when_to_use
 plugin: FIX/plugin/directives/consistency.md
 plugin: FIX/plugin/directives/maintainability.md
 plugin: FIX/plugin/directives/modularity.md

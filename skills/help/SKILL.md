@@ -287,8 +287,10 @@ Consumed by
   register), and the area sections whose scope meets the change.
   Omitted sections are listed with line ranges so an agent can read
   one with sed -n. Excerpts live under .comb/ (self-ignored by git)
-  and are removed at the end of the run. Needs python3; without it
-  the full manifest is delivered with a printed notice.
+  and are removed at the end of the run. The excerpt falls back to
+  the full manifest with a printed notice when the script fails.
+  python3 is required for every comb command since 0.15.0: each
+  skill starts with scripts/comb.py config and stops if it fails.
 
 Config knobs
   paths.patterns          (default: docs/combs/PATTERNS.md)  null disables consumption

@@ -1,0 +1,17 @@
+shape: per-finding
+write-set G1: src/z/nine.ts
+write-set L1: src/y/eight.ts
+write-set M1: src/x/one.ts
+write-set M2: src/x/two.ts src/x/three.ts src/x/four.ts
+write-set M3: src/x/four.ts
+write-set M4: src/x/five.ts
+write-set M5: src/x
+write-set M6: src/y/six.ts
+write-set M7: src/y/seven.ts
+write-set X1: src/z/ten.ts
+not-reproduced: none
+batch 1: M1 M2 M4
+batch 2: M3 M6 M7
+batch 3: M5 L1 X1
+batch 4: G1
+exit=0

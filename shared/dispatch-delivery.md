@@ -4,7 +4,7 @@ Apply this contract to every subagent dispatch (Agent tool call) a comb skill ma
 
 ## Directives and manifest go by path — to every agent
 
-Resolve the loaded directive files, and the PATTERNS manifest when it resolved, to absolute paths and list the paths in the dispatch prompt. Never embed their contents. The manifest path is whatever `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md` delivered for this run: the per-run excerpt plus the full path, or the full path alone in fallback. An agent that cannot read files cannot review or fix code, so embedding buys no robustness — it only multiplies the prompt by the size of the directive corpus.
+Resolve the loaded directive files, and the PATTERNS manifest when it resolved, to absolute paths and deliver the paths — in the run brief for every dispatch that has one (see Briefs), in the dispatch prompt itself only for the scanner, which has no run brief. Never embed their contents. The manifest path is whatever `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md` delivered for this run: the per-run excerpt plus the full path, or the full path alone in fallback. An agent that cannot read files cannot review or fix code, so embedding buys no robustness — it only multiplies the prompt by the size of the directive corpus.
 
 ## Native vs. foreign framing
 
@@ -18,7 +18,7 @@ An agent is **native** when the resolved `subagent_type` equals `comb:` + the `n
 Every planner, implementer, fix-reviewer, and review dispatch delivers two files by absolute path, as the first lines after the shared context: `Read these first, in order: <shared brief>, <run brief>`.
 
 - The **shared brief** holds the role's invariant job and output format: `${CLAUDE_PLUGIN_ROOT}/shared/plan-brief.md`, `${CLAUDE_PLUGIN_ROOT}/shared/fix-implementer-brief.md`, `${CLAUDE_PLUGIN_ROOT}/shared/fix-reviewer-brief.md`. Review agents have none — their agent body is the brief — so a review dispatch delivers the run brief alone.
-- The **run brief** is the file `scripts/comb.py brief` wrote under `.comb/excerpts/<run>.<role>.brief.md`: the Directives section in native or foreign form, the primaries, the observed-baseline block, and the user focus brief. `manifest.py clean --run` removes it with the run's excerpts.
+- The **run brief** is the file `scripts/comb.py brief` wrote under `.comb/excerpts/<run>.<skill>.<role>.brief.md` (the skill is in the name so a fix run's X-item planner brief never overwrites its implementer brief): the Directives section in native or foreign form, the primaries, the observed-baseline block, and the user focus brief. `manifest.py clean --run` removes it with the run's excerpts.
 
 The prompt itself carries no directive paths, baseline block, or focus text; those live in the run brief.
 

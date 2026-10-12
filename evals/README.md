@@ -82,4 +82,4 @@ python3 -I scripts/replay-graders.py evals/<name> /private/tmp/e-XXXX
 names `fix-auto`. Still uncovered, by cost: a code-shaped `/comb:the-desert` run past
 review (the 0.10.0 hardcoded-reviewer class), `--shave` end to end, review round numbering
 with a deleted earlier round, revert-on-FAIL and `## Attempts` (needs a FAILing reviewer on
-demand), and the python3-missing fallback (PATH is inherited).
+demand), and the python3-missing stop at Step 1 (PATH is inherited; since 0.15.0 every skill needs python3).

@@ -1,0 +1,4 @@
+warning: agents.broken dropped — missing subagent_type
+warning: agents.nondict dropped — missing subagent_type, when_to_use
+comb.py: effort 'turbo' for fast is not one of low|medium|high|xhigh|max
+exit=2
