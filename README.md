@@ -188,7 +188,7 @@ One subagent writes code: `comb:implementer` (`disallowedTools: [Agent, Notebook
 
 You can invoke them directly via the Agent tool or let the comb skills pick them automatically.
 
-All five reviewers self-calibrate before publishing: each finding must reference a real cost — real failure mode, real complexity cost, real silence, real coverage gap, or real divergence with consequences. Ungrounded items get dropped. `LOOKS GOOD` on a clean diff is the expected outcome; padding the report with marginal items dilutes the signal of real findings. This keeps multi-round `/comb:the-desert` sweeps from drifting into diminishing-returns noise.
+Every reviewer must ground each finding in a real cost — a real failure mode, complexity cost, silence, coverage gap, or divergence with consequences — and ungrounded items get dropped. `simplifier`, `silent-failure-hunter`, and `consistency-auditor` end with an explicit calibration step that re-checks every finding; `code-reviewer` and `test-auditor` dropped theirs in 0.15.2 after a two-arm run showed it changed nothing (see `experiments/README.md`). `LOOKS GOOD` on a clean diff is the expected outcome; padding the report with marginal items dilutes the signal of real findings. This keeps multi-round `/comb:the-desert` sweeps from drifting into diminishing-returns noise.
 
 Each finding also carries a **Confidence** field, and `/comb:review` verifies before it promotes: it opens every cited line, recomputes every count, and refuses to state an untraced fix shape in the report's voice. Every finding in the report ends up with a `Verified:` line naming what was checked and what was not. `/comb:plan` reads that line and re-derives anything it names as unchecked.
 
@@ -218,7 +218,7 @@ CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workfl
 
 ## Status
 
-v0.15.1. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.15.2. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 

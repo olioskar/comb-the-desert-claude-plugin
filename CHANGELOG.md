@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.2] — 2026-10-12
+
+Re-baseline experiments from the family-lean review (B-8, B-2, round-0 B-1/B-2). Each experiment is a paid two-arm run. The control arm ran the plugin as shipped; the treatment arm removed only the passage under test. A passage goes only when the treatment arm shows the failure does not recur. The cases live in `experiments/` (same shape as `evals/`, outside the per-PR suite), and the results and decisions are in `experiments/README.md`. Total cost was 4.88 USD.
+
+### Changed
+
+- **`code-reviewer` and `test-auditor` no longer carry the "Calibrate before publishing" step.** On a clean, tested diff both arms picked the same two agents, filed the same single legitimate test-gap finding, and approved, so the step changed nothing. `simplifier`, `silent-failure-hunter`, and `consistency-auditor` keep it because that run did not exercise them.
+- **The scanner's dominance rule is stated once**, in the Classification section of `shared/scan-rules.md` (the rule, the area-wide denominator, and the self-check). Against the 0.8.0 gerrymander scenario, neither arm produced a false `## Directive conflicts` entry, and the treatment named the single-dash `btn` modifiers as an area-wide minority. The restatements in the output-format paragraph and the agent body are gone. The orchestrator's backstops in `/comb:patterns` stay.
+
+### Added
+
+- **`experiments/`** with four cases (`calibration-clean-diff`, `scanner-gerrymander`, `effort-medium`, `effort-high`) and a README recording each design, result, and decision. On three seeded bugs, `effort.review: medium` matched `high` (3 of 3 each) at about 8% lower cost. The shipped effort default stays unset.
+
 ## [0.15.1] — 2026-10-12
 
 Prose trims from the family-lean review (P-4, P-5, P-9/R-2, B-1, D-10). Four second copies move to their single source; no behavior changes, so no eval run.

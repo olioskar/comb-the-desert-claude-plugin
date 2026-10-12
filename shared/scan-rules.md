@@ -40,7 +40,7 @@ Return markdown only — no prose preamble. One `## {area label}` block containi
 
 Use only the subsection headings from the lens list above, in that order, omitting any that are empty.
 
-Emit a `## Directive conflicts` section **only if at least one DOMINANT practice in your area conflicts with an authoritative directive** (the fourth case under *Classification*). If you have no dominant conflict, emit **nothing** for this section — no heading, not even a parenthetical `(none — …)` that explains the absence. Do not narrate why there is no conflict; simply omit the section. A minority deviation is **never** placed under this heading in any form, annotated or otherwise; it belongs only in your conforming-norm entry, if anywhere. The section is **not** manifest content; the orchestrator extracts it for the user and never writes it into the manifest:
+Emit a `## Directive conflicts` section only for the fourth case under *Classification*; otherwise omit it entirely, with no heading and no note about its absence. The section is **not** manifest content; the orchestrator extracts it for the user and never writes it into the manifest:
 
 ```
 ## Directive conflicts
