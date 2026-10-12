@@ -55,10 +55,10 @@ Print a short summary of the effective config (not the full JSON dump unless the
 - `paths.reviews`, `paths.plans`: where review reports and plan folders are written. `paths.base_branch`: the default base for diffs. `paths.patterns`: where the PATTERNS manifest is written and read; `null` disables manifest consumption across review/plan/fix.
 - `directives.include_plugin_defaults: false` stops loading the shipped directives; `directives.user_path` is the directory of the user's directive `.md` files.
 - `agents.<role>`: a reviewer or writer entry with required `subagent_type` and `when_to_use` strings; a role missing either is dropped at load with a warning.
-- `models.review`, `models.plan`, `models.patterns` (scanner and shaver), `models.fix.implementer_standard`, `models.fix.implementer_trivial`, `models.fix.reviewer`, `models.the_desert` (replaces every lane in a sweep).
+- `models.review`, `models.plan`, `models.patterns` (scanner and shaver), `models.fix.implementer_standard`, `models.fix.implementer_trivial`, `models.fix.reviewer`, `models.the_desert` (replaces every review/plan/fix lane in a sweep; `models.patterns` is untouched).
 - `fix.commit_per_item`: commit each item on reviewer PASS. `fix.model_invocation`: let Claude start the fix workflow from a natural-language request through the model-only `fix-auto` skill (`/comb:fix` itself stays user-only).
 
-**Model values:** `sonnet`, `opus`, `haiku`, `fable`, or a full model id. `best`, `inherit`, and `opusplan` are `/model` session aliases, not values the Agent call accepts: refuse them and say so.
+**Model values:** `sonnet`, `opus`, `haiku`, or `fable` — the Agent call's `model` parameter is that enum, so a full model id is rejected at dispatch. `best`, `inherit`, and `opusplan` are session or agent-frontmatter aliases, not values the Agent call accepts: refuse them and say so.
 
 **Translation rules** that are not a direct key write:
 
