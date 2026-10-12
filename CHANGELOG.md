@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **README rewritten to be shorter and current.** It now has a Requirements section (`python3` 3.8+, `git`, `gh` for PR numbers, Claude Code 2.1.292+ only for `effort`). A "Models and effort" example documents the accepted model values (`sonnet | opus | haiku | fable`) and the absent-by-default keys. The per-item-commit and model-invocation examples are split, so copying one no longer turns on the other. It now says `/comb:configure` writes your change to the chosen scope file, not "the merged result". The implementation notes moved from "Subagents" to a short "How it works" section. The gate list is described by category, without fixture counts that drift. `experiments/` is mentioned. Internal jargon and repeated details are gone. No behavior changes.
+- **PLAYBOOK brought current.** It now covers the execution ledger and test-first checks in the loop, the two-lens and one-lens review split, the fix-then-defer handling of review findings, the maintainer's role in push and merge, the README Status bump that the gate checks, and the eval cadence as a table. It adds a stop rule for a failing eval runner and a design rule: "moving text moves its checks". Agents, `evals/`, and `experiments/` are listed under "Where things live".
 
 ## [0.15.2] — 2026-10-12
 
