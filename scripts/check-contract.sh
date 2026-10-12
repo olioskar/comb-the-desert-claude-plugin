@@ -100,6 +100,7 @@ grep -Fq 'comb.py" findings' skills/plan/SKILL.md || { echo "FAIL: skills/plan d
 for f in skills/patterns/SKILL.md agents/pattern-scanner.md; do
   grep -Fq 'shared/scan-rules.md' "$f" || { echo "FAIL: $f does not point at shared/scan-rules.md"; fail=1; }
 done
+grep -qF 'git diff HEAD -- <files reported by implementer>' shared/fix-reviewer-brief.md || { echo "FAIL: fix-reviewer-brief.md lost the 'git diff HEAD -- <files>' instruction (the HEAD~1 bug class)"; fail=1; }
 
 # 6. User-facing facts that have a machine source agree with it.
 version=$(python3 -c 'import json;print(json.load(open(".claude-plugin/plugin.json"))["version"])')
