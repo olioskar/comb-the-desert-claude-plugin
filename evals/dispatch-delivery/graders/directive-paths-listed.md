@@ -1,6 +1,6 @@
 ---
-type: tool_used
-tool: Agent
-input_match: 'directives/scope-discipline\.md'
-min: 1
+type: regex
+pattern: "directives: 8 plugin, \\d+ user"
+target: trace
+match: contains
 ---
