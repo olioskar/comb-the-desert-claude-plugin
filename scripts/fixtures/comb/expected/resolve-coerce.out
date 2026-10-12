@@ -1,0 +1,6 @@
+warning: agents.broken dropped — missing subagent_type
+subagent_type: comb:test-auditor
+model: sonnet
+effort: high
+native: yes
+exit=0

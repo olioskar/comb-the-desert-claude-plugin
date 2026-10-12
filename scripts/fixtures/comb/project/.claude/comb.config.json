@@ -1,0 +1,3 @@
+{ "agents": { "simplifier": null, "test-auditor": { "subagent_type": "comb:test-auditor", "when_to_use": "tests", "model": "sonnet" }, "broken": { "when_to_use": "no type" }, "ours": { "subagent_type": "acme:writer", "when_to_use": "our writer" } },
+  "models": { "the_desert": "opus", "fix": { "implementer_trivial": "haiku" } },
+  "paths": { "patterns": null } }

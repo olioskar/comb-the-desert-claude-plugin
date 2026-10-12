@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Fixture test for scripts/comb.py. Runs every subcommand against the fixture
+# plugin root, home, and project under scripts/fixtures/comb/ from a temporary
+# cwd, normalises paths, and diffs the output against scripts/fixtures/comb/expected/.
+# Run with --update to regenerate the expected files.
+set -uo pipefail
+cd "$(dirname "$0")/.."
+ROOT=$(pwd)
+S="$ROOT/scripts/comb.py"
+F="$ROOT/scripts/fixtures/comb"
+E="$F/expected"
+UPDATE=0; [ "${1:-}" = "--update" ] && UPDATE=1
+T=$(mktemp -d "${TMPDIR:-/tmp}/comb-test.XXXXXX")
+trap 'rm -rf "$T"' EXIT
+OUT="$T/out"; mkdir -p "$OUT" "$E"
+TR=$(cd "$T" && pwd -P)   # macOS: $TMPDIR is a symlink into /private
+cd "$T"
+
+norm() { sed -E -e 's/[a-z]+-[0-9]{9,}-[0-9a-f]{4}/RUN/g' -e "s#$TR#TMP#g" -e "s#$T#TMP#g" -e "s#$F#FIX#g" -e "s#$ROOT#PLUGIN#g" ; }
+
+P="$F/plugin"; H="$F/home"; R="$F/project"
+C=(--plugin-root "$P" --home "$H" --project-root "$R")
+run() { name=$1; shift; python3 -I "$S" "$@" 2>&1 | norm > "$OUT/$name.out"; echo "exit=${PIPESTATUS[0]}" >> "$OUT/$name.out"; }
+
+# config: three-layer merge, null deletes, schema warning, bad JSON
+run config               config "${C[@]}"
+run config-badjson       config --plugin-root "$P" --home "$H" --project-root "$F/badjson"
+# resolve: lane model, role model override, coercion, effort, native rule, errors
+run resolve-review       resolve --role code-reviewer --lane review "${C[@]}"
+run resolve-plan-ours    resolve --role ours --lane plan "${C[@]}"
+run resolve-trivial      resolve --role implementer --lane fix.implementer_trivial "${C[@]}"
+run resolve-coerce       resolve --role test-auditor --lane review --coerce the_desert "${C[@]}"
+run resolve-coerce-plain resolve --role code-reviewer --lane plan --coerce the_desert "${C[@]}"
+run resolve-deleted      resolve --role simplifier --lane review "${C[@]}"
+run resolve-badlane      resolve --role code-reviewer --lane nope "${C[@]}"
+# directives: listing, primary matching, user directives, plugin defaults off
+run directives-none      directives "${C[@]}"
+run directives-simpl     directives --brief "keep it simpl" "${C[@]}"
+run directives-two       directives --brief "Scope and TEST coverage" "${C[@]}"
+run directives-user      directives --brief "velocity" "${C[@]}"
+run directives-noplugin  directives --plugin-root "$P" --home "$H" --project-root "$F/noplugin"
+
+fail=0
+for o in "$OUT"/*; do
+  n=$(basename "$o")
+  if [ "$UPDATE" = 1 ]; then cp "$o" "$E/$n"; continue; fi
+  if [ ! -f "$E/$n" ]; then echo "FAIL: no expected file for $n"; fail=1; continue; fi
+  if ! diff -u "$E/$n" "$o" > "$T/diff.txt"; then echo "FAIL: $n differs"; cat "$T/diff.txt"; fail=1; fi
+done
+[ "$UPDATE" = 1 ] && { echo "expected files updated in scripts/fixtures/comb/expected/"; exit 0; }
+[ "$fail" = 0 ] && echo "test-comb: OK ($(ls "$E" | wc -l | tr -d ' ') expectations)"
+exit $fail

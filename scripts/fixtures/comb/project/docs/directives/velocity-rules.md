@@ -1,0 +1,1 @@
+# velocity rules (fixture stub)

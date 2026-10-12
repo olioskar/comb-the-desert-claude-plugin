@@ -1,0 +1,6 @@
+warning: agents.broken dropped — missing subagent_type
+subagent_type: comb:code-reviewer
+model: opus
+effort: high
+native: yes
+exit=0

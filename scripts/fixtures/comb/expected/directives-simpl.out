@@ -1,0 +1,12 @@
+warning: agents.broken dropped — missing subagent_type
+plugin: FIX/plugin/directives/consistency.md
+plugin: FIX/plugin/directives/maintainability.md
+plugin: FIX/plugin/directives/modularity.md
+plugin: FIX/plugin/directives/quality.md
+plugin: FIX/plugin/directives/reusability.md
+plugin: FIX/plugin/directives/scope-discipline.md
+plugin: FIX/plugin/directives/simplicity.md
+plugin: FIX/plugin/directives/testing.md
+user: FIX/project/docs/directives/velocity-rules.md
+primary: FIX/plugin/directives/simplicity.md
+exit=0

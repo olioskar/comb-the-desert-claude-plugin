@@ -1,0 +1,2 @@
+comb.py: invalid JSON in FIX/badjson/.claude/comb.config.json: Expecting value
+exit=2

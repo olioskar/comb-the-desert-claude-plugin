@@ -50,7 +50,7 @@ while IFS= read -r f; do
   fi
 done < <(grep -rl '\${CLAUDE_PLUGIN_ROOT}/skills/[a-z-]*/SKILL\.md' skills/ | sort -u)
 
-# 5. Manifest excerpts: the script ships, its fixture test passes, and every consuming
+# 5. Scripts: manifest.py and comb.py ship, their fixture tests pass, and every consuming
 #    skill invokes it (the orchestrator never reads the manifest).
 if [ ! -f scripts/manifest.py ]; then
   echo "FAIL: scripts/manifest.py missing"
@@ -60,6 +60,16 @@ elif ! python3 -I scripts/manifest.py --help >/dev/null 2>&1; then
   fail=1
 elif ! bash scripts/test-manifest.sh >/dev/null 2>&1; then
   echo "FAIL: scripts/test-manifest.sh failed (run it for the diff)"
+  fail=1
+fi
+if [ ! -f scripts/comb.py ]; then
+  echo "FAIL: scripts/comb.py missing"
+  fail=1
+elif ! python3 -I scripts/comb.py --help >/dev/null 2>&1; then
+  echo "FAIL: python3 -I scripts/comb.py --help exits non-zero"
+  fail=1
+elif ! bash scripts/test-comb.sh >/dev/null 2>&1; then
+  echo "FAIL: scripts/test-comb.sh failed (run it for the diff)"
   fail=1
 fi
 if ! bash scripts/test-replay.sh >/dev/null 2>&1; then

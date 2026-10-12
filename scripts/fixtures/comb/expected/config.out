@@ -1,0 +1,66 @@
+warning: agents.broken dropped — missing subagent_type
+{
+ "agents": {
+  "code-reviewer": {
+   "subagent_type": "comb:code-reviewer",
+   "when_to_use": "When the diff contains executable code. General correctness: bugs, logic, contracts, data flow, security. Anchor agent for code-shaped diffs."
+  },
+  "consistency-auditor": {
+   "subagent_type": "comb:consistency-auditor",
+   "when_to_use": "When the diff touches an area with established patterns, follows a spec/plan, OR is itself a spec/design/prose artifact whose conformity to codebase patterns and directives needs to be assessed. Anchor agent for prose-only diffs."
+  },
+  "implementer": {
+   "subagent_type": "comb:implementer",
+   "when_to_use": "Writer for /comb:fix and /comb:plan. Writes only inside the instruction's ## Where, never commits, stages, stashes, or dispatches agents, and reports every file it changed. Override per-project to plug in a specialist writer; the override inherits these boundaries from the dispatch prompt's specialty statement."
+  },
+  "ours": {
+   "subagent_type": "acme:writer",
+   "when_to_use": "our writer"
+  },
+  "pattern-scanner": {
+   "subagent_type": "comb:pattern-scanner",
+   "when_to_use": "Generation-only. Dispatched by /comb:patterns to scan one confirmed codebase area and extract concrete conventions with file:line references. Not part of the review/plan/fix palette."
+  },
+  "pattern-shaver": {
+   "subagent_type": "comb:pattern-shaver",
+   "when_to_use": "Generation-only. Dispatched by /comb:patterns --shave to propose an edit script for one manifest section (secondary anchors, cross-section restatements, fixed drift lines). Not part of the review/plan/fix palette."
+  },
+  "silent-failure-hunter": {
+   "subagent_type": "comb:silent-failure-hunter",
+   "when_to_use": "Diff contains try/catch, error handling, fallbacks, or async flows."
+  },
+  "test-auditor": {
+   "model": "sonnet",
+   "subagent_type": "comb:test-auditor",
+   "when_to_use": "tests"
+  }
+ },
+ "directives": {
+  "include_plugin_defaults": true,
+  "user_path": "docs/directives"
+ },
+ "effort": {
+  "review": "high"
+ },
+ "fix": {
+  "commit_per_item": true,
+  "model_invocation": false
+ },
+ "models": {
+  "fix": {
+   "implementer_standard": "opus",
+   "implementer_trivial": "haiku",
+   "reviewer": "opus"
+  },
+  "patterns": "opus",
+  "plan": "sonnet",
+  "review": "opus",
+  "the_desert": "opus"
+ },
+ "paths": {
+  "base_branch": "main",
+  "plans": "docs/combs/plans",
+  "reviews": "docs/combs/reviews"
+ }
+}
+exit=0

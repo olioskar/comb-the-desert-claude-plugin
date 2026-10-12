@@ -1,0 +1,6 @@
+warning: agents.broken dropped — missing subagent_type
+subagent_type: comb:implementer
+model: haiku
+effort: unset
+native: yes
+exit=0

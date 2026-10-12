@@ -1,0 +1,3 @@
+warning: agents.broken dropped — missing subagent_type
+comb.py: lane nope is not in models
+exit=2

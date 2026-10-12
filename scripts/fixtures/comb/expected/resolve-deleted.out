@@ -1,0 +1,3 @@
+warning: agents.broken dropped — missing subagent_type
+comb.py: role simplifier is not in agents (deleted or never defined)
+exit=2

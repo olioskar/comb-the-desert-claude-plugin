@@ -1,0 +1,1 @@
+# scope-discipline (fixture stub)
