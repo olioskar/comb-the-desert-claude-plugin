@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.3] — 2026-10-12
+
+### Changed
+
+- **README rewritten to be shorter and current.** It now has a Requirements section (`python3` 3.8+, `git`, `gh` for PR numbers, Claude Code 2.1.292+ only for `effort`). A "Models and effort" example documents the accepted model values (`sonnet | opus | haiku | fable`) and the absent-by-default keys. The per-item-commit and model-invocation examples are split, so copying one no longer turns on the other. It now says `/comb:configure` writes your change to the chosen scope file, not "the merged result". The implementation notes moved from "Subagents" to a short "How it works" section. The gate list is described by category, without fixture counts that drift. `experiments/` is mentioned. Internal jargon and repeated details are gone. No behavior changes.
+
 ## [0.15.2] — 2026-10-12
 
 Re-baseline experiments from the family-lean review (B-8, B-2, round-0 B-1/B-2). Each experiment is a paid two-arm run. The control arm ran the plugin as shipped; the treatment arm removed only the passage under test. A passage goes only when the treatment arm shows the failure does not recur. The cases live in `experiments/` (same shape as `evals/`, outside the per-PR suite), and the results and decisions are in `experiments/README.md`. Total cost was 4.88 USD.

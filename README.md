@@ -1,39 +1,36 @@
 # comb-the-desert
 
-A Claude Code plugin for code review: a `/comb:review` → `/comb:plan` → `/comb:fix` pipeline with `/comb:the-desert` for the full sweep.
+A Claude Code plugin for code review. `/comb:review` finds issues, `/comb:plan` turns each one into a fix instruction, `/comb:fix` applies them, and `/comb:the-desert` runs all three in one go.
 
-The plugin ships configurable reviewer agents, eight domain-neutral directives, and a layered config system that lets your project policy take precedence.
+Reviewers follow eight shipped directives plus your own, and a layered config lets each project override the defaults.
 
-## What it does
+## Commands
 
-- **`/comb:review`** — dispatches 1–5 reviewer agents over a PR / branch / file list / spec doc; right-sizes the apparatus based on what the diff is (code-shaped → full severity-ranked report with verdict and verification; non-code → condensed report with flat labelled findings)
-- **`/comb:plan`** — turns each finding into a self-contained fix instruction
-- **`/comb:fix`** — executes the instructions, with implementer + reviewer per item, parallel batching where safe. The reviewer runs the plan's `Check:`; the project's typecheck/tests run before every commit; a FAIL is reverted and recorded under `## Attempts` before the retry; git is checked against a baseline taken after pre-flight (HEAD moved only by the run's own commits, reported files equal the edits inside `## Where`, nothing outside the in-flight items' `## Where` and the plan folder, tree clean after each commit). Commits each item on PASS with `<code>: <title>` (opt out via `fix.commit_per_item: false`). User-invoked only; a project can let Claude start it from a natural-language request with `fix.model_invocation: true`
-- **`/comb:the-desert`** — runs all three steps as one continuous sweep, one model (`models.the_desert`) everywhere, no pauses; short-circuits to review-only on non-code artifacts (findings go back to your design conversation, not an autonomous rewrite)
-- **`/comb:patterns`** — scans the codebase and writes a PATTERNS manifest of concrete conventions (structure, naming, closed token sets, abstraction level, reuse points) with real `file:line` references; `/comb:review`, `/comb:plan`, and `/comb:fix` consume it as an observed baseline (a prior, not law), delivered to agents as a per-run excerpt. `/comb:patterns --shave` trims an existing manifest without changing what it asserts
-- **`/comb:configure`** — edit `comb.config.json` conversationally: change paths, swap models, enable/disable agents, point at your directives
-- **`/comb:help`** — overview and per-command details. `/comb:help <command>` for a deep dive
+- **`/comb:review`** runs 1–5 reviewer agents over a PR, branch, file list, or spec. A code change gets a severity-ranked report with a verdict. A prose change (spec, design doc) gets a shorter report with labelled findings.
+- **`/comb:plan`** writes one self-contained fix instruction per finding.
+- **`/comb:fix`** applies the instructions. Each item gets an implementer and a reviewer, and items that touch different files run in parallel. Before each commit, the reviewer runs the plan's `Check:` line and the project's tests run. A failed attempt is reverted and recorded before the retry. Each passing item is committed as `<code>: <title>`. Only you can start it; see "Let Claude start fixes" below to change that.
+- **`/comb:the-desert`** runs review, plan, and fix without pauses. On a prose change it stops after review.
+- **`/comb:patterns`** scans the codebase and writes a PATTERNS manifest: the project's actual conventions, with `file:line` references. Review, plan, and fix give agents the relevant excerpt as a baseline. `--shave` shrinks an existing manifest without changing what it says.
+- **`/comb:configure`** changes the config from a plain-language request.
+- **`/comb:help`** prints an overview. `/comb:help <command>` shows one command in detail.
 
-Each command accepts a free-form focus brief that biases agent picking and finding priorities:
+Every command takes a free-form focus brief that steers which agents run and what they prioritize:
 
 ```
 /comb:review look for spec/plan misalignment
 /comb:the-desert ensure simplicity, scope discipline, and TDD coverage
 ```
 
+## Requirements
+
+- `python3` 3.8 or later. Every command starts by running a bundled stdlib script and stops if it can't.
+- `git`. `gh` is also needed to review a PR by number.
+- Claude Code 2.1.292 or later, only if you configure an `effort` value.
+
 ## Install
-
-The plugin is distributed via [olioskar/claude-plugins](https://github.com/olioskar/claude-plugins)
-
-1. Add the marketplace:
 
 ```
 /plugin marketplace add olioskar/claude-plugins
-```
-
-2. Install the plugin:
-
-```
 /plugin install comb@olioskar-marketplace
 ```
 
@@ -45,54 +42,65 @@ claude --plugin-dir /path/to/comb-the-desert-claude-plugin
 
 ## Quick start
 
-After install, in a git repo with some changes:
+In a git repo with changes on a branch:
 
 ```
 /comb:review
 ```
 
-The plugin picks an agent palette based on what's in the diff, runs the reviewers in parallel, and writes a report to `docs/combs/reviews/<derived-name>.md`. From there you can `/comb:plan` to generate fix instructions, then `/comb:fix` to execute them — or `/comb:the-desert` to do all three at once.
+The report lands in `docs/combs/reviews/`. Run `/comb:plan` on it, then `/comb:fix`. Or run `/comb:the-desert` to do all three.
 
 ## Configuration
 
-The plugin reads three layers of config, deep-merged in this order (later wins):
+Three layers are deep-merged, with later layers winning:
 
-1. `${CLAUDE_PLUGIN_ROOT}/config/defaults.json` — shipped defaults
-2. `~/.claude/comb.config.json` — global override
-3. `<project-root>/.claude/comb.config.json` — project override
+1. `config/defaults.json` in the plugin
+2. `~/.claude/comb.config.json` (global)
+3. `<project-root>/.claude/comb.config.json` (project)
 
-If you'd rather not hand-edit JSON, run `/comb:configure` and describe the change ("disable test-auditor", "use sonnet for plan", "look for my directives in `docs/our-rules`"). The skill picks the right scope file, shows a diff, and writes the merged result.
+`/comb:configure` makes changes for you, for example "disable test-auditor" or "use sonnet for plan". It shows a diff, then writes the change to the global or project file.
 
-### Common overrides
+`config/defaults.json` lists every key with its default. Three kinds of setting are absent by default: `effort.<lane>`, and the per-role `agents.<role>.model` and `agents.<role>.effort`.
 
-**Use a project-specific writer for `/comb:fix` and `/comb:plan`:**
-
-```json
-{
-  "agents": {
-    "implementer": {
-      "subagent_type": "your-org:implementer"
-    }
-  }
-}
-```
-
-The default is `comb:implementer`, a shipped writer that edits only inside the instruction's `## Where`, never commits or dispatches agents, and reports every file it touched (`agents/implementer.md`). Override only if you have a specialist writer for your stack; a foreign writer gets the same boundaries through its run brief's `Your lens:` line and the same file-list and tree checks after it returns. Native means the resolved `subagent_type` equals `comb:` plus the name of a shipped agent file, compared literally; anything else is foreign and gets the authority sentence in its brief.
-
-**Disable per-item commits**:
+### Models and effort
 
 ```json
 {
-  "fix": {
-    "commit_per_item": false,
-    "model_invocation": true
-  }
+  "models": { "plan": "sonnet" },
+  "effort": { "review": "medium" },
+  "agents": { "simplifier": { "model": "haiku" } }
 }
 ```
 
-`fix.model_invocation` (default `false`) lets Claude start the fix workflow when you ask in your own words ("apply the fixes") instead of typing `/comb:fix`. The slash command itself stays user-only because it edits code and commits; the opt-in routes through a model-only skill, `fix-auto`, which cannot be typed as a slash command. It checks the flag and then runs `/comb:fix` unchanged, with all of its questions and commits. It refuses by default rather than being inert: its trigger is visible to Claude in every project, so without the flag a request like "apply the fixes" gets a short message naming `/comb:fix` and the flag instead of a code change.
+- **Models** can be `sonnet`, `opus`, `haiku`, or `fable`. The agent dispatch rejects a full model ID.
+- **Effort** can be `low`, `medium`, `high`, `xhigh`, or `max`. When it is unset, agents use your session's effort.
+- **Per-role settings** beat the lane setting.
 
-**Add your team's specialist agents** (e.g., a project-local `react-expert` defined in `.claude/agents/react-expert.md`):
+In one measured review run, `medium` found the same bugs as `high` for about 8% less.
+
+### Turn off per-item commits
+
+```json
+{ "fix": { "commit_per_item": false } }
+```
+
+### Let Claude start fixes
+
+```json
+{ "fix": { "model_invocation": true } }
+```
+
+`/comb:fix` is user-only by default because it edits code and commits. With this flag, asking in your own words ("apply the fixes") runs the same workflow, with the same questions and commits. Without the flag, such a request gets a short reply naming `/comb:fix` and the flag.
+
+### Use your own writer
+
+```json
+{ "agents": { "implementer": { "subagent_type": "your-org:implementer" } } }
+```
+
+The default writer, `comb:implementer`, edits only the files the instruction names, never commits, and reports every file it touched. A writer from outside this plugin gets an explicit instruction that the directives are authoritative. It also gets the same boundaries, and the same file and git checks after it returns.
+
+### Add or swap reviewers
 
 ```json
 {
@@ -100,125 +108,85 @@ The default is `comb:implementer`, a shipped writer that edits only inside the i
     "react-expert": {
       "subagent_type": "react-expert",
       "when_to_use": "Diff includes React components, hooks, or JSX."
-    }
+    },
+    "simplifier": { "subagent_type": "pr-review-toolkit:code-simplifier" },
+    "test-auditor": null
   }
 }
 ```
 
-**Substitute a shipped role with a specialist plugin's agent:**
+A new role needs `subagent_type` and `when_to_use`. Overriding a shipped role can set just the fields you change. `null` removes a role.
+
+### Use your own directives
 
 ```json
-{
-  "agents": {
-    "simplifier": {
-      "subagent_type": "pr-review-toolkit:code-simplifier"
-    }
-  }
-}
+{ "directives": { "user_path": "docs/our-rules" } }
 ```
-
-**Point at your team's directives:**
-
-```json
-{
-  "directives": {
-    "user_path": "docs/our-rules"
-  }
-}
-```
-
-### Removing a shipped role
-
-Set the role's key to `null` in an override layer:
-
-```json
-{
-  "agents": {
-    "simplifier": null
-  }
-}
-```
-
-### Full schema
-
-See `config/defaults.json` for every supported field. The skill bodies in `skills/*/SKILL.md` plus the shared contract blocks in `shared/*.md` are the runtime contract; `CHANGELOG.md` documents behavior changes per release.
 
 ## Directives
 
-The plugin ships eight domain-neutral directives at `directives/`:
+The plugin ships eight directives in `directives/`:
 
-- `simplicity.md` — YAGNI, no overengineering, no speculative fixes
-- `modularity.md` — composability, single-responsibility, clear interfaces
-- `reusability.md` — DRY within reason, no copy-paste, no over-abstraction
-- `maintainability.md` — naming, comment discipline, no dead code
-- `quality.md` — correctness, error handling, no silent failures
-- `consistency.md` — existing patterns, reference-impl alignment, spec/plan alignment
-- `scope-discipline.md` — stay in the asked change, no drive-by refactors
-- `testing.md` — TDD, real tests, cover changed behavior
+- `simplicity.md`: no overengineering or speculative fixes
+- `modularity.md`: single responsibility, clear interfaces
+- `reusability.md`: no copy-paste, no premature abstraction
+- `maintainability.md`: naming, comments, no dead code
+- `quality.md`: correctness, error handling
+- `consistency.md`: follow existing patterns and the spec
+- `scope-discipline.md`: stay inside the requested change
+- `testing.md`: real tests that cover changed behavior
 
-A project's own directives at the configured `directives.user_path` (default `docs/directives/`) layer on top — both sets are authoritative at runtime, cited in findings as `<file>.md §N.N`.
+Your directives in `directives.user_path` (default `docs/directives/`) apply on top. Both sets are authoritative, and findings cite them as `<file>.md §N.N`. Agents get the files by path, not pasted into their prompt. To use only your own directives, set `"directives": { "include_plugin_defaults": false }`.
 
-Directives reach agents as file paths, never as embedded contents. Native `comb:*` agents already treat them as authoritative; any other agent type gets the same paths plus an explicit authority instruction (see `shared/dispatch-delivery.md`).
+## Agents
 
-To opt out of the plugin's directives:
+Five read-only reviewers:
 
-```json
-{
-  "directives": {
-    "include_plugin_defaults": false
-  }
-}
-```
+- `comb:code-reviewer`: bugs, logic, contracts, security
+- `comb:simplifier`: overengineering, dead code, duplication
+- `comb:silent-failure-hunter`: swallowed errors, hidden fallbacks
+- `comb:test-auditor`: coverage and test quality
+- `comb:consistency-auditor`: fit with existing patterns and with the spec or plan
 
-## Subagents
+Read-only is enforced by instruction. The edit tools are blocked, but Bash stays available for git.
 
-The plugin registers five read-only reviewers (`disallowedTools: [Write, Edit, NotebookEdit]`):
+Each finding must name a real cost, such as a failure mode, a coverage gap, or a maintenance burden. A clean diff should come back with few or no findings. `simplifier`, `silent-failure-hunter`, and `consistency-auditor` re-check their findings in a final step. `code-reviewer` and `test-auditor` dropped that step after an experiment showed it changed nothing.
 
-- `comb:code-reviewer` — bugs, logic, contracts, data flow, security
-- `comb:simplifier` — overengineering, dead code, naming, copy-paste
-- `comb:silent-failure-hunter` — error handling, swallowed errors
-- `comb:test-auditor` — coverage, real tests, behavior parity
-- `comb:consistency-auditor` — patterns, reference impl, feature completeness (against a spec/plan, or against intent reconstructed from evidence when no spec exists)
+Before a finding enters the report, `/comb:review` opens every cited line and recomputes every count. Each finding carries a `Verified:` line stating what was checked and what was not. `/comb:plan` re-checks anything marked unchecked.
 
-The `disallowedTools` list blocks the file-editing tools; Bash stays available for git and read commands, so read-only is enforced by instruction, not by sandbox.
+Three more agents:
 
-Two more subagents are **generation-only** and never part of the review/plan/fix palette: `comb:pattern-scanner` (read-only), dispatched by `/comb:patterns` to map one codebase area, and `comb:pattern-shaver`, dispatched by `/comb:patterns --shave` to propose an edit script for one manifest section; it writes that one file and nothing else.
+- **`comb:implementer`** is the writer for `/comb:fix` and `/comb:plan`.
+- **`comb:pattern-scanner`** is used only by `/comb:patterns`.
+- **`comb:pattern-shaver`** is used only by `/comb:patterns --shave`.
 
-One subagent writes code: `comb:implementer` (`disallowedTools: [Agent, NotebookEdit]`), the default writer for `/comb:fix` items and `/comb:plan` files. Its boundaries — write only inside `## Where`, no git state changes, no nested agents, report every file — are checked by `/comb:fix` after each return (`git status --porcelain` against the in-flight write-sets).
+## How it works
 
-You can invoke them directly via the Agent tool or let the comb skills pick them automatically.
-
-Every reviewer must ground each finding in a real cost — a real failure mode, complexity cost, silence, coverage gap, or divergence with consequences — and ungrounded items get dropped. `simplifier`, `silent-failure-hunter`, and `consistency-auditor` end with an explicit calibration step that re-checks every finding; `code-reviewer` and `test-auditor` dropped theirs in 0.15.2 after a two-arm run showed it changed nothing (see `experiments/README.md`). `LOOKS GOOD` on a clean diff is the expected outcome; padding the report with marginal items dilutes the signal of real findings. This keeps multi-round `/comb:the-desert` sweeps from drifting into diminishing-returns noise.
-
-Each finding also carries a **Confidence** field, and `/comb:review` verifies before it promotes: it opens every cited line, recomputes every count, and refuses to state an untraced fix shape in the report's voice. Every finding in the report ends up with a `Verified:` line naming what was checked and what was not. `/comb:plan` reads that line and re-derives anything it names as unchecked.
-
-### A note on skill `model` frontmatter
-
-The eight skills intentionally omit the `model:` frontmatter field. The orchestrator runs in the user's session model (whatever they invoked Claude Code with), and the skill body's logic dispatches subagents at the configured `models.<lane>` model (or `agents.<role>.model` when set), passed as the Agent call's `model` parameter (and `effort`, only when an `effort.<lane>` or `agents.<role>.effort` is configured; the default is the session's effort). Adding a `model:` field to a skill would only fix the orchestrator's model — it would have no effect on the dispatched agents, which is what actually matters for cost and quality.
-
-### Manifest delivery
-
-Agents never receive the whole PATTERNS manifest. Each run of `/comb:review`, `/comb:plan`, or `/comb:fix` cuts an excerpt with `scripts/manifest.py`: the header, the global sections (how-to-read, cross-reference map, drift register), and the area sections whose scope meets the change. The excerpt lists the omitted sections with their line ranges so an agent can read one with `sed -n` when pointed to it. How a section's scope is derived and when it travels is the contract in `shared/manifest-slicing.md`, implemented by `scripts/manifest.py`; a one-line `Home:` per section is how to tighten an over-inclusive scope. The orchestrator never reads the manifest either; the script computes staleness. Excerpts live under `.comb/` in the working directory, which the script creates with a self-ignoring `.gitignore`, and are removed at the end of the run. `python3` (3.8+, stdlib only) is required since 0.15.0.
-
-### Resolver and briefs
-
-A second stdlib script, `scripts/comb.py`, does the per-run bookkeeping every skill used to re-derive in prose: `config` merges the three config layers (objects deep-merge, arrays replace, `null` deletes, bad JSON is a named hard error); `resolve` turns a role and lane into a `subagent_type`, model, effort, and native-or-foreign form; `directives` lists the directive files and the primaries a focus brief flags; `brief` writes the per-run dispatch brief (directive paths, primaries, the observed-baseline block, the focus brief) to `.comb/excerpts/<run>.<skill>.<role>.brief.md` and prints a four-line summary; `report-name` derives the review report path with the round parsed from existing filenames; `batches` reads a plan folder and prints each item's write-set, the not-reproduced items, and severity-ordered batches of at most three disjoint items; `findings` turns a review report into JSON. `config` warns on stderr (`warning:` lines) about a dropped role, a non-object `agents`, a non-boolean `include_plugin_defaults`, or a `user_path` that is not a directory, and accepts a config file that starts with a BOM; every other input error is a one-line exit 2, never a traceback. Dispatch prompts shrink to a shared-context block plus two paths: the role's shared brief under `shared/` (planner, implementer, fix reviewer) and the run brief. Briefs share the excerpt's run stem, so `manifest.py clean` removes both. Since 0.15.0 `python3` is required, not optional: every skill's first step runs `comb.py config` and stops on a non-zero exit, so without `python3` on the `PATH` no comb command starts (the manifest excerpt's full-manifest fallback still exists, but only after that step). `scripts/test-comb.sh` pins the script's output against fixtures.
+- **Scripts do the bookkeeping.** `scripts/comb.py` merges config, resolves each agent's model and effort, matches directives to the focus brief, names reports, and batches fix items. Each dispatch prompt is a few lines plus the path to a per-run brief that the script writes. Planner and fix agents also get their role's brief in `shared/`. Working files live in `.comb/`, which ignores itself in git and is cleaned at the end of each run.
+- **Agents get a manifest excerpt, not the whole file.** `scripts/manifest.py` cuts the PATTERNS manifest down to the sections whose scope matches the change, and lists the omitted sections by line range. The rules are in `shared/manifest-slicing.md`. Add a one-line `Home:` to a section if it is included too often.
+- **The skills are the contract.** `skills/*/SKILL.md` and `shared/*.md` define the behavior, and `CHANGELOG.md` records every change to it. Skills run in your session's model; agents get the model from config on each dispatch.
 
 ## Development
 
-[PLAYBOOK.md](PLAYBOOK.md) describes the development workflow: the design-to-release loop, design rules, and conventions.
+[PLAYBOOK.md](PLAYBOOK.md) describes the workflow and design rules.
 
-The release gate, in order:
+Release gate, in order:
 
-1. `claude plugin validate .` — structural lint of the manifest, skills, and agents.
-2. `scripts/check-contract.sh` — deterministic checks: no dead spec citations, every `shared/` reference resolves, no shared block re-inlined into a skill, no `.DS_Store` tracked, every consuming skill invokes the manifest script, `scripts/test-manifest.sh` and `scripts/test-comb.sh` (70 and 62 fixture expectations; the manifest ones span two manifest shapes, the comb ones the merge, resolution, matcher, brief, batching, and parsing contracts) passes, and `scripts/test-replay.sh` (the grader replay tool against fixture runs) passes.
-3. `claude plugin eval . --scaffold --ablation none --runs 1 --allow-tools Bash Write Edit` — the behavioral suite in `evals/` (eight cases covering the known regression classes; about 9 minutes and 5 USD per pass). `evals/README.md` has the flags, the grader design, and the macOS git requirement (a standalone git such as Homebrew's). `scripts/smoke.sh` is the offline structural check. PLAYBOOK.md's "Eval cadence" says when to run the suite; `scripts/replay-graders.py` replays a case's deterministic graders against a kept run for free.
+1. `claude plugin validate .`
+2. `scripts/check-contract.sh` runs the free checks:
+   - The shared blocks are not copied into skills, and every reference resolves.
+   - The help defaults match `config/defaults.json`.
+   - The agent files are consistent.
+   - The fixture tests for both scripts and the grader replay pass.
+3. `claude plugin eval . --scaffold --ablation none --runs 1 --allow-tools Bash Write Edit` runs the eight behavioral cases in `evals/`, at about 5 USD per pass. On macOS it needs a standalone git, such as Homebrew's. `evals/README.md` explains the flags.
 
-CI runs gates 1–2 on every push and PR; the eval suite runs as a manual workflow dispatch (it needs `ANTHROPIC_API_KEY`). `/skill-doctor` is a usage/cost report, useful for periodic monitoring — it is not a lint step and not part of the gate.
+`scripts/smoke.sh` is the offline check. `scripts/replay-graders.py` re-scores a kept eval run for free. `experiments/` holds two-arm runs that test whether a prompt passage is still needed: run them with `--eval-dir experiments`, and see `experiments/README.md` for results.
+
+CI runs gates 1 and 2 on every push. The eval suite runs on manual dispatch.
 
 ## Status
 
-v0.15.2. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
+v0.15.3. See [CHANGELOG.md](CHANGELOG.md) for the full version history.
 
 ## License
 
