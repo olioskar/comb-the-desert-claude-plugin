@@ -23,9 +23,15 @@ This is an **interactive** command. You do recon, propose scan areas, and wait f
 
 ## Step 1: Load config
 
-Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`.
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
 
-After merging, take:
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
+```
+
+Run it from the project root and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
+
+From it, take:
 - `paths.patterns` — where the manifest is written/read (default `docs/combs/PATTERNS.md`). If it is `null`, there is no write target (the key was deleted via merge semantics, so there is no default to fall back to): report that manifest consumption is disabled and stop. Do not generate to an undefined path.
 - `models.patterns` — model for the scanner agents (default `opus`).
 - `agents.pattern-scanner` — the scanner role (`subagent_type`, default `comb:pattern-scanner`).
@@ -99,8 +105,13 @@ Default is (a). Partial updates are handled by two explicit, user-driven mechani
 For each confirmed area, dispatch one scanner. **Launch them in parallel** per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`) — one Agent call per area, batched in a single assistant message.
 
 **Resolution per scanner:**
-- **`subagent_type`** from `agents.pattern-scanner.subagent_type` (default `comb:pattern-scanner`).
-- **Model**: `agents.pattern-scanner.model` if set; otherwise `models.patterns` (default `opus`). Pass the resolved model as the Agent call's `model` parameter, per the delivery contract.
+- **Role, model, effort, and form:**
+
+  ```
+  python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" resolve --role pattern-scanner --lane patterns
+  ```
+
+  Pass `model:` as the Agent call's `model` and `effort:` as `effort` unless `unset`; `native: no` means the prompt's directive list is preceded by the delivery contract's authority sentence.
 - **Directives for this scanner = the subset mapped to its area at the gate (Step 3)** — not the full set. Send a scanner only the directives the gate mapped to its area; this keeps each scanner's lenses tight (a CSS scanner shouldn't carry an API-error directive). Any directive the user **down-weighted** at the gate that maps to this area is still sent, but marked `SUPERSEDED — treat as NON-authoritative`.
 - **Delivery**: supply the mapped directives as absolute **paths** per the delivery contract; a foreign resolved `subagent_type` additionally gets the contract's authority sentence, never embedded contents.
 
@@ -130,20 +141,7 @@ These define the KINDS of conventions that matter AND set the authoritative base
 
 ## 4. Your job
 
-Walk the files in your area's scope. For each thematic lens, extract the concrete convention this area actually follows — a fact with a real reference, not a restated principle. Omit any lens with no real convention. Cite `path:line` on every entry plus a canonical example.
-
-Classify every candidate convention against the directives before recording it:
-- Conforms to a directive, or no directive covers it (net-new) → record it.
-- Conflicts with a directive but is a MINORITY in your area (the rest follows the directive) → drift, not a convention. Do not record it; record the directive-conforming norm instead.
-- Conflicts with a directive but is the DOMINANT, consistent practice in your area → record the directive-conforming expectation in the manifest body, and report the conflict under `## Directive conflicts` (see Output format) for a human to reconcile. Never launder a deviation into "a new or improved pattern." **Dominance is measured area-wide:** the population is every instance of that lens across the whole area, never a single component. If every other instance of the lens follows the directive and only one component deviates, that is the MINORITY case (drift) no matter how consistent it is within that component — do not narrow the denominator to make it look dominant.
-
-Lenses: Structural conventions; Naming & vocabulary; Closed sets (enumerate them); Abstraction calibration; Reuse points; Error handling & async; Testing conventions.
-
-## 5. Output format
-
-Markdown only, no preamble. One `## {area label}` block with only the non-empty `### ` thematic subsections, each a bulleted list of facts with `path:line` references.
-
-Emit a `## Directive conflicts` section ONLY if at least one DOMINANT practice in your area conflicts with an authoritative directive — `{practice} conflicts with {directive}.md §{N} — dominant ({k}/{n} files), e.g. path:line; reconcile: update directive or treat as drift`. If you have no dominant conflict, emit NOTHING for this section — no heading, not even a parenthetical "(none — …)" explaining the absence. Do not narrate why there is no conflict; omit the section. A minority deviation is never placed under this heading in any form. "Dominant" = a clear majority of the area's instances of that lens, measured **area-wide** — never narrowed to one component where the deviation happens to be universal (that gerrymanders a minority into a false dominant). This section is NOT manifest content; the orchestrator extracts it.
+Read `${CLAUDE_PLUGIN_ROOT}/shared/scan-rules.md` first and follow it exactly: its lenses, its classification of every candidate convention against the directives above, and its output format. Your reply is markdown per that output format.
 ```
 
 ## Step 6: Synthesize the manifest (in memory)
@@ -288,7 +286,7 @@ python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" index --manifest <paths.p
 
 Run every `manifest.py` command from the project root. It prints `run: <stem>`, `index: <path>`, one line per section (`<kind> <START>-<END> <bytes>B [<n>] <heading> edits=<path>`), and the totals. Record `run` and `index`. Show the per-section lines and totals to the user as the size table. Do not read the manifest or the index file.
 
-**S2. Dispatch shavers.** If no area section is 4 KB or more (after any focus-brief narrowing), report `Nothing to shave: no area section is 4 KB or more` and stop with `clean`. Record the manifest's size before dispatch: `wc -c < <paths.patterns>`. Then one shaver per **area** section of 4 KB or more, at most five at a time, per `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. Role: `agents.pattern-shaver` (`subagent_type`, default `comb:pattern-shaver`); model: `agents.pattern-shaver.model` if set, else `models.patterns`, passed as the Agent call's `model` parameter. Header and global sections are never dispatched or edited. Dispatch prompt:
+**S2. Dispatch shavers.** If no area section is 4 KB or more (after any focus-brief narrowing), report `Nothing to shave: no area section is 4 KB or more` and stop with `clean`. Record the manifest's size before dispatch: `wc -c < <paths.patterns>`. Then one shaver per **area** section of 4 KB or more, at most five at a time, per `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. Role, model, and effort from `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" resolve --role pattern-shaver --lane patterns` (`model:` as the Agent call's `model`, `effort:` as `effort` unless `unset`). Header and global sections are never dispatched or edited. Dispatch prompt:
 
 ```
 You shave ONE section of a PATTERNS manifest. You edit nothing except the one edit-script file named below. Rules: read ${CLAUDE_PLUGIN_ROOT}/shared/shave-rules.md first and follow it exactly.

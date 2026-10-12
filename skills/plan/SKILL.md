@@ -23,7 +23,15 @@ You're a senior engineer turning review findings into crystal-clear fix instruct
 
 ## Step 1: Load config
 
-Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. From it, take:
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
+```
+
+Run it from the project root and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
+
+From it, take:
 - `paths.plans` — output folder root
 - `models.plan` — model for planner agents
 - `directives` — for the planners' agent prompts
@@ -34,6 +42,12 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. Fro
 ## Step 2: Surface relevant directives
 
 Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" directives --brief "<focus brief>"
+```
+
+Record the `plugin:` and `user:` paths and the `primary:` lines; `comb.py brief` renders them into every run brief.
 
 ## Step 2.5: Detect report shape
 
@@ -53,7 +67,15 @@ The classification flows through the rest of this skill. Steps below note which 
 
 ## Step 3: Parse all findings
 
-Extract every finding from the report:
+Run the parser first:
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" findings --report <report path>
+```
+
+Its JSON lists every finding the template carries (`code`, `title`, `source`, `files`, `verified`) and its `shape` confirms Step 2.5. When it prints `count: 0` or `shape: unknown`, the report is not in the template shape: read it and extract by hand as below.
+
+Each finding carries:
 - **Reference code**: C1, H2, M5, T1, D1, etc. Preserve exactly as the report uses them.
 - **Title**: short description
 - **Category** / **severity**: as the report uses
@@ -66,7 +88,7 @@ Extract every finding from the report:
 
 If the Deferred section uses bullet points without codes (older review reports), assign `D1`, `D2`, … inline before dispatching agents, in the order they appear.
 
-Count every code (C/H/M/L/T/D). Confirm the total with the user before sending agents.
+Count every code (C/H/M/L/T/D) — the script's `count` when it parsed. Confirm the total with the user before sending agents.
 
 **On a non-code report:** findings have plain labels (Ambiguity, Blind spot, Pattern-break, Reusability gap, Quality concern), not severity codes. Preserve the labels verbatim. The ordering for the consolidated revise-doc follows the report's order — no severity-based reshuffle. Skip the "confirm total with user" step; the count is just the number of findings.
 
@@ -117,7 +139,7 @@ User may override.
 
 ### Non-code report — single consolidated revise-doc
 
-Dispatch one planner agent (resolved via `agents.implementer.subagent_type`, model per `models.plan`) with this prompt structure (shared context, the run brief, then its own job and output format):
+Dispatch one planner agent, resolved and briefed exactly as the code-shaped flow below resolves and briefs its planners (`comb.py resolve --role implementer --lane plan`, then `comb.py brief --skill plan --role implementer …`), with this prompt structure (shared context, the run brief, then its own job and output format):
 
 ````
 You're a senior reviewer translating a spec/design-doc review into a single consolidated revision-instructions file.
@@ -189,8 +211,21 @@ Launch all in parallel per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/
 **Agent config (resolved per finding):**
 
 - **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
-- **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `comb:implementer`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default for this step is `models.plan` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
+- **Resolve the writer role** (the planner needs Write access; the `comb:*` review roles cannot write, and the user's `agents.implementer` override is honored):
+
+  ```
+  python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" resolve --role implementer --lane plan
+  ```
+
+  Pass `model:` as the Agent call's `model` and `effort:` as `effort` unless `unset`; `native:` is the brief's form.
+- **Write the run brief** once per run (every planner shares it):
+
+  ```
+  python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" brief --skill plan --role implementer --run <run> --excerpt <excerpt> --manifest <paths.patterns> --brief "<focus brief>"
+  ```
+
+  Omit `--excerpt` and `--manifest` when no manifest resolved and `--brief` when the focus brief is empty. `<run>` is the stem the Step 3 excerpt printed. When no excerpt was cut this run, omit `--run` on the first `brief` call, record the `run:` it prints, and pass that stem as `--run` to every later `brief` call and to the final `clean`. Echo the four lines it prints; its `brief:` path goes into the prompt.
+- **Delivery contract:** `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`.
 
 **Planner dispatch prompt (5-part order):**
 

@@ -31,9 +31,15 @@ If scope is ambiguous, ask once. Otherwise derive it from the current branch and
 
 ## Step 1: Load config
 
-Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`.
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
 
-After merging, you have:
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
+```
+
+Run it from the project root and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
+
+From it, you have:
 - `paths.reviews` — where to write the report
 - `paths.plans` — (used by /comb:plan, not now)
 - `directives.include_plugin_defaults` (boolean) and `directives.user_path` (string)
@@ -55,8 +61,7 @@ git merge-base origin/<base> <branch>   # record the SHA; agents and the report 
 
 Read these:
 - Project's `CLAUDE.md` for conventions and gotchas (do not read it for base-branch defaults — those come from `paths.base_branch` in merged config)
-- The user's directives at `<project-root>/<directives.user_path>/*.md` (if directory exists)
-- The plugin's directives at `${CLAUDE_PLUGIN_ROOT}/directives/*.md` (if `directives.include_plugin_defaults: true`)
+- Do **not** read the directive files. Step 3 lists them (`comb.py directives`); the matcher and the Step 7 gate need names and paths only, and every agent reads them itself from the run brief.
 - Any plan/design doc the user points to in the focus brief
 - A reference implementation, if the user names one or `CLAUDE.md` points to one
 
@@ -73,6 +78,12 @@ Record `run`, `excerpt`, the log line, and `stale` from its output for the dispa
 ## Step 3: Surface relevant directives
 
 Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" directives --brief "<focus brief>"
+```
+
+Record the `plugin:` and `user:` paths and the `primary:` lines; `comb.py brief` renders them into every run brief.
 
 ## Step 3.5: Read the work
 
@@ -139,10 +150,23 @@ For each picked role, resolve and construct the dispatch prompt:
 
 **Resolution (do this before assembling the prompt):**
 
-- **Resolve `subagent_type`** from `agents.<role>.subagent_type` — never hardcode any value here.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`. It defines the native allowlist (literal string equality), the path-based directive delivery for native and foreign agents, and the model delivery. The lane default for this step is `models.review` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
+- **Resolve the role:**
 
-**Dispatch prompt (7-part order — Step 3.5 read framing is part 2):**
+  ```
+  python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" resolve --role <role> --lane review
+  ```
+
+  Pass `model:` as the Agent call's `model` and `effort:` as `effort` unless it is `unset`; `native:` is the form the brief takes (the script already chose it). Never hardcode a `subagent_type`.
+- **Write the run brief:**
+
+  ```
+  python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" brief --skill review --role <role> --run <run> --excerpt <excerpt> --manifest <paths.patterns> --brief "<focus brief>"
+  ```
+
+  Omit `--excerpt` and `--manifest` when no manifest resolved and `--brief` when the focus brief is empty. `<run>` is the stem the Step 2 excerpt printed, so one `clean` removes both. When no excerpt was cut this run, omit `--run` on the first `brief` call, record the `run:` it prints, and pass that stem as `--run` to every later `brief` call and to the final `clean`. Echo the four lines it prints; its `brief:` path goes into the prompt.
+- **Delivery contract:** `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` — the briefs, the native rule, and the model and effort parameters.
+
+**Dispatch prompt (5-part order — Step 3.5 read framing is part 2):**
 
 1. **Shared context block:**
    ```
@@ -175,21 +199,19 @@ For each picked role, resolve and construct the dispatch prompt:
    Bias guard: You are reviewing work produced in another session. Treat the artifact as the source of truth; do not assume intent you cannot verify from the text itself.
    ```
 
-3. **Directives:** supply resolved absolute **paths** per the delivery contract — plugin defaults (`${CLAUDE_PLUGIN_ROOT}/directives/*.md` if `include_plugin_defaults`) and user directives (`<project-root>/<directives.user_path>/*.md` if it resolves), the contract's authority sentence and specialty statement when the agent is foreign, and the `Directives most relevant to this run:` list with the primary matches from Step 3.
+3. **Read first:** the line `Read first: <brief: path from comb.py brief>`. The run brief carries the directive paths (native or foreign form, with the primaries), the observed-baseline block, and the focus brief; the prompt repeats none of them.
 
-4. **Project conventions (observed baseline)** — insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` (excerpt path + manifest path + verbatim paragraph, or the fallback form; no role note for review dispatches). Omit this part entirely when no manifest resolved.
+4. **Agent-specific instructions:** for native `comb:*` agents this is already in the agent file body. For foreign agents the run brief's `Your lens:` line carries the role's `when_to_use`; add nothing else.
 
-5. **User focus brief**, under `## User focus for this run` heading, verbatim, with framing: "Findings matching this focus are highest priority. Surface other issues too, but do not let the user's stated concerns slip."
-
-6. **Agent-specific instructions:** for native `comb:*` agents this is already in the agent file body. For foreign agents, supply a one-paragraph specialty statement derived from the role's `when_to_use` so the foreign agent knows what lens to apply.
-
-7. **Output format spec:**
-   - Severity scale: Critical / High / Medium / Low / Test gaps / Deferred
-   - Finding codes: placeholder (orchestrator renumbers)
-   - File:line references
-   - Directive citations on every finding where applicable
-   - **Confidence** on every finding: `Verified` when you opened every cited file and confirmed every particular the finding asserts — the anchor, any count, and, for a suggested fix, that you traced the fix against the code. Otherwise `Unverified — <what you could not confirm>`, naming the specific gap (an inferred line range, an estimated count, an untraced fix shape, a file you could not open). This field is not optional.
-   - Read-only — no code changes
+5. **Output format spec:**
+   - **Native agents:** `Output format per your agent definition; finding codes are placeholders the orchestrator renumbers; include the Confidence line on every finding.`
+   - **Foreign agents only** — the full spec:
+     - Severity scale: Critical / High / Medium / Low / Test gaps / Deferred
+     - Finding codes: placeholder (orchestrator renumbers)
+     - File:line references
+     - Directive citations on every finding where applicable
+     - **Confidence** on every finding: `Verified` when you opened every cited file and confirmed every particular the finding asserts — the anchor, any count, and, for a suggested fix, that you traced the fix against the code. Otherwise `Unverified — <what you could not confirm>`, naming the specific gap (an inferred line range, an estimated count, an untraced fix shape, a file you could not open). This field is not optional.
+     - Read-only — no code changes
 
 Launch all dispatches in parallel per the delivery contract — one Agent call per picked role, batched in a single assistant message.
 
@@ -248,11 +270,13 @@ Carry each agent's `Confidence` line forward. Where an agent reported `Unverifie
 
 ## Step 8: Write the report
 
-**Output path:** `<paths.reviews>/<derived-name>.md`. Naming:
-- PR → `pr-{number}-round{N}-report.md`
-- Branch → `branch-{slug}-round{N}-report.md` where `{slug}` is the branch name with `/`, whitespace, and any other path-unsafe character (`:`, `\`, `?`, `*`, `<`, `>`, `|`, `"`) replaced with `-`. Collapse consecutive `-` and trim trailing `-`. Example: `feature/foo bar` → `feature-foo-bar`.
+**Output path:**
 
-**N is computed by parsing the round number out of the existing filenames matching the prefix in `paths.reviews`: N = the highest round found + 1 (1 when none match).** Never count files — after a deletion, a count collides with a surviving later round.
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" report-name --reviews <paths.reviews> --pr <number>      # or: --branch <name>
+```
+
+Its `report:` line is the path to write (`pr-{number}-round{N}-report.md`, or `branch-{slug}-round{N}-report.md` with the branch name made path-safe). The script parses `N` out of the existing filenames with the same prefix and never counts files — after a deletion, a count collides with a surviving later round.
 
 **Template selection.** Use the template that matches the Step 3.5 classification.
 
@@ -388,16 +412,16 @@ Agents used: {list}
 - Commit-based staleness (`stale: yes`): `PATTERNS manifest may be stale — consider re-running /comb:patterns.` When `stale: unknown`: `PATTERNS staleness unknown (<detail>).`
 - Semantic refresh: `This diff evolves a convention not in the manifest — consider re-running /comb:patterns to capture it.`
 
-Then, last of all, remove this run's excerpt working files: `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>`.
+Then, last of all, remove this run's excerpt and brief working files (they share the stem): `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/manifest.py" clean --run <run>`.
 
 ## Ground rules
 
-- **Read-only.** Nobody edits code. The only files created are the report and this run's excerpt working files under `.comb/excerpts/`, which are removed at the end.
+- **Read-only.** Nobody edits code. The only files created are the report and this run's excerpt and brief working files under `.comb/excerpts/`, which are removed at the end.
 - **Agents read actual source code.** Not just filenames.
 - **The report's voice is authoritative.** Step 7's verification gate is what earns it. A particular that survived no check is marked, not stated.
 - **Project-aware.** Every agent gets the project's directives.
 - **Severity is honest.** Critical means production bugs.
-- **Round-aware.** The report filename includes round N, parsed from existing filenames per Step 8. Prior reports are not parsed for fixed-findings status — agents may flag items that already shipped in a prior round.
+- **Round-aware.** The report filename includes round N, parsed from existing filenames by `comb.py report-name` (Step 8). Prior reports are not parsed for fixed-findings status — agents may flag items that already shipped in a prior round.
 
 ## Edge case: focus brief contradicts shipped behavior
 

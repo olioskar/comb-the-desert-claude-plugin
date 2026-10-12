@@ -32,7 +32,13 @@ If the file doesn't exist, you'll create it. If `.claude/` doesn't exist for pro
 
 ## Step 2: Show the user what they have now
 
-Load the three layers per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md` and show the **merged effective config** plus which layer each key comes from. This is the "before" picture.
+Run the merge per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
+```
+
+Its JSON is the **merged effective config**; a `warning:` line names a role the merge dropped. Read the three layer files themselves only to say which layer each non-default key comes from. This is the "before" picture.
 
 Print a short summary of the effective config (not the full JSON dump unless the user asks). Highlight which layer each non-default value is coming from.
 
@@ -91,8 +97,7 @@ Write the new file. Format with 2-space indentation. Pretty-print top-level keys
 
 ## Step 6: Verify
 
-- Re-parse the file you just wrote — fail loud on a JSON error.
-- For each `agents.<role>` that is an object (not `null`), confirm it has both `subagent_type` and `when_to_use` strings. If not, warn the user — at runtime the bad role will be skipped per the schema-violation rule, but better to flag now.
+- Re-run `python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config`. A non-zero exit is a JSON error in the file you just wrote — fail loud. Each `warning:` line is a role the merge dropped (missing `subagent_type` or `when_to_use`): show it to the user, since at runtime that role is skipped.
 - Every `effort.*` and `agents.<role>.effort` value is one of `low`, `medium`, `high`, `xhigh`, `max`; warn on anything else (the Agent call rejects it).
 
 ## Step 7: Tell the user how to test
