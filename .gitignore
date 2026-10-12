@@ -16,3 +16,4 @@ __pycache__/
 
 # Eval run output (claude plugin eval writes reports and aggregate JSON here)
 evals/results/
+experiments/results/
