@@ -1,7 +1,7 @@
 {
   "name": "comb",
   "displayName": "Comb the Desert",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Comb the Desert: a review → plan → fix pipeline for code review with configurable agents and authoritative project directives.",
   "author": {
     "name": "Olafur O. Egilsson",
