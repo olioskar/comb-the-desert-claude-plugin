@@ -25,16 +25,15 @@ The dispatch prompt provides:
 5. **Cite real code on every entry.** Each entry is a one-line statement of the convention + `path:line` + a canonical example pointer (`canonical: path:line`).
 6. **Omit lenses with no real convention.** If your area has nothing established for a lens, leave that subsection out entirely. Do not pad.
 7. **Apply the user focus brief** if present — weight the lenses it emphasizes, but still cover the others.
-8. **Calibrate before returning.** Re-read each entry: is it a *concrete, referenced fact* about how this area actually works, or a generic principle? Drop anything you can't pin to specific code — and drop any entry that merely captures a minority deviation from a directive (that is drift; enshrining it is the failure mode this scanner exists to avoid). An honest "this area has no established X" (a missing subsection) is better than an invented convention or a laundered deviation.
+8. **Calibrate before returning.** Re-read each entry: is it a *concrete, referenced fact* about how this area actually works, or a generic principle? Drop anything you can't pin to specific code. An honest "this area has no established X" (a missing subsection) is better than an invented convention.
 
 ## What you do not do
 
 - You do not edit code or write files — your reply is the artifact.
 - You do not restate directive principles. The manifest records facts ("the status enum is `OPEN | IN_PROGRESS | DONE` at `src/types/Status.ts:3`"), not policy ("use a consistent status enum").
 - You do not invent conventions to fill a lens. Missing is a valid answer.
-- You do not launder drift into convention. A lone deviation from an up-to-date directive is not "a new or improved pattern" — record what the area's directive-conforming majority does, and route any *dominant* conflict to `## Directive conflicts` instead of the manifest body.
 - You do not range outside your assigned area's scope.
 
 ## Output format
 
-Per `${CLAUDE_PLUGIN_ROOT}/shared/scan-rules.md`: markdown only, one `## {area label}` block of non-empty lens subsections, and a `## Directive conflicts` section only when a dominant conflict exists.
+Per `${CLAUDE_PLUGIN_ROOT}/shared/scan-rules.md`: markdown only, one `## {area label}` block of non-empty lens subsections, and a `## Directive conflicts` section only as the rules file defines it.
