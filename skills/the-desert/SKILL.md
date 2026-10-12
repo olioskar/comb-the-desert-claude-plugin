@@ -25,15 +25,21 @@ If scope is ambiguous, ask once. This is the first of the three allowed question
 
 ## Step 1: Load config
 
-Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`.
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`, once for the whole sweep:
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
+```
+
+Run it — like every `comb.py` command line in this skill — from the project root, and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
 
 ## Overrides
 
 These apply to every sub-step. Where a sub-skill's text conflicts with them, these win. Everything else in `/comb:review`, `/comb:plan`, and `/comb:fix` applies unchanged — the consolidation gate, the fix reviewer rule and its fallback chain, write-set batching, the 3-failure escalation, the per-sub-step manifest excerpt (cut, recorded, and cleaned by each sub-step from its own touched text), the pre-commit verification and revert-on-FAIL, and the HEAD and tree checks.
 
-- **Models and effort.** `models.the_desert` replaces every lane default (`models.review`, `models.plan`, `models.fix.*`), including the trivial implementer; `effort.the_desert`, when set, replaces every `effort.*` lane the same way. Explicit `agents.<role>.model` / `agents.<role>.effort` overrides survive. `models.patterns` and `effort.patterns` are untouched: the scanner is never dispatched in a sweep.
-- **Config.** The sub-skills reuse the config loaded in Step 1; they do not load it again.
-- **Directives.** The focus-brief matcher runs once (Step 2) and its result carries through review → plan → fix.
+- **Models and effort.** `models.the_desert` replaces every lane default (`models.review`, `models.plan`, `models.fix.*`), including the trivial implementer; `effort.the_desert`, when set, replaces every `effort.*` lane the same way. Explicit `agents.<role>.model` / `agents.<role>.effort` overrides survive. `models.patterns` and `effort.patterns` are untouched: the scanner is never dispatched in a sweep. Mechanically: every `comb.py resolve` in a sweep carries `--coerce the_desert`, which applies exactly this rule.
+- **Config.** Step 1 runs `comb.py config` once; the sub-skills reuse its JSON and do not run it again.
+- **Directives.** The focus-brief matcher runs here once (Step 2) for the sweep's log; the sub-skills' own `comb.py directives` and `comb.py brief` calls run with the same brief and reproduce the same primaries.
 - **Deferral.** Every finding is planned and fixed, Deferred included. "Deferred" is not a category in this mode.
 - **Not reproduced.** An instruction whose `**Finding status:**` is `not reproduced` is skipped, not queued and not asked about; the final summary lists it under `Not reproduced (skipped)`.
 - **Confirmations.** None between steps. Groupings, ordering, trivial/standard classification, and a focus brief that contradicts shipped behavior (review's edge case) are decided, not asked: follow the shipped behavior and log the conflict. Review's report is logged, not presented. The only questions in a sweep: scope at the start (if ambiguous), fix's dirty-tree pre-flight (only when `git status --porcelain` is non-empty), and "run again?" at the end. Fix's Step 1.6 red-baseline question is logged, not asked; the sweep proceeds. The stop after three FAILs on one item (fix 4f) and a batch stop (fix 4a) are halts, not questions: the sweep prints fix's per-item status list and ends there, as `/comb:fix` does.
@@ -42,9 +48,15 @@ These apply to every sub-step. Where a sub-skill's text conflicts with them, the
 
 ## Step 2: Surface relevant directives
 
-Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`.
+Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`:
 
-**Plugin root for the sweep.** The sub-skill files you Read below are not variable-substituted, and the plugin-root placeholder is not a shell variable. In those files the placeholder is written as a dollar sign, an opening brace, the name CLAUDE_PLUGIN_ROOT, and a closing brace. Wherever you see it — in the `manifest.py` command lines, and in every Read target under `shared/`, `directives/`, and `skills/` — replace it with this literal path: `${CLAUDE_PLUGIN_ROOT}`. A `manifest.py` command run with the placeholder unexpanded fails and would silently fall back to delivering the full manifest.
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" directives --brief "<focus brief>"
+```
+
+Run it from the project root; log its `primary:` lines. Quote the brief for the shell (single quotes, or escape `"`, `$`, and backticks).
+
+**Plugin root for the sweep.** The sub-skill files you Read below are not variable-substituted, and the plugin-root placeholder is not a shell variable. In those files the placeholder is written as a dollar sign, an opening brace, the name CLAUDE_PLUGIN_ROOT, and a closing brace. Wherever you see it — in the `manifest.py` and `comb.py` command lines, and in every Read target under `shared/`, `directives/`, and `skills/` — replace it with this literal path: `${CLAUDE_PLUGIN_ROOT}`. A `manifest.py` or `comb.py` command run with the placeholder unexpanded fails; for `manifest.py` that would silently fall back to delivering the full manifest.
 
 ## Step 3: Run review
 

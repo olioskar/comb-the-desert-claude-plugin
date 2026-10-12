@@ -1,0 +1,5 @@
+shape: per-finding
+write-set M1: src/l/one.ts
+not-reproduced: none
+batch 1: M1
+exit=0

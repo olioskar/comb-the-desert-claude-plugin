@@ -1,0 +1,49 @@
+{
+ "count": 5,
+ "shape": "code-shaped",
+ "findings": [
+  {
+   "code": "H1",
+   "title": "Null check missing on the response body",
+   "source": "code-reviewer",
+   "files": [
+    "src/api/client.ts:42"
+   ],
+   "verified": "Read client.ts:38-50; the guard covers status only."
+  },
+  {
+   "code": "M1",
+   "title": "Duplicate parsing helpers",
+   "source": "code-reviewer, simplifier",
+   "files": [
+    "src/api/parse.ts:10-30",
+    "src/api/legacy.ts:5"
+   ],
+   "verified": "not independently verified — the two helpers were not diffed."
+  },
+  {
+   "code": "T1",
+   "title": "No test for the 204 path",
+   "source": "test-auditor",
+   "files": [
+    "src/api/client.test.ts"
+   ],
+   "verified": "Read client.test.ts; no case sends 204."
+  },
+  {
+   "code": "D1",
+   "title": "Consider extracting the retry policy into `src/api/retry.ts`.",
+   "source": "",
+   "files": [],
+   "verified": ""
+  },
+  {
+   "code": "D2",
+   "title": "The logger wraps every call twice (`src/log.ts:7`).",
+   "source": "",
+   "files": [],
+   "verified": ""
+  }
+ ]
+}
+exit=0

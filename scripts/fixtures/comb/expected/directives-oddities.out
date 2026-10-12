@@ -1,0 +1,5 @@
+warning: agents is not an object; no roles are defined
+warning: directives.include_plugin_defaults is 0, not a boolean; treated as false
+warning: directives.user_path docs/notes.md is not a directory; no user directives
+primary: none
+exit=0

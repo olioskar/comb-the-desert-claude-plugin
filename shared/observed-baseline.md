@@ -1,6 +1,6 @@
 # Shared block: project conventions (observed baseline)
 
-Include this block in a dispatch prompt only when `paths.patterns` resolved to a manifest file; omit the whole block when no manifest resolved. Insert it under a `## Project conventions (observed baseline)` heading, in one of two forms, then this paragraph verbatim, then the dispatching skill's one-line role note when it defines one.
+This block appears in the run brief only when `paths.patterns` resolved to a manifest file; when no manifest resolved the brief has no such section. `scripts/comb.py brief` renders it from its `--excerpt` and `--manifest` flags; no skill inserts it by hand. It sits under a `## Project conventions (observed baseline)` heading, in one of two forms, then this paragraph verbatim, then the dispatching skill's one-line role note when it defines one.
 
 **With an excerpt** (the normal case; see `${CLAUDE_PLUGIN_ROOT}/shared/manifest-slicing.md`): two lines, the excerpt's absolute path labelled `(excerpt)` and the manifest's absolute path labelled `(full manifest)`, never embedded contents. Append these three sentences to the paragraph: "The excerpt lists the sections it omits with their line ranges. Read an omitted section by that range when the excerpt or the code points you to it. Do not read the full manifest end to end."
 

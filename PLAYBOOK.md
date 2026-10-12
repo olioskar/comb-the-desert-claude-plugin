@@ -6,6 +6,7 @@ How this plugin is developed. It describes the current process, not its history.
 
 - `skills/*/SKILL.md` and `shared/*.md` are the runtime contract. A behavior change is a change to one of these.
 - `agents/*.md` are the reviewer and scanner subagents. `directives/` is the shipped policy corpus. `config/defaults.json` is the config schema and defaults.
+- `scripts/manifest.py` and `scripts/comb.py` are the deterministic helpers the skills call (manifest excerpts and shaving; config, resolution, directives, briefs, report naming, batching, finding extraction). `scripts/test-manifest.sh` and `scripts/test-comb.sh` pin their output; change a script and its fixtures together.
 - `CHANGELOG.md` records behavior changes per release. It is the only version history users see.
 - `docs/` is gitignored. It holds working material: design specs, plans, comb reviews, and the session-continuity files described below.
 

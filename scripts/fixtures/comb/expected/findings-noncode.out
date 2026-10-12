@@ -1,0 +1,25 @@
+{
+ "count": 2,
+ "shape": "non-code",
+ "findings": [
+  {
+   "code": "",
+   "title": "Section 3 leaves the retry count open",
+   "source": "consistency-auditor",
+   "files": [
+    "docs/spec.md § 3"
+   ],
+   "verified": "Read § 3; no number is given."
+  },
+  {
+   "code": "",
+   "title": "No failure mode for the cache",
+   "source": "consistency-auditor",
+   "files": [
+    "docs/spec.md:40-55"
+   ],
+   "verified": "not independently verified — cache behaviour unchecked."
+  }
+ ]
+}
+exit=0

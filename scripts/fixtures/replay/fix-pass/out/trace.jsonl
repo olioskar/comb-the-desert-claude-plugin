@@ -6,7 +6,9 @@
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git rev-parse HEAD"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain -- src/util.js"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain"}}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Agent", "input": {"subagent_type": "comb:code-reviewer", "model": "opus", "prompt": "Item: M1\nRun git diff HEAD -- src/util.js"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "python3 -I \"/plugin/scripts/comb.py\" brief --skill fix --role code-reviewer --run fix-1760000000-abcd"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "content": "brief: /work/.comb/excerpts/fix-1760000000-abcd.fix.code-reviewer.brief.md\nform: native\ndirectives: 8 plugin, 0 user; primary: none\nbaseline: none"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Agent", "input": {"subagent_type": "comb:code-reviewer", "model": "opus", "prompt": "Item: M1\nRead these first, in order: /plugin/shared/fix-reviewer-brief.md, /work/.comb/excerpts/fix-1760000000-abcd.fix.code-reviewer.brief.md"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "npm test 2>&1"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "G=/opt/homebrew/bin/git; $G add src/util.js && $G commit -q -m \"M1: rename\""}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git rev-parse HEAD"}}]}}
@@ -14,7 +16,9 @@
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git rev-parse HEAD"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain -- src/util.js"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git status --porcelain"}}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Agent", "input": {"subagent_type": "comb:code-reviewer", "model": "opus", "prompt": "Item: M2\nRun git diff HEAD -- src/util.js"}}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "python3 -I \"/plugin/scripts/comb.py\" brief --skill fix --role code-reviewer --run fix-1760000000-abcd"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "content": "brief: /work/.comb/excerpts/fix-1760000000-abcd.fix.code-reviewer.brief.md\nform: native\ndirectives: 8 plugin, 0 user; primary: none\nbaseline: none"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Agent", "input": {"subagent_type": "comb:code-reviewer", "model": "opus", "prompt": "Item: M2\nRead these first, in order: /plugin/shared/fix-reviewer-brief.md, /work/.comb/excerpts/fix-1760000000-abcd.fix.code-reviewer.brief.md"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "npm test 2>&1"}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git add src/util.js && git commit -qm \"M2: guard\""}}]}}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash", "input": {"command": "git rev-parse HEAD"}}]}}

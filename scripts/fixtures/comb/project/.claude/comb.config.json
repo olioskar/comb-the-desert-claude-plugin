@@ -1,0 +1,4 @@
+{ "agents": { "simplifier": null, "test-auditor": { "subagent_type": "comb:test-auditor", "when_to_use": "tests", "model": "sonnet" }, "broken": { "when_to_use": "no type" }, "ours": { "subagent_type": "acme:writer", "when_to_use": "our writer", "effort": "low" }, "fast": { "subagent_type": "acme:fast", "when_to_use": "fast lane", "effort": "turbo" }, "nondict": "x" },
+  "models": { "the_desert": "opus", "fix": { "implementer_trivial": "haiku" } },
+  "paths": { "patterns": null },
+  "extra": { "tags": ["c"] } }

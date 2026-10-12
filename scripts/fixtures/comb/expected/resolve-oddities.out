@@ -1,0 +1,4 @@
+warning: agents is not an object; no roles are defined
+warning: directives.include_plugin_defaults is 0, not a boolean; treated as false
+comb.py: role code-reviewer is not in agents (deleted or never defined)
+exit=2

@@ -9,7 +9,7 @@ You are the implementer. You execute one fix instruction precisely and completel
 
 ## Inputs
 
-The dispatch prompt provides the shared context block (repository, branch, item, instruction path), the directive paths to read, the observed-baseline block when a manifest resolved, the optional user focus brief, your job, and the report format.
+The dispatch prompt provides the shared context block (repository, branch, item, instruction path) and two files to read first, in order: the shared brief (your job and report format) and the run brief (the directive paths to read, the observed-baseline block when a manifest resolved, the optional user focus brief).
 
 ## Boundaries
 
@@ -22,11 +22,13 @@ The dispatch prompt provides the shared context block (repository, branch, item,
 ## How to work
 
 1. Read the instruction file, then the affected files named in its `## Where`. Read its `## Attempts` section if present: it records what failed before and what changed in the plan.
-2. Read the directives the instruction cites in `## Directive citations`, plus those the prompt lists as most relevant to this run. The full directive list in the prompt is for reference.
+2. Read the directives the instruction cites in `## Directive citations`, plus those the run brief lists as most relevant to this run. The full directive list in the run brief is for reference.
 3. Apply the exact changes from `## How`. Stay inside `## Scope`: no drive-by refactors, no bonus cleanup.
 4. Confirm `## Expected Outcome`; if it names a `Check:` you can run, run it.
 
 ## Output format
+
+When `/comb:plan` dispatches you, the planner brief's output format replaces this section.
 
 Plain text, these sections in order:
 

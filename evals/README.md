@@ -72,14 +72,14 @@ python3 -I scripts/replay-graders.py evals/<name> /private/tmp/e-XXXX
 | `help-overview` | Help text drift; paraphrased instead of verbatim output |
 | `config-null-delete` | `null`-as-delete merge semantics regressing (deleted role still dispatched) |
 | `noncode-shortcircuit` | `/comb:the-desert` running plan/fix on a prose artifact |
-| `fix-reviewer-diff-scope` | The fix reviewer reading the wrong diff (`HEAD~1` bug class, v0.9.0); a commit landing without the project's test run (0.14.0); HEAD and tree checks skipped around the implementer |
-| `dispatch-delivery` | Directive embedding returning for foreign agents (paths-only contract); the scaffold overrides the writer with `general-purpose` because the shipped default is native since 0.14.0 |
-| `manifest-slice` | Whole-manifest delivery returning: agents must get a per-run excerpt (entity-page section in, pdf and theme out) and the orchestrator must never print the manifest body; also `Verified:` lines in the report, `.comb/excerpts` cleaned, `model` passed on dispatch |
+| `fix-reviewer-diff-scope` | The fix reviewer reading the wrong diff (`HEAD~1` bug class, v0.9.0; since 0.15.0 the `git diff HEAD -- <files>` instruction lives in `shared/fix-reviewer-brief.md`, gated by check-contract, so the trace grader checks the reviewer prompt carries that brief and never says `HEAD~1`); a commit landing without the project's test run (0.14.0); HEAD and tree checks skipped around the implementer |
+| `dispatch-delivery` | Directive embedding returning for foreign agents (paths-only contract); the scaffold overrides the writer with `general-purpose` because the shipped default is native since 0.14.0. Since 0.15.0 the authority sentence and the directive paths live in the run brief, not the Agent prompt, so `authority-sentence` and `directive-paths-listed` read the `form:` and `directives:` lines `comb.py brief` prints into the trace (the brief's content is fixture-tested by `scripts/test-comb.sh`), and `brief-delivered` checks the Agent prompt carries the brief path |
+| `manifest-slice` | Whole-manifest delivery returning: agents must get a per-run excerpt (entity-page section in, pdf and theme out) and the orchestrator must never print the manifest body; also `Verified:` lines in the report, `.comb/excerpts` cleaned, `model` passed on dispatch. Since 0.15.0 the excerpt and manifest paths live in the run brief, so `excerpt-path-in-dispatch` and `full-path-in-dispatch` read the `baseline:` line `comb.py brief` prints, and `brief-delivered` checks the Agent prompt carries the brief path; briefs share the excerpt's run stem, so `excerpts-cleaned` covers them |
 | `fix-auto-off` | The model-only fix entry running without `fix.model_invocation: true` (must refuse, naming the observed value and `/comb:fix`, with no edits) |
 | `fix-auto-on` | The model-only fix entry refusing or stalling when the flag is set (must run the fix workflow and apply the plan) |
 
-`dispatch-delivery` also asserts the plan summary ends with `Next: /comb:fix …` and never
+`dispatch-delivery` also asserts the plan summary ends with `Next: /comb:fix …` (the model may wrap the command in backticks; the grader allows one) and never
 names `fix-auto`. Still uncovered, by cost: a code-shaped `/comb:the-desert` run past
 review (the 0.10.0 hardcoded-reviewer class), `--shave` end to end, review round numbering
 with a deleted earlier round, revert-on-FAIL and `## Attempts` (needs a FAILing reviewer on
-demand), and the python3-missing fallback (PATH is inherited).
+demand), and the python3-missing stop at Step 1 (PATH is inherited; since 0.15.0 every skill needs python3).

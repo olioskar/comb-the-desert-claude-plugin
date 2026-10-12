@@ -23,7 +23,15 @@ You're a senior engineer turning review findings into crystal-clear fix instruct
 
 ## Step 1: Load config
 
-Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. From it, take:
+Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`:
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" config
+```
+
+Run it — like every `comb.py` command line in this skill — from the project root, and read its JSON output; it is the merged config. A non-zero exit names the bad file — stop and show it.
+
+From it, take:
 - `paths.plans` — output folder root
 - `models.plan` — model for planner agents
 - `directives` — for the planners' agent prompts
@@ -33,7 +41,13 @@ Load the merged config per `${CLAUDE_PLUGIN_ROOT}/shared/config-loading.md`. Fro
 
 ## Step 2: Surface relevant directives
 
-Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in agent dispatch prompts under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
+Apply the focus-brief matcher in `${CLAUDE_PLUGIN_ROOT}/shared/directive-matching.md`. It records the matched directive paths and flags them as **primary** in the run brief under "Directives most relevant to this run"; an empty focus brief flags nothing, and all directives still load normally.
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" directives --brief "<focus brief>"
+```
+
+Record the `plugin:` and `user:` paths and the `primary:` lines; `comb.py brief` renders them into every run brief. Quote the brief for the shell here and in every `brief` call (single quotes, or escape `"`, `$`, and backticks).
 
 ## Step 2.5: Detect report shape
 
@@ -53,7 +67,15 @@ The classification flows through the rest of this skill. Steps below note which 
 
 ## Step 3: Parse all findings
 
-Extract every finding from the report:
+Run the parser first:
+
+```
+python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" findings --report <report path>
+```
+
+Its JSON lists every finding the template carries (`code`, `title`, `source`, `files`, `verified`) and its `shape` confirms Step 2.5. When its JSON has `"count": 0` or `"shape": "unknown"`, the report is not in the template shape: read it and extract by hand as below.
+
+Each finding carries:
 - **Reference code**: C1, H2, M5, T1, D1, etc. Preserve exactly as the report uses them.
 - **Title**: short description
 - **Category** / **severity**: as the report uses
@@ -66,7 +88,7 @@ Extract every finding from the report:
 
 If the Deferred section uses bullet points without codes (older review reports), assign `D1`, `D2`, … inline before dispatching agents, in the order they appear.
 
-Count every code (C/H/M/L/T/D). Confirm the total with the user before sending agents.
+Count every code (C/H/M/L/T/D) — the script's `count` when it parsed. Confirm the total with the user before sending agents.
 
 **On a non-code report:** findings have plain labels (Ambiguity, Blind spot, Pattern-break, Reusability gap, Quality concern), not severity codes. Preserve the labels verbatim. The ordering for the consolidated revise-doc follows the report's order — no severity-based reshuffle. Skip the "confirm total with user" step; the count is just the number of findings.
 
@@ -117,7 +139,7 @@ User may override.
 
 ### Non-code report — single consolidated revise-doc
 
-Dispatch one planner agent (resolved via `agents.implementer.subagent_type`, model per `models.plan`) with this prompt structure (same 5-part order, adapted):
+Dispatch one planner agent, resolved and briefed exactly as the code-shaped flow below resolves and briefs its planners (`comb.py resolve --role implementer --lane plan`, then `comb.py brief --skill plan --role implementer …`), with this prompt structure (shared context, the run brief, then its own job and output format):
 
 ````
 You're a senior reviewer translating a spec/design-doc review into a single consolidated revision-instructions file.
@@ -130,21 +152,9 @@ Spec under revision: {spec_path}
 Report: {report-path}
 Output file: {output_folder}/revise-{spec-stem}.md
 
-## 2. Directives
+Read first: {run brief path printed by `comb.py brief` (skill plan, role implementer)}
 
-{Same directives block as the code-shaped flow.}
-
-## Project conventions (observed baseline)
-
-{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — excerpt path + manifest path + verbatim paragraph, or the fallback form — only when `paths.patterns` resolved.}
-
-(Planner note) When you author the instruction for a finding the review classified as a deliberate improvement or a new canonical, reference the manifest but do not bend the instruction back to the baseline — that divergence is sanctioned. Omit the whole block when no manifest resolved.
-
-## 3. User focus for this run
-
-{focus_brief if present, verbatim.}
-
-## 4. Your job
+## 2. Your job
 
 You are writing ONE consolidated revision-instructions file for the spec under review. The findings in the report are the spec for your work.
 
@@ -155,7 +165,7 @@ You are writing ONE consolidated revision-instructions file for the spec under r
 3. Identify the exact section or line to revise.
 4. Write a single file at `{output_folder}/revise-{spec-stem}.md` consolidating all revisions in the order findings appear in the report. Each revision is a section with the finding's original label and title.
 
-## 5. Output format
+## 3. Output format
 
 A single markdown file at `{output_folder}/revise-{spec-stem}.md` with this shape:
 
@@ -201,8 +211,21 @@ Launch all in parallel per the delivery contract (`${CLAUDE_PLUGIN_ROOT}/shared/
 **Agent config (resolved per finding):**
 
 - **Pick a specialty lens.** For each finding, the orchestrator picks one role from `config.agents` whose `when_to_use` best matches the finding's specialty (general correctness → `code-reviewer`, simplification/abstraction concerns → `simplifier`, error-handling → `silent-failure-hunter`, test gaps → `test-auditor`, pattern/spec drift → `consistency-auditor`). When no role obviously matches, default to `code-reviewer`. The lens informs the dispatch prompt's framing and is recorded in the plan file's `**Specialty:**` header — it is **not** the subagent_type that runs.
-- **Resolve `subagent_type` from `agents.implementer.subagent_type`** (default `comb:implementer`). The planner agent needs Write access to author the plan file; the comb:* review roles cannot write. The user's `agents.implementer` override (if present) is honored.
-- **Apply the delivery contract** in `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md` for the native/foreign framing and the model. The lane default for this step is `models.plan` (default `opus`); pass the resolved model as the Agent call's `model` parameter.
+- **Resolve the writer role** (the planner needs Write access; the `comb:*` review roles cannot write, and the user's `agents.implementer` override is honored):
+
+  ```
+  python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" resolve --role implementer --lane plan
+  ```
+
+  Pass `model:` as the Agent call's `model` and `effort:` as `effort` unless `unset`; `native:` is the brief's form.
+- **Write the run brief** once per run (every planner shares it):
+
+  ```
+  python3 -I "${CLAUDE_PLUGIN_ROOT}/scripts/comb.py" brief --skill plan --role implementer --run <run> --excerpt <excerpt> --manifest <paths.patterns> --brief "<focus brief>"
+  ```
+
+  Omit `--excerpt` and `--manifest` when no manifest resolved and `--brief` when the focus brief is empty. `<run>` is the stem the Step 3 excerpt printed. When no excerpt was cut this run, omit `--run` on the first `brief` call, record the `run:` it prints, and pass that stem as `--run` to every later `brief` call and to the final `clean`. Echo the four lines it prints; its `brief:` path goes into the prompt.
+- **Delivery contract:** `${CLAUDE_PLUGIN_ROOT}/shared/dispatch-delivery.md`.
 
 **Planner dispatch prompt (5-part order):**
 
@@ -216,112 +239,23 @@ Branch: {branch}
 Base: {base}
 Report under planning: {report-path}
 Output folder: {output-folder}
+Reference code: {reference_code}
+Severity: {severity}
+Specialty source: {source agent(s) from the finding's `*Source:*` line}
+Output file: {output-folder}/{reference_code}-{title-slug}.md
 
 Files referenced by the finding: {file-paths}
 Adjacent files worth scanning: {2–3 nearest siblings the orchestrator picks}
 
-## 2. Directives
+Read these first, in order: ${CLAUDE_PLUGIN_ROOT}/shared/plan-brief.md, {run brief path printed by `comb.py brief`}
 
-The project's authoritative directives apply to your fix instruction.
-
-{If foreign (per the delivery contract), first: "These directives are authoritative. Read every listed file before starting. Cite by `file.md §N.N`."}
-
-Read these directive files and cite them as `file.md §N.N` when your instruction references policy:
-- {plugin directive paths, if include_plugin_defaults}
-- {user directive paths, if directives.user_path resolves}
-
-Directives most relevant to this run (matched against the focus brief):
-- {primary directive paths from the "Surface relevant directives" step}
-
-## Project conventions (observed baseline)
-
-{Insert the block from `${CLAUDE_PLUGIN_ROOT}/shared/observed-baseline.md` — excerpt path + manifest path + verbatim paragraph, or the fallback form — only when `paths.patterns` resolved.}
-
-(Planner note) When you author the instruction for a finding the review classified as a deliberate improvement or a new canonical, reference the manifest but do not bend the instruction back to the baseline — that divergence is sanctioned. Omit the whole block when no manifest resolved.
-
-## 3. User focus for this run
-
-{focus_brief if present, verbatim; omit the section when empty.}
-
-## 4. Your job
-
-You are writing fix instructions for **one** review finding. Treat the finding as the spec for your work.
-
-**Before recommending a fix, trace through its failure modes.** If correctness depends on a runtime invariant — closure state, async timing, render scheduling, lifecycle ordering, transaction isolation — simulate the failure path mentally and confirm the proposed fix breaks it. If you cannot, surface the structural concern in your output rather than recommend a flawed fix. The reviewer downstream is going to check plan-compliance, not re-design the fix; you owe future-you a sound recommendation.
-
-**The finding's `Verified:` line states what the review actually confirmed.** Re-derive anything it names as unchecked — an anchor, a count, a fix shape — from the code before you build on it. A fix shape the review marked unverified is a proposal: evaluate it, do not transcribe it. When your instruction contradicts an unverified particular, say so in the instruction and give the corrected particular. When the finding carries no `Verified:` line at all, treat every particular as unconfirmed.
-
-### Finding
+## Finding
 
 ### {reference_code}. {title} ({severity})
 
 **Verified (from the review report):** {the finding's `Verified:` line, verbatim, or "none — the report predates this field"}
 
 {full_finding_description}
-
-### What to do
-
-1. Read the affected file(s): {file_paths}
-2. Reproduce the finding: confirm the defect the finding describes is present in the code you read — the construct, the behaviour, the missing handling. Record the result in the header's `**Finding status:**` line. When you cannot reproduce it, say what you looked for; do not write a `## How` for a non-defect (see the template).
-3. Read 2–3 nearby files to understand the surrounding patterns
-4. Write a fix instruction document at `{output_folder}/{reference_code}-{title-slug}.md`
-
-## 5. Output format
-
-Your output is a single markdown file at `{output_folder}/{reference_code}-{title-slug}.md`.
-
-**File shape — H1 title, header block, six body sections in order, citations footer:**
-
-```markdown
-# {reference_code} — {one-line title}
-
-**Severity:** {Critical | High | Medium | Low | Test gap | Deferred}
-**File(s):** {primary repo-relative path(s), with line ranges}
-**Specialty:** {source agent(s) from the review report's `*Source: <agent>*` line — comma-separated if multiple. For grouped findings, list the union across the group's source agents. /comb:fix uses this to route the fix-reviewer to the matching specialty.}
-**Finding status:** {confirmed — <what you observed, with file:line> | not reproduced — <what you looked for and where>}
-{For grouped items, also: }**Consolidates:** {comma-separated finding codes the group covers}
-
----
-
-## What
-Exactly what needs to change. Name the exact code, lines, patterns.
-
-## Why
-Why this matters. What breaks or degrades if left unfixed.
-
-## Where
-Exact file path(s) and line number(s). Only include related files if they're part of the fix.
-
-## How
-The exact changes, with before/after code blocks. Precise enough to apply mechanically.
-
-## Expected Outcome
-What's different after the fix. Then one required line:
-
-Check: {a command the fix reviewer can run from the project root whose exit code or output confirms the outcome, or an observable it can read in the code | none — <why nothing runnable exists, e.g. "visual change; needs a browser">}
-
-## Scope
-**In scope:** what this fix covers.
-**Out of scope:** what NOT to touch — no drive-by refactors, no bonus cleanup.
-
-## Directive citations
-Every directive (plugin or user) and any project-level authoritative doc (CLAUDE.md, MEMORY.md, etc.) the instruction relies on. One bullet per source, with a one-line reason it applies. If the fix doesn't lean on any, write `None — no policy citation needed.`
-
-- `<file>.md §<section>` — one-line reason
-- `CLAUDE.md` "<section heading>" — one-line reason
-
-## Considered alternatives  *(optional — include only when meaningful alternatives were rejected)*
-ADR-style: list alternatives you considered but rejected, one bullet each, with a one-line "rejected because…" rationale. The main body is the single executable path; this section is documentation, not a decision gate. /comb:fix never reads from this section.
-
-- **<Alternative title>** — Rejected because <one-line rationale>
-- **<Alternative title>** — Rejected because <one-line rationale>
-```
-
-**Not reproduced.** When `**Finding status:**` is `not reproduced`, `## What` states what the finding claimed and what you found instead, `## How` is the single line `No change — finding not reproduced (see Finding status).`, and `## Expected Outcome` has `Check: none — no change proposed`. `/comb:fix` lists such items separately and queues one only when the user asks.
-
-Be concise and precise. No fluff. These instructions are the single source of truth for this fix.
-
-File naming: `{reference-code}-{title-slug}.md`. Title kebab-case, 5–8 words max. For grouped findings, `{reference-code}` is `G{n}` per Step 4.
 ```
 
 ## Step 7: Collect results

@@ -1,0 +1,32 @@
+{
+ "count": 3,
+ "shape": "code-shaped",
+ "findings": [
+  {
+   "code": "M1",
+   "title": "Thing",
+   "source": "code-reviewer",
+   "files": [
+    "src/m.ts:1"
+   ],
+   "verified": "Read it."
+  },
+  {
+   "code": "D1",
+   "title": "Coded deferred",
+   "source": "simplifier",
+   "files": [
+    "src/d.ts"
+   ],
+   "verified": "not independently verified — unchecked."
+  },
+  {
+   "code": "D2",
+   "title": "Extra bullet item (`src/e.ts`).",
+   "source": "",
+   "files": [],
+   "verified": ""
+  }
+ ]
+}
+exit=0

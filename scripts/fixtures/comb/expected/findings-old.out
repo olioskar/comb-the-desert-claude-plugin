@@ -1,0 +1,25 @@
+{
+ "count": 2,
+ "shape": "code-shaped",
+ "findings": [
+  {
+   "code": "H1",
+   "title": "Missing guard",
+   "source": "code-reviewer",
+   "files": [
+    "src/g.ts:4"
+   ],
+   "verified": ""
+  },
+  {
+   "code": "D1",
+   "title": "Rename the helper",
+   "source": "simplifier",
+   "files": [
+    "src/h.ts"
+   ],
+   "verified": ""
+  }
+ ]
+}
+exit=0

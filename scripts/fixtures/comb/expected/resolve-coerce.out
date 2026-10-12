@@ -1,0 +1,7 @@
+warning: agents.broken dropped — missing subagent_type
+warning: agents.nondict dropped — missing subagent_type, when_to_use
+subagent_type: comb:test-auditor
+model: sonnet
+effort: max
+native: yes
+exit=0
