@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.1] — 2026-10-12
+
+Prose trims from the family-lean review (P-4, P-5, P-9/R-2, B-1, D-10). Four second copies move to their single source; no behavior changes, so no eval run.
+
+### Changed
+
+- **`shared/manifest-slicing.md` states what the excerpt contains and points at the grammar.** The seven-step excerpt grammar (section classification, scope lines, anchors, touched paths, relevance, banner, staleness) now lives only in `scripts/manifest.py`'s module docstring, the implementation's own contract; the shared block keeps the inputs, four bullets on what travels and why, the printed lines, what the skill does, and the fallback. The fallback no longer mentions a missing `python3`, which has been required since 0.15.0.
+- **`/comb:review` Step 3.5 keeps its two classification definitions and the output shape.** The three worked characterization examples and the three-case tie-break paragraph are gone; the tie-break's one rule — judge by content, not file extension; a mixed diff is code-shaped — joins the Classification intro.
+- **`/comb:configure` derives keys and types from `config/defaults.json`.** The schema table was a copy of that file plus three absent-by-default keys; it is now a pointer, those three keys, a Notes list, and the accepted model values — `sonnet | opus | haiku | fable | <full id>`; `best`, `inherit`, and `opusplan` are `/model` session aliases the Agent call rejects, so configure refuses them. The translation rules keep the three that are not a direct key write (disable a role, add a custom agent, allow Claude to run fix).
+- **README's manifest paragraph points at `shared/manifest-slicing.md`** instead of restating the scope rule, and says `python3` is required.
+
 ## [0.15.0] — 2026-10-12
 
 Deterministic resolver and dispatch briefs, the third PR of the family-lean program. The steps every comb skill re-derived in prose per run — config merge, role and model resolution, directive matching, the common dispatch block, report naming, write-set batching, finding extraction — now run through one stdlib script, and the invariant parts of the planner, implementer, and fix-reviewer prompts move into shared brief files delivered by path. A dispatch prompt is a shared-context block plus two paths; the model stops re-deriving the same rules on every call and the output of each step has one fixed shape.
